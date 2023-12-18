@@ -1,0 +1,12 @@
+version: '3.8'
+
+# override конфигурация для pivot-части
+# определяет разницу конфига для локального окружения
+{{$file_default_node := index .projects.file_default_nodes .file_default_node_id}}
+
+services:
+
+  # MYSQL
+  mysql-{{$file_default_node.label}}:
+    volumes:
+      - "{{.root_mount_path}}/{{$file_default_node.label}}/database:/var/lib/mysql"

@@ -1,0 +1,253 @@
+{{$file_node := index .projects.file .file_node_id}}
+server {
+
+      	listen 443 http2 ssl;
+
+	server_name {{$file_node.subdomain}}.{{.domain}};
+
+	client_max_body_size 	2000m;  # макс размер запроса, присылаемый клиентом
+	client_body_buffer_size 25m; # размер буфера для запроса присланного клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{$file_node.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{$file_node.host}}.key;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	chunked_transfer_encoding       off;
+	error_log /var/log/nginx/error_file.log;
+
+	set $upstream_file_node php-file-node-{{$file_node.label}}:9000;
+
+	#######################################################
+
+	# запрещаем доступ к скрытым файлам
+	location ~ /\. {
+
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+	# статика
+	location /files/ {
+
+		# отключаем gzip чтобы в ответе возвращался content-length
+                gzip off;
+
+		# кэшируем файлы
+		open_file_cache max=10000 inactive=600s; # максимальное количество файлов
+		open_file_cache_valid 600s; # сколько хранить файл в кэше
+		open_file_cache_min_uses 1; # количество обращений к файлу, чтобы он закэшировался
+		open_file_cache_errors on; # кэшировать отсутствующие файлы
+
+		# оптимизируем чтение файлов
+		aio                     threads;
+		sendfile                on;
+		sendfile_max_chunk      1m;
+		directio                10m;
+		output_buffers          128 384k;
+
+		# кэшируем файлы на клиенте
+		add_header Cache-Control public;
+		expires 7d;
+
+		# механизм eTag
+		if_modified_since before;
+		etag on;
+
+		# для видеозаписей
+		location ~* \.(mp4|mov)$ {
+
+			# отключаем open_file_cache
+			# существует баг, из-за которого nginx будет отдавать 500 Internal Server Error
+			# при попытке закэшировать mp4 и включенном модуле mp4
+			open_file_cache off;
+			aio             threads;
+			sendfile        on;
+			tcp_nodelay     on;
+			tcp_nopush      on;
+			directio 	off;
+			gzip 		off;
+
+			mp4;
+			mp4_buffer_size     20m;
+			mp4_max_buffer_size 40m;
+		}
+
+		# перенаправляем в примаунченную папку, где хранятся файлы
+		root /home;
+	}
+
+	# загрузка файлов
+	location = /api/v1/files/tryUpload {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		set $upload_field_name "file";
+
+		reset_timedout_connection off;
+		default_type  application/octet-stream;
+		gzip off;
+
+		# upload file
+        	upload_pass @uploader;
+
+        	# Store files to this directory
+                upload_store /tmp/files/;
+		upload_store_access user:rw group:rw all:rw;
+		upload_max_file_size 256m;
+
+                # Set specified fields in request body
+                upload_set_form_field $upload_field_name.name "$upload_file_name";
+                upload_set_form_field $upload_field_name.content_type "$upload_content_type";
+                upload_set_form_field $upload_field_name.path "$upload_tmp_path";
+
+                upload_pass_form_field "^token$";
+
+                upload_cleanup 400 404 500-599;
+	}
+
+	# путь к скрипту который выполнится после полной загрузки файла
+	location @uploader {
+
+		root /app/www/;
+        	index index.php;
+
+   	    	rewrite /api/v1/files/tryUpload /api/v1/index.php?$args&api_method=files.tryUpload? break;
+                fastcgi_pass $upstream_file_node;
+        }
+
+	# загрузка файлов по частям
+	location = /api/v1/files/tryPartialUpload {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		set $upload_field_name "file";
+		reset_timedout_connection off;
+		default_type  application/octet-stream;
+		gzip off;
+
+		# upload file
+		upload_resumable on;
+        	upload_pass @chunkuploader;
+ 		upload_pass_args on;
+
+        	# Store files to this directory
+                upload_store /tmp/files;
+                upload_state_store /tmp/chunks;
+		upload_store_access user:rw group:rw all:rw;
+		upload_max_file_size 256m;
+
+                # Set specified fields in request body
+                upload_set_form_field $upload_field_name.name "$upload_file_name";
+                upload_set_form_field $upload_field_name.content_type "$upload_content_type";
+                upload_set_form_field $upload_field_name.path "$upload_tmp_path";
+		upload_set_form_field "token" "$http_x_token";
+		upload_set_form_field "sha1_hash" "$http_x_sha1_hash";
+
+                upload_cleanup 400 404 500-599;
+	}
+
+	# путь к скрипту который выполнится после полной загрузки файла
+	location @chunkuploader {
+
+		root /app/www/;
+        	index index.php;
+
+   	    	rewrite /api/v1/files/tryPartialUpload /api/v1/index.php?$args&api_method=files.tryPartialUpload? break;
+                fastcgi_pass $upstream_file_node;
+        }
+
+	# api методы
+	location ~* ^/api/v1/[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+/?$ {
+
+		root /app/www/;
+        	index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/v1/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_file_node;
+	}
+
+	# socket api методы
+	location /api/socket/ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		fastcgi_pass $upstream_file_node;
+	}
+
+	# for userbot запросов
+	location ~* ^/api/userbot/[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+/?$ {
+
+		root /app/www/;
+        	index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/userbot/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/userbot/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_file_node;
+	}
+
+	# favicon
+	location = /favicon.ico {
+
+		return 204;
+		access_log off;
+		log_not_found off;
+	}
+
+	# api monit
+	location ~* ^/api/monit/file_node/?$ {
+
+		root /app/www/;
+		index index.php;
+
+             	rewrite /api/monit/file_node/?$ /api/monit/index.php break;
+
+		auth_basic "Restricted Content";
+		auth_basic_user_file /etc/nginx/ssl/.htpasswd;
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+		proxy_buffering off;
+		proxy_max_temp_file_size 0;
+		gzip off;
+		proxy_redirect off;
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_pass  http://$upstream_file_node;
+	}
+
+	# на все остальное смело отвечаем 404
+	location / {
+
+		log_not_found off;
+		return 404;
+	}
+}

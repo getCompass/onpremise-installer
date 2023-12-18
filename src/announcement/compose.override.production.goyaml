@@ -1,0 +1,16 @@
+version: '3.8'
+
+# override конфигурация для pivot-части
+# определяет разницу конфига для локального окружения
+
+services:
+
+  # MYSQL
+  mysql-{{.projects.analytic.label}}:
+    volumes:
+      - "{{.root_mount_path}}/{{.projects.analytic.label}}/database:/var/lib/mysql"
+
+  # CLICKHOUSE
+  clickhouse-{{.projects.analytic.label}}:
+    volumes:
+      - "{{.root_mount_path}}/analytic/clickhouse:/var/lib/clickhouse yandex/clickhouse-server"

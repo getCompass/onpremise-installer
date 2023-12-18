@@ -1,0 +1,13 @@
+version: '3.8'
+
+# override конфигурация для pivot-части
+# определяет разницу конфига для локального окружения
+
+services:
+
+  # MYSQL
+  mysql-{{.projects.pivot.label}}:
+    networks:
+      - "pivot-private"
+    volumes:
+      - "{{.root_mount_path}}/{{.projects.pivot.label}}/database:/var/lib/mysql"

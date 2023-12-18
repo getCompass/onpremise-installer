@@ -1,0 +1,571 @@
+{
+	"electron_comteam": {
+		"mbti": {
+			"name": "mbti",
+			"value": 1,
+			"rules": []
+		},
+		"mbti_set": {
+			"name": "mbti_set",
+			"value": 1,
+			"rules": []
+		},
+		"is_remind_enabled": {
+			"name": "is_remind_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_premium_enabled": {
+			"name": "is_premium_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_userbot_enabled": {
+			"name": "is_userbot_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
+			"rules": []
+		},
+		"is_enabled_multi_calls": {
+			"name": "is_enabled_multi_calls",
+			"value": 1,
+			"rules": []
+		},
+		"is_invite_code_enabled": {
+			"name": "is_invite_code_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_badge_button_enabled": {
+			"name": "is_badge_button_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_guest_access_enabled": {
+			"name": "is_guest_access_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_optional_user_avatar": {
+			"name": "is_optional_user_avatar",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_support_enabled": {
+			"name": "is_user_support_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_add_user_group_search": {
+			"name": "is_add_user_group_search",
+			"value": 1,
+			"rules": []
+		},
+		"is_platform_icon_enabled": {
+			"name": "is_platform_icon_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_company_avatar_enabled": {
+			"name": "is_company_avatar_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_compass_invite_enabled": {
+			"name": "is_compass_invite_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_emoji_in_input_enabled": {
+			"name": "is_emoji_in_input_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_message_search_enabled": {
+			"name": "is_message_search_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_language_switch_enabled": {
+			"name": "is_language_switch_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_light_left_menu_enabled": {
+			"name": "is_light_left_menu_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_repost_to_thread_enabled": {
+			"name": "is_repost_to_thread_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_simple_join_link_enabled": {
+			"name": "is_simple_join_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_open_registration_enabled": {
+			"name": "is_open_registration_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_show_extended_card_switch": {
+			"name": "is_show_extended_card_switch",
+			"value": 1,
+			"rules": []
+		},
+		"is_member_permissions_enabled": {
+			"name": "is_member_permissions_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_payment_by_invoice_enabled": {
+			"name": "is_payment_by_invoice_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_read_thread_parent_message": {
+			"name": "is_read_thread_parent_message",
+			"value": 1,
+			"rules": []
+		},
+		"is_copy_formatted_text_enabled": {
+			"name": "is_copy_formatted_text_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_download_file_popup_enabled": {
+			"name": "is_download_file_popup_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_partner_invite_link_enabled": {
+			"name": "is_partner_invite_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_partnership_program_enabled": {
+			"name": "is_partnership_program_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_personal_invite_link_enabled": {
+			"name": "is_personal_invite_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_space_member_section_enabled": {
+			"name": "is_space_member_section_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_international_payment_enabled": {
+			"name": "is_international_payment_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_profile_deletion_enabled": {
+			"name": "is_user_profile_deletion_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_add_thread_to_favorite_enabled": {
+			"name": "is_add_thread_to_favorite_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_mention_recommendation_enabled": {
+			"name": "is_mention_recommendation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversation_file_popup_enabled": {
+			"name": "is_conversation_file_popup_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_joining_company_by_link_enabled": {
+			"name": "is_joining_company_by_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_premium_payment_request_enabled": {
+			"name": "is_premium_payment_request_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_button_jump_last_message_enabled": {
+			"name": "is_button_jump_last_message_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_text_formatting_in_input_enabled": {
+			"name": "is_text_formatting_in_input_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_mass_and_single_join_link_enabled": {
+			"name": "is_mass_and_single_join_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_add_reaction_to_bot_message_enabled": {
+			"name": "is_add_reaction_to_bot_message_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_reaction_hiring_conversation_enabled": {
+			"name": "is_reaction_hiring_conversation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversations_instant_opening_enabled": {
+			"name": "is_conversations_instant_opening_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_space_tariff_for_member_count_enabled": {
+			"name": "is_space_tariff_for_member_count_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_thread_unread_in_conversation_enabled": {
+			"name": "is_thread_unread_in_conversation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_profile_setting_for_space_enabled": {
+			"name": "is_user_profile_setting_for_space_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_send_attribution_on_registration_enabled": {
+			"name": "is_send_attribution_on_registration_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_general_chat_notification_settings_enabled": {
+			"name": "is_general_chat_notification_settings_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_group_system_notification_settings_enabled": {
+			"name": "is_group_system_notification_settings_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_reading_all_message_from_left_menu_enabled": {
+			"name": "is_reading_all_message_from_left_menu_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_profile_delete_without_left_company_enabled": {
+			"name": "is_profile_delete_without_left_company_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_addition_to_general_chat_on_hiring_setting_enabled": {
+			"name": "is_addition_to_general_chat_on_hiring_setting_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversations_instant_opening_on_updated_version_enabled": {
+			"name": "is_conversations_instant_opening_on_updated_version_enabled",
+			"value": 1,
+			"rules": []
+		}
+	},
+	"electron_compass": {
+		"mbti": {
+			"name": "mbti",
+			"value": 0,
+			"rules": []
+		},
+		"mbti_set": {
+			"name": "mbti_set",
+			"value": 0,
+			"rules": []
+		},
+		"is_remind_enabled": {
+			"name": "is_remind_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_premium_enabled": {
+			"name": "is_premium_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_userbot_enabled": {
+			"name": "is_userbot_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
+			"rules": []
+		},
+		"is_enabled_multi_calls": {
+			"name": "is_enabled_multi_calls",
+			"value": 0,
+			"rules": []
+		},
+		"is_invite_code_enabled": {
+			"name": "is_invite_code_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_badge_button_enabled": {
+			"name": "is_badge_button_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_guest_access_enabled": {
+			"name": "is_guest_access_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_optional_user_avatar": {
+			"name": "is_optional_user_avatar",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_support_enabled": {
+			"name": "is_user_support_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_add_user_group_search": {
+			"name": "is_add_user_group_search",
+			"value": 1,
+			"rules": []
+		},
+		"is_platform_icon_enabled": {
+			"name": "is_platform_icon_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_company_avatar_enabled": {
+			"name": "is_company_avatar_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_compass_invite_enabled": {
+			"name": "is_compass_invite_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_emoji_in_input_enabled": {
+			"name": "is_emoji_in_input_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_message_search_enabled": {
+			"name": "is_message_search_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_language_switch_enabled": {
+			"name": "is_language_switch_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_light_left_menu_enabled": {
+			"name": "is_light_left_menu_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_repost_to_thread_enabled": {
+			"name": "is_repost_to_thread_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_simple_join_link_enabled": {
+			"name": "is_simple_join_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_video_onboarding_enabled": {
+			"name": "is_video_onboarding_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_open_registration_enabled": {
+			"name": "is_open_registration_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_show_extended_card_switch": {
+			"name": "is_show_extended_card_switch",
+			"value": 0,
+			"rules": []
+		},
+		"is_member_permissions_enabled": {
+			"name": "is_member_permissions_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_payment_by_invoice_enabled": {
+			"name": "is_payment_by_invoice_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_read_thread_parent_message": {
+			"name": "is_read_thread_parent_message",
+			"value": 1,
+			"rules": []
+		},
+		"is_copy_formatted_text_enabled": {
+			"name": "is_copy_formatted_text_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_download_file_popup_enabled": {
+			"name": "is_download_file_popup_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_partner_invite_link_enabled": {
+			"name": "is_partner_invite_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_partnership_program_enabled": {
+			"name": "is_partnership_program_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_personal_invite_link_enabled": {
+			"name": "is_personal_invite_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_space_member_section_enabled": {
+			"name": "is_space_member_section_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_international_payment_enabled": {
+			"name": "is_international_payment_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_profile_deletion_enabled": {
+			"name": "is_user_profile_deletion_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_add_thread_to_favorite_enabled": {
+			"name": "is_add_thread_to_favorite_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_mention_recommendation_enabled": {
+			"name": "is_mention_recommendation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversation_file_popup_enabled": {
+			"name": "is_conversation_file_popup_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_joining_company_by_link_enabled": {
+			"name": "is_joining_company_by_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_premium_payment_request_enabled": {
+			"name": "is_premium_payment_request_enabled",
+			"value": 0,
+			"rules": []
+		},
+		"is_button_jump_last_message_enabled": {
+			"name": "is_button_jump_last_message_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_text_formatting_in_input_enabled": {
+			"name": "is_text_formatting_in_input_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_mass_and_single_join_link_enabled": {
+			"name": "is_mass_and_single_join_link_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_add_reaction_to_bot_message_enabled": {
+			"name": "is_add_reaction_to_bot_message_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_reaction_hiring_conversation_enabled": {
+			"name": "is_reaction_hiring_conversation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversations_instant_opening_enabled": {
+			"name": "is_conversations_instant_opening_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_space_tariff_for_member_count_enabled": {
+			"name": "is_space_tariff_for_member_count_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_thread_unread_in_conversation_enabled": {
+			"name": "is_thread_unread_in_conversation_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_user_profile_setting_for_space_enabled": {
+			"name": "is_user_profile_setting_for_space_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_send_attribution_on_registration_enabled": {
+			"name": "is_send_attribution_on_registration_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_general_chat_notification_settings_enabled": {
+			"name": "is_general_chat_notification_settings_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_group_system_notification_settings_enabled": {
+			"name": "is_group_system_notification_settings_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_reading_all_message_from_left_menu_enabled": {
+			"name": "is_reading_all_message_from_left_menu_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_profile_delete_without_left_company_enabled": {
+			"name": "is_profile_delete_without_left_company_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_addition_to_general_chat_on_hiring_setting_enabled": {
+			"name": "is_addition_to_general_chat_on_hiring_setting_enabled",
+			"value": 1,
+			"rules": []
+		},
+		"is_conversations_instant_opening_on_updated_version_enabled": {
+			"name": "is_conversations_instant_opening_on_updated_version_enabled",
+			"value": 1,
+			"rules": []
+		}
+	}
+}

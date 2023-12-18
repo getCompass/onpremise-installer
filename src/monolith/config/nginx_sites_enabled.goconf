@@ -1,0 +1,344 @@
+{{$file_node := index .projects.file .file_node_id}}
+{{$domino := index .projects.domino .domino_id}}
+
+# Объявляем upstreams, ниже будет развилка,
+# которая потребует разделения на разниые апстимы файл-баласера
+
+upstream upstream_pusher {
+
+    least_conn;
+    keepalive 30;
+    server go-pusher-{{.projects.pivot.label}}:80;
+}
+
+# FILE_NODE PROJECT
+upstream upstream_file_node {
+
+    least_conn;
+    keepalive 30;
+    server php-file-node-{{$file_node.label}}:9000;
+}
+
+upstream upstream_userbot_cache {
+
+    least_conn;
+    keepalive 30;
+    server go-userbot-cache-{{.projects.userbot.label}}:80;
+}
+
+upstream upstream_world_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-world-{{$domino.label}}:9000;
+}
+
+upstream upstream_company_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-company-{{$domino.label}}:9000;
+}
+
+upstream upstream_announcement {
+
+    least_conn;
+    keepalive 30;
+    server php-announcement-{{.projects.announcement.label}}:9000;
+}
+
+upstream upstream_pivot {
+
+    least_conn;
+    keepalive 30;
+    server php-pivot-{{.projects.pivot.label}}:9000;
+}
+
+upstream upstream_userbot {
+
+    least_conn;
+    keepalive 30;
+    server php-userbot-{{.projects.userbot.label}}:9000;
+}
+
+upstream upstream_speaker_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-speaker-{{$domino.label}}:9000;
+}
+
+upstream upstream_file_balancer_pivot {
+
+    least_conn;
+    keepalive 30;
+    server php-file-balancer-{{$domino.label}}:9000;
+}
+
+upstream upstream_file_balancer_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-file-balancer-{{$domino.label}}:9000;
+}
+
+# Делаем маппинг для файл-балансера, там один путь,
+# но нужно направить в разные модули (домино и глобальный).
+# Разруливаем это дело по заголовку, пока так.
+map $http_x_backend_refer_file_balancer_instance $file_balancer_instance {
+
+    "pivot" "upstream_file_balancer_pivot";
+    "space" "upstream_file_balancer_{{$domino.label}}";
+
+    # по умолчанию шлем на домино, так будет пока проще
+    default "upstream_file_balancer_{{$domino.label}}";
+}
+
+server {
+
+    # Это конфигурационный файл нужен, чтобы на одном nginx можно было разруливать
+    # внутрении запросы к разным серверам. Он слушается как сервер по умолчанию на 443 порте
+    # и сюда будут приходит все запросы, которые прилетают по ip-адресу
+
+    listen 443 http2 ssl default_server;
+
+    client_max_body_size    256m; # макс размер запроса, присылаемый клиентом
+
+    ssl_certificate     /etc/nginx/ssl/{{.projects.monolith.host}}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{.projects.monolith.host}}.key;
+
+    resolver 127.0.0.11 ipv6=off;
+
+    error_log /var/log/nginx/error.log;
+
+    #######################################################
+    # shared
+    #######################################################
+
+    # запрещаем доступ к скрытым файлам
+    location ~ /\. {
+        return 404;
+    }
+
+    # запрещаем все, что не попало под локации
+    location / {
+        return 404;
+    }
+
+    #######################################################
+    # php_announcement
+    #######################################################
+
+    # socket-методы
+    location /api/socket/announcement/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/announcement/socket/ break;
+        fastcgi_pass upstream_announcement;
+    }
+
+    #######################################################
+    # php_pivot
+    #######################################################
+
+    # socket
+    location /api/socket/pivot/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/pivot/socket/ break;
+        fastcgi_pass upstream_pivot ;
+    }
+
+    #######################################################
+    # go pusher
+    #######################################################
+
+    location /api/socket/pusher/ {
+
+        proxy_http_version  1.1;
+        proxy_cache_bypass  $http_upgrade;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  $server_port;
+        proxy_pass http://upstream_pusher;
+    }
+
+    #######################################################
+    # php_userbot
+    #######################################################
+
+    # socket-методы php
+    location /api/socket/userbot/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/userbot/socket/ break;
+        fastcgi_pass upstream_userbot;
+    }
+
+    #######################################################
+    # go userbor cache
+    #######################################################
+
+    # socket-методы go
+    location /api/socket/userbot_cache/ {
+
+        proxy_http_version  1.1;
+        proxy_cache_bypass  $http_upgrade;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  $server_port;
+        proxy_pass http://upstream_userbot_cache;
+    }
+
+    #######################################################
+    # file node
+    #######################################################
+
+    # socket api методы
+    location /api/socket/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+	rewrite ^ /api/socket/ break;
+        fastcgi_pass upstream_file_node;
+    }
+
+    #######################################################
+    # php_company
+    #######################################################
+
+    # socket
+    location /api/socket/company/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/company/socket/ break;
+        fastcgi_pass upstream_company_{{$domino.label}};
+    }
+
+    #######################################################
+    # php_conversation
+    #######################################################
+
+    # socket
+    location /api/socket/conversation/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/conversation/socket/ break;
+        fastcgi_pass upstream_world_{{$domino.label}};
+    }
+
+    #######################################################
+    # php_thread
+    #######################################################
+
+    # socket
+    location /api/socket/thread/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/thread/socket/ break;
+        fastcgi_pass upstream_world_{{$domino.label}};
+    }
+
+    #######################################################
+    # php_speaker
+    #######################################################
+
+    # socket
+    location /api/socket/speaker/ {
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/speaker/socket/ break;
+        fastcgi_pass upstream_speaker_{{$domino.label}};
+    }
+
+    #######################################################
+    # php_file_balancer
+    #######################################################
+
+    # socket
+    location /api/socket/files/ {
+
+        # для дебага, в ответе будет возвращать заголовок и выбранный апстрим
+        add_header X-Inst "$file_balancer_instance" always;
+        add_header X-Head "$http_x_backend_refer_file_balancer_instance" always;
+
+        root /app/www/;
+        index index.php;
+
+        # разрешаем только POST запросы
+        limit_except POST {
+            deny all;
+        }
+
+        rewrite ^ /api/file_balancer/socket/ break;
+        fastcgi_pass $file_balancer_instance;
+    }
+
+}

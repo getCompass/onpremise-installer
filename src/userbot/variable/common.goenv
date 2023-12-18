@@ -1,0 +1,27 @@
+CURRENT_SERVER=userbot
+COMPANY_ID=0
+
+# go userbot cache
+GO_USERBOT_GRPC_HOST=go-userbot-cache-{{.projects.userbot.label}}
+GO_USERBOT_GRPC_PORT=2000
+SOCKET_KEY_USERBOT_CACHE={{.security_keys.userbot.socket_key_userbot_cache}}
+
+MYSQL_HOST="mysql-{{.projects.userbot.label}}"
+MYSQL_PORT={{.projects.userbot.service.mysql.port}}
+MYSQL_USER="root"
+MYSQL_PASS="{{.projects.userbot.service.mysql.root_password}}"
+MYSQL_ROOT_PASSWORD="{{.projects.userbot.service.mysql.root_password}}"
+MYSQL_ROOT_PASS="{{.projects.userbot.service.mysql.root_password}}"
+MYSQL_ROOT_USER="root"
+
+MCACHE_HOST=memcached-{{.projects.userbot.label}}
+MCACHE_PORT=11211
+
+RABBIT_HOST=rabbit-{{.projects.userbot.label}}
+RABBIT_PORT=5672
+RABBIT_HTTP_PORT=15672
+RABBIT_USER=user
+RABBIT_PASS=root2
+RABBITMQ_DEFAULT_USER=user
+RABBITMQ_DEFAULT_PASS=root2
+

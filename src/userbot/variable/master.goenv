@@ -1,0 +1,6 @@
+MYSQL_HOST="{{.projects.userbot.service.mysql.host}}"
+MYSQL_USER="{{.projects.userbot.service.mysql.user}}"
+MYSQL_PASS="{{.projects.userbot.service.mysql.password}}"
+
+MYSQL_ROOT_USER="{{.projects.userbot.service.mysql.user}}"
+MYSQL_ROOT_PASS="{{.projects.userbot.service.mysql.password}}"

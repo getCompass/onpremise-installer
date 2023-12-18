@@ -1,0 +1,13 @@
+<?php
+
+namespace Compass\Crm;
+
+/**
+ * Список разрешенных IP адресов, с которых можно осуществлять api-запросы
+ */
+$CONFIG["GLOBAL_ALLOW_IP"] = [
+	"95.213.139.201", # vpn
+	"94.26.231.144", # vpn
+];
+
+return $CONFIG;

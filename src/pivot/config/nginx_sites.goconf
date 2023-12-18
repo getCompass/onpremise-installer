@@ -1,0 +1,401 @@
+server {
+
+      	listen 443 ssl http2;
+
+	server_name		{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{.projects.pivot.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{.projects.pivot.host}}.key;
+
+	error_log	/var/log/nginx/error.log;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
+	set $upstream_file_balancer php-file-balancer-{{.projects.pivot.label}}:9000;
+	set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
+	set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
+	set $upstream_partner php-partner-{{.projects.pivot.label}}:9000;
+	set $upstream_sidecar_php php-sidecar-pivot-{{.projects.pivot.label}}:9000;
+	set $upstream_crm_php php-crm-{{.projects.pivot.label}}:9000;
+	set $upstream_join_web join_web:80;
+
+	# запрещаем доступ к скрытым файлам
+	location ~ /\. {
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+	#######################################################
+	# php_pivot
+	#######################################################
+
+	# apiv1 2 level
+	location ~* ^/api/v1/(faq|global|company|graph|notifications|talking|phone|invitelink|announcement)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v1/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# apiv2 2 level
+	location ~* ^/api/v2/(company|invitecode|premium|invitelink|joinlink|link|global|auth)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v2/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# api www
+    	location ~* ^/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		rewrite ^/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/www/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# api on premise web
+	location ~* ^/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		rewrite ^/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/onpremiseweb/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# apiv1 3 level
+	location ~* ^/api/v1/(pivot)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v1/index.php?$args&api_method=$1.$2.$3? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# apiv2 3 level
+	location ~* ^/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v2/index.php?$args&api_method=$1.$2.$3? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# join
+	location ~* ^/join/([a-zA-Z0-9_\-\.]+)/?$ {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_set_header X-Request-Id      $request_id;
+
+		rewrite ^.*$ / break;
+		proxy_pass  http://$upstream_join_web;
+	}
+
+	# статика (для отображения страницы с приглашением)
+	location ~* ^/assets/  {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+
+		proxy_pass  http://$upstream_join_web;
+	}
+
+	location /favicon.ico {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_set_header X-Request-Id      $request_id;
+
+		proxy_pass  http://$upstream_join_web;
+	}
+
+	# api www
+	location ~* ^/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		rewrite ^/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/www/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+
+	# socket
+	location /api/socket/pivot/ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^ /api/pivot/socket/ break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# страничка с капчей
+	location /captcha/ {
+
+		root /app/www/;
+		index index.php;
+
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# mbti html
+	location ~* ^/html/mbti/?$ {
+
+		root /app/www/;
+
+		index index.php;
+
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	# api monit
+	location ~* ^/api/monit/pivot/?$ {
+
+		auth_basic "Restricted Content";
+		auth_basic_user_file /etc/nginx/ssl/.htpasswd;
+
+		root /app/www/;
+		index index.php;
+
+             	rewrite /api/monit/pivot/?$ /api/pivot/monit/index.php break;
+		fastcgi_pass $upstream_pivot_php;
+	}
+
+	location / {
+
+               	proxy_http_version  1.1;
+               	proxy_cache_bypass  $http_upgrade;
+
+               	proxy_set_header Upgrade           $http_upgrade;
+               	proxy_set_header Connection        "upgrade";
+               	proxy_set_header Host              $host;
+               	proxy_set_header X-Real-IP         $remote_addr;
+               	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+               	proxy_set_header X-Forwarded-Proto $scheme;
+               	proxy_set_header X-Forwarded-Host  $host;
+               	proxy_set_header X-Forwarded-Port  $server_port;
+
+		proxy_pass  http://$upstream_join_web;
+	}
+
+	#######################################################
+    	# STATIC WWW
+    	#######################################################
+
+    	location ^~ /static/application/ {
+
+        	root /var/www/;
+
+        	# отключаем gzip чтобы в ответе возвращался content-length
+        	gzip off;
+        	error_log /var/log/nginx/error_file.log;
+        	# кэшируем файлы
+        	open_file_cache max=10000 inactive=600s; # максимальное количество файлов
+        	open_file_cache_valid 600s;              # сколько хранить файл в кэше
+        	open_file_cache_min_uses 1;              # количество обращений к файлу, чтобы он закэшировался
+        	open_file_cache_errors on;               # кэшировать отсутствующие файлы
+
+        	# оптимизируем чтение файлов
+        	aio                     threads;
+        	sendfile                on;
+        	sendfile_max_chunk      1m;
+        	directio                10m;
+        	output_buffers          128 384k;
+
+        	# кэшируем файлы на клиенте
+        	add_header Cache-Control public;
+        	expires 5m;
+
+        	# механизм eTag
+        	if_modified_since before;
+        	etag on;
+
+        	# сбрасываем, если файла нет
+        	try_files $uri =404;
+    	}
+
+	#######################################################
+	# pivot-sidecar STAGE
+	#######################################################
+
+	# вебхук для взаимодействия со stage через бота
+	location ~* ^/webhook/userbot {
+
+		root /app/entrypoint/;
+		index index.php;
+
+		rewrite ^/webhook/userbot /userbot/index.php break;
+		fastcgi_pass $upstream_sidecar_php;
+	}
+
+	#######################################################
+	# php_file_balancer | php_file_node
+	#######################################################
+
+	# api
+	location ~* ^/api/v1/(files)/[a-zA-Z0-9_\-]+/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/file_balancer/v1/index.php?$args&api_method=$1.$2? break;
+		fastcgi_pass $upstream_file_balancer;
+	}
+
+	# socket
+	location /api/socket/files/ {
+
+		root /app/www/;
+		index index.php;
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		rewrite ^ /api/file_balancer/socket/ break;
+		fastcgi_pass $upstream_file_balancer;
+	}
+
+	#######################################################
+	# WEBSOCKET
+	#######################################################
+
+	location /ws0 {
+
+		# prevents 502 bad gateway error
+		proxy_buffer_size	64k;
+		proxy_buffers		8 32k;
+		proxy_busy_buffers_size	64k;
+
+		proxy_http_version	1.1;
+		proxy_set_header	Upgrade $http_upgrade;
+		proxy_set_header	Connection "Upgrade";
+		proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_pass http://$upstream_sender;
+	}
+
+	#######################################################
+	# PUSHER SOCKET
+	#######################################################
+
+	location /api/socket/pusher/ {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_pass  http://$upstream_pusher;
+	}
+
+}
+
+server {
+
+      	listen 443 ssl http2;
+
+	server_name		start.{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{.projects.pivot.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{.projects.pivot.host}}.key;
+
+	error_log	/var/log/nginx/error.log;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
+
+	# запрещаем доступ к скрытым файлам
+	location ~ /\. {
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+        # start
+        location ~* ^/*$ {
+
+		root /app/www/;
+		index index.php;
+
+		fastcgi_pass $upstream_pivot_php;
+	}
+}

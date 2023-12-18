@@ -1,0 +1,73 @@
+{{$file_default_node := index .projects.file_default_nodes .file_node_id}}
+
+upstream upstream_file_{{$file_default_node.subdomain}}_{{.stack_name_prefix}} {
+
+	least_conn;
+
+	# количество keepalive соединений с апстримом
+	# важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+	keepalive 30;
+
+	# сервера
+	server {{$file_default_node.host}}:{{$file_default_node.service.nginx.external_https_port}};
+}
+
+server {
+
+      	listen 80;
+      	listen 443 http2 ssl;
+
+	server_name file-default.{{.domain}};
+	client_max_body_size 2000m;
+
+      	ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
+      	ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};
+
+	chunked_transfer_encoding       off;
+	error_log /var/log/nginx/error_file.log;
+
+	proxy_http_version	      1.1;
+	proxy_ssl_verify 	      on;
+	proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+	proxy_ssl_session_reuse       on;
+	proxy_set_header Host         $host;
+	proxy_ssl_name                {{$file_default_node.host}};
+	proxy_socket_keepalive 	      on;
+	proxy_set_header X-Real-IP    $remote_addr;
+
+    	# запрещаем доступ к скрытым файлам
+    	location ~ /\. {
+    	    access_log off;
+    	    log_not_found off;
+    	    deny all;
+    	}
+
+	# api monit
+	location ~* ^/api/monit/file_node/?$ {
+
+		root /app/www/;
+		index index.php;
+
+		proxy_pass  https://upstream_file_{{$file_default_node.subdomain}}_{{.stack_name_prefix}};
+	}
+
+	# статика
+	location / {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+		proxy_buffering off;
+		proxy_max_temp_file_size 0;
+		gzip off;
+		proxy_redirect off;
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_pass  https://upstream_file_{{$file_default_node.subdomain}}_{{.stack_name_prefix}};
+	}
+}

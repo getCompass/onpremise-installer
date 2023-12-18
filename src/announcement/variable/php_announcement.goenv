@@ -1,0 +1,1 @@
+GO_SENDER_BALANCER_QUEUE={{.projects.announcement.service.go_sender_balancer.rabbit_queue}}

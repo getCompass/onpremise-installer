@@ -1,0 +1,9 @@
+{{$file_default_node := index .projects.file_default_nodes .file_default_node_id}}
+
+MYSQL_HOST="{{$file_default_node.service.mysql.host}}"
+MYSQL_USER="{{$file_default_node.service.mysql.user}}"
+MYSQL_PASS="{{$file_default_node.service.mysql.password}}"
+
+MYSQL_SYSTEM_HOST="{{$file_default_node.service.mysql.host}}"
+MYSQL_SYSTEM_USER="{{$file_default_node.service.mysql.user}}"
+MYSQL_SYSTEM_PASS="{{$file_default_node.service.mysql.password}}"

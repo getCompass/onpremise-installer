@@ -1,0 +1,57 @@
+version: "3.8"
+
+# --- EXTENSIONS ---
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+{{$domino := index .projects.domino .domino_id}}
+
+# --- DEPLOY ---
+services:
+
+  ##################
+  # STORAGES
+  ##################
+
+  manticore-domino:
+    image: "manticoresearch/manticore"
+    environment:
+      - EXTRA=0
+      - MCL=1
+    volumes:
+      - "{{$domino.manticore_path}}:/var/lib/manticore/"
+    ports:
+      - "{{$domino.service.manticore.external_port}}:{{$domino.service.manticore.port}}"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    <<: *default-deploy
+    <<: *log-rule-default

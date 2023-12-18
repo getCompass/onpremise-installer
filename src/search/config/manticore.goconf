@@ -1,0 +1,10 @@
+{{$domino := index .projects.domino .domino_id}}
+
+searchd {
+    listen = {{$domino.service.manticore.host}}:{{$domino.service.manticore.external_port}}:mysql
+    log = /var/log/manticore/searchd.log
+    pid_file = /var/run/manticore/searchd.pid
+    data_dir = {{$domino.manticore_path}}
+    query_log_format = sphinxql
+    max_packet_size = 64M
+}

@@ -1,0 +1,64 @@
+# общие переменные для всех проекта, которые будут проброшены
+# в контейнеры в качестве переменных среды во всех проектах
+
+# серверные переменные
+
+SERVER_TYPE="{{.server_type}}"
+SERVER_TAG_LIST=[{{range .server_tag_list}}"{{.}}",{{end}}]
+DEV_SERVER={{.dev_server}}
+IS_LOCAL={{.is_local}}
+IS_ANALYTICS_ENABLED=1
+
+PROTOCOL="{{.protocol}}"
+DOMAIN="{{.domain}}"
+SERVER_NAME="{{.domain}}"
+
+LOGGING_LEVEL=5
+DISPLAY_ERRORS=true
+
+PIVOT_PROTOCOL="{{.protocol}}"
+PIVOT_DOMAIN="{{.domain}}"
+ADMIN_DOMAIN="admin.{{.domain}}"
+ANALYTIC_DOMAIN={{.projects.analytic.subdomain}}.{{.domain}}
+ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
+PHP_COLLECTOR_HOST=analytic.{{.domain}}
+FILE_NODE_1_DOMAIN="{{.projects.file.file1.subdomain}}.{{.domain}}"
+
+AUTH_BOT_USER_ID={{.auth_bot_user_id}}
+TEST_BOT_USER_ID=17
+WIKI_BOT_USER_ID=17
+
+# тестовые url
+GO_MOCK_SERVICE_URL=""
+GO_TEST_URL=""
+START_URL=https://start.{{.domain}}/
+
+# адреса входных точеек проектов
+ENTRYPOINT_PIVOT="https://{{.projects.pivot.host}}:{{.projects.pivot.service.nginx.external_https_port}}/"
+ENTRYPOINT_ADMIN=""
+ENTRYPOINT_ANALYTIC=""
+ENTRYPOINT_ANNOUNCEMENT="https://{{.projects.announcement.host}}:{{.projects.announcement.service.nginx.external_https_port}}/"
+ENTRYPOINT_INTERCOM=""
+ENTRYPOINT_STAGE=""
+ENTRYPOINT_TEST=""
+ENTRYPOINT_USERBOT="https://{{.projects.userbot.host}}:{{.projects.userbot.service.nginx.external_https_port}}/"
+ENTRYPOINT_WWW=""
+
+# ключи
+SOCKET_KEY_FILE_NODE="{{.security_keys.file.socket_key_file_node}}"
+SOCKET_KEY_FILE_BALANCER="{{.security_keys.file.socket_key_file_balancer}}"
+SOCKET_KEY_STAGE="{{.security_keys.stage.socket_key_stage}}"
+SOCKET_KEY_PIVOT="{{.security_keys.pivot.socket_key_pivot}}"
+SOCKET_KEY_CRM="{{.security_keys.crm.socket_key_crm}}"
+SOCKET_KEY_CONVERSATION="{{.security_keys.domino.socket_key_conversation}}"
+SOCKET_KEY_THREAD="{{.security_keys.domino.socket_key_thread}}"
+GLOBAL_USERBOT_PRIVATE_KEY="{{.security_keys.userbot.global_userbot_private_key}}"
+
+ENCRYPT_KEY_DEFAULT={{.encrypt_keys.encrypt_key_default}}
+ENCRYPT_IV_DEFAULT={{.encrypt_keys.encrypt_iv_default}}
+
+# endpoint userbot на паблике
+COMPASS_USERBOT_ENDPOINT=https://userbot.getcompass.com/api/v1/
+
+# глобально отключенные группы событий для логирования
+GLOBAL_DISABLED_ANALYTICS_EVENT_GROUP_LIST=[]

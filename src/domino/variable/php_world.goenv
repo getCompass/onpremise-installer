@@ -1,0 +1,22 @@
+{{$domino := index .projects.domino .domino_id}}
+
+REMIND_BOT_USER_ID={{.remind_bot_user_id}}
+SUPPORT_BOT_USER_ID={{.support_bot_user_id}}
+
+IS_PUBLIC_USER_SUPPORT=true
+NEED_CREATE_SUPPORT_CONVERSATION_COMPANY_ID_LIST=[]
+IS_NEED_CREATE_CONVERSATION_IN_INTERCOM_ON_COMPANY_CREATE=true
+INTERCOM_PROTOCOL="{{.protocol}}"
+INTERCOM_DOMAIN=""
+SOCKET_KEY_INTERCOM=""
+USER_SCREEN_TIME_SECONDS=900
+NEED_SEND_ANSWER_TIME_WS_USER_ID_LIST=[]
+MANTICORE_SEARCH_QUERY_LOG_ENABLED=false
+IS_NEED_CREATE_RESPECT_CONVERSATION=true
+IS_NEED_SEND_EXACTNESS_COUNT_THREAD_MESSAGE=true
+ANDROID_VERSION_WITH_INCREMENT_UPDATED_VERSION=["3.6.9","3.6.8","3.6.7","3.6.6","3.6.5","3.6.4","3.6.3","3.6.2","3.6.0","3.5.9","3.5.8","3.5.7","3.5.6","3.5.5","3.5.3","3.5.1","3.4.6","3.3.5","3.1.6","3.1.4"]
+
+GO_EVENT_GLOBAL_EVENT_QUEUE={{$domino.service.go_event.rabbit_service_queue}}
+GO_EVENT_SERVICE_EVENT_EXCHANGE={{$domino.service.go_event.rabbit_service_exchange}}
+GO_COMPANY_QUEUE={{$domino.service.go_company.rabbit_queue}}
+GO_COMPANY_EXCHANGE={{$domino.service.go_company.rabbit_exchange}}

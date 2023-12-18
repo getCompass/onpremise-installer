@@ -1,0 +1,9 @@
+{
+  "loki": {
+    "monitoring": {
+      "url": "http://{{.projects.monitoring.host}}:{{.projects.monitoring.service.loki.exposed_proxy_port}}/loki/api/v1/push",
+      "user": "{{.projects.monitoring.service.loki.auth.username}}",
+      "pass": "{{.projects.monitoring.service.loki.auth.password}}"
+    }
+  }
+}

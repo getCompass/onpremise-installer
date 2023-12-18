@@ -1,0 +1,17 @@
+.idea
+script/._.DS_Store
+src/nginx/conf
+src/nginx/compose.yaml
+src/nginx/compose.*.yaml
+src/pivot/.compose.*
+src/pivot/.variable.*
+src/pivot/config/_generated/*
+src/nginx/config/_generated/*
+certs/
+src/security.yaml
+src/values.production.*.yaml
+src/call.yaml
+src/pivot/config/pivot_captcha.gophp
+src/pivot/config/pivot_sms.gophp
+configs/
+!yaml_template/configs

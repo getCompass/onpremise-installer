@@ -1,0 +1,9 @@
+{
+	"1": {
+		"type": 1,
+		"value": 1,
+		"users": [7],
+		"version": "1",
+		"name": "general_compass"
+	}
+}

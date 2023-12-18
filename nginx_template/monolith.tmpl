@@ -1,0 +1,86 @@
+upstream upstream_single_nginx_{{.stack_name_prefix}} {
+
+        least_conn;
+
+        # количество keepalive соединений с апстримом
+        # важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+        keepalive 30;
+
+        # сервер
+	server {{.projects.monolith.host}}:{{.projects.monolith.service.nginx.external_https_port}};
+}
+
+upstream upstream_nginx_janus_{{.stack_name_prefix}} {
+
+    least_conn;
+
+    # количество keepalive соединений с апстримом
+    # важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+    keepalive 30;
+
+    # сервера
+    server {{.projects.janus.host}}:{{.projects.janus.service.nginx.external_https_port}};
+}
+
+server {
+
+    listen 80;
+    listen 443 http2 ssl;
+
+    server_name             {{.projects.janus.subdomain}}.{{.domain}};
+    client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+    ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
+    ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};
+
+    error_log	/var/log/nginx/error.log;
+
+    proxy_http_version	          1.1;
+    proxy_ssl_verify 	          on;
+    proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+    proxy_ssl_session_reuse       on;
+    proxy_set_header Host         $host;
+    proxy_ssl_name                {{.projects.janus.host}};
+    proxy_socket_keepalive 	      on;
+    proxy_set_header X-Real-IP    $remote_addr;
+
+    location / {
+
+        # просто перенаправляем
+        proxy_pass  http://upstream_nginx_janus_{{.stack_name_prefix}};
+    }
+}
+
+server {
+
+        listen 80;
+        listen 443 http2 ssl;
+
+        server_name     {{.domain}} *.{{.domain}};
+        sendfile on;
+        chunked_transfer_encoding       off;
+        client_max_body_size    256m; # макс размер запроса, присылаемый клиентом
+
+        ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
+        ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};
+
+        error_log       /var/log/nginx/error.log;
+
+        proxy_set_header X-Real-IP    $remote_addr;
+
+        location / {
+
+                proxy_http_version  1.1;
+                proxy_cache_bypass  $http_upgrade;
+
+                proxy_set_header Upgrade           $http_upgrade;
+                proxy_set_header Connection        "upgrade";
+                proxy_set_header Host              $host;
+                proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host  $host;
+                proxy_set_header X-Forwarded-Port  $server_port;
+
+          	proxy_pass  https://upstream_single_nginx_{{.stack_name_prefix}};
+        }
+}

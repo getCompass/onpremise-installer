@@ -1,0 +1,125 @@
+upstream upstream_nginx_userbot_{{.stack_name_prefix}} {
+
+	least_conn;
+
+	# количество keepalive соединений с апстримом
+	# важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+	keepalive 30;
+
+	# сервера
+	server {{.projects.userbot.host}}:{{.projects.userbot.service.nginx.external_https_port}};
+}
+
+upstream upstream_userbot_cache_{{.stack_name_prefix}} {
+
+	least_conn;
+
+	# количество keepalive соединений с апстримом
+	# важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+	keepalive 30;
+
+	# сервера
+	server {{.projects.userbot.host}}:{{.projects.userbot.service.nginx.external_https_port}};
+}
+
+server {
+
+      	listen 80;
+      	listen 443 http2 ssl;
+
+	server_name     	{{.projects.userbot.subdomain}}.{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
+      	ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};
+
+	error_log	/var/log/nginx/error.log;
+
+	proxy_http_version	      1.1;
+	proxy_ssl_verify 	      on;
+	proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+	proxy_ssl_session_reuse       on;
+	proxy_set_header Host         $host;
+	proxy_ssl_name                {{.projects.userbot.host}};
+	proxy_socket_keepalive 	      on;
+	proxy_set_header X-Real-IP    $remote_addr;
+
+	#######################################################
+	# php_userbot
+	#######################################################
+
+	# запрещаем доступ к скрытым файлам
+	location ~ /\. {
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+	# apiv1 2 level
+	location ~* ^/api/v1/(user|group|thread|message|command|request|file|system)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+
+	# apiv2 2 level
+	location ~* ^/api/v2/(user|group|thread|message|command|request|file|system|webhook)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+
+	# apiv3 2 level
+	location ~* ^/api/v3/(user|group|thread|message|command|file|system|webhook)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+
+	# api monit
+	location ~* ^/api/monit/userbot/?$ {
+
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+
+	# start
+	location ~* ^/*$ {
+
+		root /app/www/;
+		index index.php;
+
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+
+	#######################################################
+	# USERBOT_CACHE SOCKET
+	#######################################################
+
+	location /api/socket/userbot_cache/ {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Real-IP         $remote_addr;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+		proxy_pass https://upstream_nginx_userbot_{{.stack_name_prefix}};
+	}
+}

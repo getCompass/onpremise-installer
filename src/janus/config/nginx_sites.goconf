@@ -1,0 +1,67 @@
+server {
+
+    listen 80;
+
+    server_name             {{.projects.janus.subdomain}}.{{.domain}} localhost;
+    client_max_body_size    256m; # макс размер запроса, присылаемый клиентом
+
+    ssl_certificate     /etc/nginx/ssl/{{.projects.janus.host}}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{.projects.janus.host}}.key;
+
+    error_log /var/log/nginx/error.log;
+
+    resolver 127.0.0.11 ipv6=off;
+
+    set $upstream_php_janus php-janus-{{.projects.janus.label}};
+    set $upstream_janus janus-{{.projects.janus.label}};
+
+    # запрещаем доступ к скрытым файлам
+    location ~ /\. {
+
+        access_log off;
+        log_not_found off;
+        deny all;
+    }
+
+    # проксируем запросы с janus (через php_janus)
+    location ~ /proxy/? {
+
+        root /app/www/;
+        index index.php;
+
+        rewrite ^/proxy/?(.*)$ /proxy/index.php break;
+
+        fastcgi_pass $upstream_php_janus:9000;
+    }
+
+    # проксируем запросы на janus (через php_janus)
+    location ~ /janus/? {
+
+        root /app/www/;
+        index index.php;
+
+        rewrite ^/janus/?(.*)$ /janus/index.php break;
+
+        fastcgi_pass $upstream_php_janus:9000;
+        fastcgi_read_timeout 300s;
+    }
+
+    # доступ к управляющему api
+    location /admin {
+
+        proxy_pass http://$upstream_janus:7088/admin;
+    }
+
+    # доступ к панели управления janus
+    location /monitor {
+
+        proxy_pass http://$upstream_janus:7088/;
+    }
+
+    # оно тут было, не знаю, что оно должно делать
+    # но там в любом случае ничего нет, просто для проверки пусть будет
+    location / {
+
+        return 200;
+    }
+}

@@ -1,0 +1,9 @@
+{{$file_node := index .projects.file .file_node_id}}
+
+MYSQL_HOST="{{$file_node.service.mysql.host}}"
+MYSQL_USER="{{$file_node.service.mysql.user}}"
+MYSQL_PASS="{{$file_node.service.mysql.password}}"
+
+MYSQL_SYSTEM_HOST="{{$file_node.service.mysql.host}}"
+MYSQL_SYSTEM_USER="{{$file_node.service.mysql.user}}"
+MYSQL_SYSTEM_PASS="{{$file_node.service.mysql.password}}"

@@ -1,0 +1,11 @@
+{{$domino := index .projects.domino .domino_id}}
+
+MYSQL_HOST="{{$domino.service.mysql.host}}"
+MYSQL_USER="{{$domino.service.mysql.user}}"
+MYSQL_PASS="{{$domino.service.mysql.password}}"
+
+MYSQL_SYSTEM_HOST="{{$domino.service.mysql.host}}"
+MYSQL_SYSTEM_USER="{{$domino.service.mysql.user}}"
+MYSQL_SYSTEM_PASS="{{$domino.service.mysql.password}}"
+
+SUPPORT_BOT_USER_ID={{.support_bot_user_id}}

@@ -1,0 +1,39 @@
+<?php
+
+namespace Compass\Crm;
+
+/** Массив ID менеджеров с админ правами */
+$CONFIG["MANAGER_ADMIN_LIST"] = [
+	1, # Олеся Смирнова
+];
+
+/**
+ * Массив ID руководителей-контроллеров
+ */
+$CONFIG["MANAGER_GENERAL_CONTROLLER_LIST"] = [
+	1, # Олеся Смирнова
+];
+
+$CONFIG["MANAGER_ALLOW_LIST"] = [
+
+	# Олеся Смирнова
+	[
+		"phone_number"              => "+79999999980",
+		"compass_user_id"           => 1,
+		"payment_reward_percent"    => 10,
+		"business_user_loyal_plan"  => 500,
+		"education_user_loyal_plan" => 500,
+	],
+
+	# Александр Иванов
+	[
+		"phone_number"              => "+79999999981",
+		"compass_user_id"           => 2,
+		"payment_reward_percent"    => 10,
+		"business_user_loyal_plan"  => 500,
+		"education_user_loyal_plan" => 500,
+	],
+
+];
+
+return $CONFIG;

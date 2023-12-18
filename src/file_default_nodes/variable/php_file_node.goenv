@@ -1,0 +1,9 @@
+{{$file_default_node := index .projects.file_default_nodes .file_default_node_id}}
+
+CDN_URL={{.protocol}}://{{$file_default_node.subdomain}}.{{.domain}}/
+IS_READONLY=true
+SALT_ANALYTIC={{.security_keys.analytic.salt_analytic}}
+
+GO_COLLECTOR_AGENT_PROTOCOL=http
+GO_COLLECTOR_AGENT_HOST=go-collector-agent-{{$file_default_node.label}}
+GO_COLLECTOR_AGENT_HTTP_PORT=2000

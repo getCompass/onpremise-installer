@@ -1,0 +1,10 @@
+MYSQL_HOST="{{.projects.announcement.service.mysql.host}}"
+MYSQL_USER="{{.projects.announcement.service.mysql.user}}"
+MYSQL_PASS="{{.projects.announcement.service.mysql.password}}"
+
+MYSQL_SYSTEM_HOST="{{.projects.announcement.service.mysql.host}}"
+MYSQL_SYSTEM_USER="{{.projects.announcement.service.mysql.user}}"
+MYSQL_SYSTEM_PASS="{{.projects.announcement.service.mysql.password}}"
+
+MYSQL_ROOT_USER="{{.projects.announcement.service.mysql.user}}"
+MYSQL_ROOT_PASSWORD="{{.projects.announcement.service.mysql.password}}"

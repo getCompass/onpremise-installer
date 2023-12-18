@@ -1,0 +1,11 @@
+MYSQL_HOST={{.projects.pivot.service.mysql.host}}
+MYSQL_USER={{.projects.pivot.service.mysql.user}}
+MYSQL_PASS={{.projects.pivot.service.mysql.password}}
+
+MYSQL_SYSTEM_HOST={{.projects.pivot.service.mysql.host}}
+MYSQL_SYSTEM_USER={{.projects.pivot.service.mysql.user}}
+MYSQL_SYSTEM_PASS={{.projects.pivot.service.mysql.password}}
+
+GO_PIVOT_GET_USER_TIMEOUT_MS=2000
+
+SUPPORT_BOT_USER_ID={{.support_bot_user_id}}

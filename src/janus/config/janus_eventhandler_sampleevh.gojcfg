@@ -1,0 +1,9 @@
+general: {
+    enabled = true
+    events = "all"
+    grouping = true
+    json = "compact"
+    # указываем наш бэкенд — по сути просто проксируем
+    # запрос в nginx этого же докер-стака
+    backend = "http://nginx-{{.projects.janus.label}}:80/proxy/"
+}

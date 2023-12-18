@@ -1,0 +1,13 @@
+DEFAULT_MANAGER_ID=1
+
+ENCRYPT_IV_ACTION={{.encrypt_keys.encrypt_iv_action}}
+ENCRYPT_PASSPHRASE_ACTION={{.encrypt_keys.encrypt_passphrase_action}}
+
+BILLING_URL={{.billing_protocol}}://{{.billing_domain}}/
+
+# для отправки алертов
+COMPASS_NOTICE_BOT_TOKEN=abcdef1234567890
+COMPASS_NOTICE_GROUP_ID=abcdef1234567890
+
+# версия статики в php_web_crm
+JS_CSS_VERSION=1695028243

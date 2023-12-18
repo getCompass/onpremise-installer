@@ -1,0 +1,70 @@
+<?php
+
+namespace Compass\Speaker;
+
+// коды ошибок для api-запросов (& admin-запросов) к janus-серверу
+$CONFIG["JANUS_ERROR_LIST"] = [
+	403 => "Unauthorized request (wrong or missing secret/token)",    // unauthorized (может произойти только при использовании токена apisecret / auth)
+	405 => "Unauthorized access to plugin (token is not allowed to)", // несанкционированный доступ к плагину (возможен только при использовании токена авторизации)
+	450 => "Transport specific error",                                // сообщение об ошибке транспорта
+	452 => "Missing request",                                         // запрос отсутствует в сообщени
+	453 => "Unknown request",                                         // ядро ​​Janus не поддерживает этот запрос
+	454 => "Invalid JSON",                                            // содержание не является допустимым сообщением JSON
+	455 => "Invalid JSON Object",                                     // объект не является допустимым объектом JSON, как ожидалось
+	456 => "Missing mandatory element",                               // в сообщении отсутствует обязательный элемент
+	457 => "Invalid path for this request",                           // запрос не может быть обработан для этого пути веб-сервера
+	458 => "Session not found",                                       // сессия, на которую ссылается запрос, не существует
+	459 => "Handle not found",                                        // дескриптор, на который ссылается запрос, не существует
+	460 => "Plugin not found",                                        // плагин, с которым хочет связаться запрос, не существует
+	461 => "Error attaching plugin",                                  // ошибка при попытке подключиться к плагину и создать дескриптор
+	462 => "Error sending message to plugin",                         // ошибка при попытке отправить сообщение/запрос к плагину
+	463 => "Error detaching from plugin",                             // ошибка, возникающая при попытке отсоединиться от плагина и уничтожить связанный дескриптор
+	464 => "Unsupported JSEP type",                                   // ядро Janus не поддерживает этот тип SDP
+	465 => "Invalid SDP",                                             // описание сеанса, предоставленное узлом, недействительно
+	466 => "Invalid stream",                                          // некорректный поток
+	467 => "Invalid element type",                                    // элемент JSON имеет неправильный тип (например, целое число вместо строки)
+	468 => "Session ID already in use",                               // идентификатор, предоставленный для создания нового сеанса, уже используется
+	469 => "Unexpected ANSWER (no OFFER)",                            // мы получили ответ на предложение, которое мы никогда не делали
+	470 => "Token not found",                                         // имя токена, на которое ссылается запрос, не существует
+	471 => "Wrong WebRTC state",                                      // текущий запрос не может быть обработан из-за несовместимого состояния WebRTC
+	472 => "Currently not accepting new sessions",                    // сервер в настоящее время настроен так, чтобы не принимать новые сеансы
+	490 => "Unknown error",                                           // неизвестная ошибка (применяется в нескольких случаях, поэтому стоит логировать ответ от janus)
+];
+
+// список кодеков, поддерживаемых в janus
+$CONFIG["JANUS_CODEC_LIST"] = [
+	"audio_codec_list" => [
+		"g722",
+		"opus",
+		"pcmu",
+		"pcma",
+		"isac32",
+		"isac16",
+	],
+	"video_codec_list" => [
+		"vp8",
+		"h264",
+		"vp9",
+	],
+];
+
+$CONFIG["JANUS_NODE_LIST"] = [
+	[
+                    "node_id" => 1,
+                    "host" => "{{.projects.janus.subdomain}}.{{.domain}}",
+                    "port" => 443,
+                    "internal_ip" => "{{.projects.janus.host}}",
+                    "janus_path" => "janus",
+                    "is_ssl" => 1,
+                    "api_secret" => "{{.projects.janus.service.janus.api_secret}}",
+                    "admin_secret" => "{{.projects.janus.service.janus.admin_secret}}",
+                    "turn_rest_api_key" => "",
+                    "turn_list" => [],
+                    "load_index" => 1,
+                    "is_grouping" => 1,
+                    "is_enabled" => {{.projects.janus.service.janus.is_enabled}},
+                    "available_for_new" => {{.projects.janus.service.janus.available_for_new}}
+      	]
+];
+
+return $CONFIG;

@@ -1,0 +1,253 @@
+{{$domino := index .projects.domino .domino_id}}
+
+upstream upstream_domino_{{$domino.label}}_{{.stack_name_prefix}} {
+
+	least_conn;
+
+	# количество keepalive соединений с апстримом
+	# важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+	keepalive 30;
+
+	# сервера
+	server {{$domino.code_host}}:{{$domino.service.nginx.external_https_port}};
+}
+
+server {
+
+      	listen 80;
+      	listen 443 http2 ssl;
+	
+	server_name	~^c\d+\-{{$domino.subdomain}}\.{{.domain}}$ {{$domino.subdomain}}.{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+	ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
+      	ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};
+
+	error_log	/var/log/nginx/error.log;
+
+	proxy_http_version	      1.1;
+	proxy_ssl_verify 	      on;
+	proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+	proxy_ssl_session_reuse       on;
+	proxy_set_header Host         $host;
+	proxy_ssl_name                {{$domino.code_host}};
+	proxy_socket_keepalive 	      on;
+	proxy_set_header X-Real-IP    $remote_addr;
+
+    	# запрещаем доступ к скрытым файлам
+    	location ~ /\. {
+    	    access_log off;
+    	    log_not_found off;
+    	    deny all;
+    	}
+
+	#######################################################
+	# WEBSOCKET
+	#######################################################
+	
+	location /ws {
+	
+		# prevents 502 bad gateway error
+		proxy_buffer_size	64k;
+		proxy_buffers		8 32k;
+		proxy_busy_buffers_size	64k;
+		
+		proxy_http_version	1.1;
+		proxy_set_header	Upgrade $http_upgrade;
+		proxy_set_header	Connection "Upgrade";
+		proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	#######################################################
+	# php_company
+	#######################################################
+
+	# apiv2 2 level
+	location ~* ^/api/v1/(global|auth|profile|security|notifications)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;	
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# apif1 3 level
+	location ~* ^/api/v1/(company|employeecard|hiring)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+	# apiv2 2 level
+        location ~* ^/api/v2/(userbot|company|premium|notifications|member|tariff)/([a-zA-Z0-9_\-]+)/?$ {
+
+        	# разрешаем только POST запросы
+        	limit_except POST {
+        		deny all;
+        	}
+
+        	proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+        }
+
+	# apiv2 3 level
+        location ~* ^/api/v2/(hiring|userbot|company|premium|space|member)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+        	# разрешаем только POST запросы
+        	limit_except POST {
+        		deny all;
+        	}
+
+        	proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+        }
+
+	# start
+	location ~* ^/*$ {
+
+		root /app/www/;
+		index index.php;
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+	#######################################################
+	# php_conversation
+	#######################################################
+	
+	# apiv1 2 level
+	location ~* ^/api/v1/(conversations|groups|invites|talking|cmd|previews|communication)/([a-zA-Z0-9_\-]+)/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# apiv2 2 level
+	location ~* ^/api/v2/(conversations|search)/([a-zA-Z0-9_\-]+)/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# apiv2 3 level
+	location ~* ^/api/v2/(conversations)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# bot API
+	location /api/bot/ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+		
+		# vpn
+		allow 95.213.139.201;
+		
+		deny all;
+		
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+	# redirector
+	location ~* ^/redirect/?$ {
+		
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	#######################################################
+	# php_file_balancer
+	#######################################################
+	
+	# apiv1 2 level
+	location ~* ^/api/v1/(files)/[a-zA-Z0-9_\-]+/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+	
+	#######################################################
+	# php_thread
+	#######################################################
+	
+	# apiv1 2 level
+	location ~* ^/api/v1/(threads)/([a-zA-Z0-9_\-]+)/?$ {
+
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# apiv2 2 level
+	location ~* ^/api/v2/(threads)/([a-zA-Z0-9_\-]+)/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# apiv2 3 level
+	location ~* ^/api/v2/(threads)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+	#######################################################
+	# php_speaker
+	#######################################################
+	
+	# apiv1 2 level
+	location ~* ^/api/v1/(calls)/[a-zA-Z0-9_\-]+/?$ {
+		
+		# разрешаем только POST запросы
+		limit_except POST {
+			deny all;
+		}
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+	
+	# janus
+	location /janus/ {
+
+		proxy_pass https://upstream_domino_{{$domino.label}}_{{.stack_name_prefix}};
+	}
+
+}

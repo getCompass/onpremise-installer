@@ -1,0 +1,13 @@
+{
+	"general_compass": {
+		"type": 1,
+		"values": {
+			"current_version": 1,
+			"supported_version_list": [1]
+		},
+		"restrictions": {
+			"user_list": [7]
+		},
+		"priority": 0
+	}
+}

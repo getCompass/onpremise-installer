@@ -1,0 +1,81 @@
+<?php
+
+// настройка поиска в приложении
+// позволяет задать список компаний, в которых поиск будет работать
+$CONFIG["SEARCH"] = [
+
+	// правила ограничения, возможные опции:
+	// 	— only_allowed
+	// 	— any
+	"access" => [
+		"rule"          => "any",
+		"space_id_list" => [],
+	],
+
+	// правила индексации для пространств:
+	// 	— only_allowed — индексация будет работать только в указанных пространствах
+	// 	— any — индексация везде
+	"index" => [
+		"rule"          => "any",
+		"space_id_list" => [],
+	],
+
+	// правила ошибок для обработки очереди подготовки сущностей к индексации
+	//  — allow — разрешены, задачи с ошибками пропускаются
+	//  — disallow — запрещены, задачи с останавливают очередь
+	"entity_preparation_queue" => [
+		"fail_rule"                            => "allow",
+
+		// для stage & production согласовано значение:
+		// "next_iteration_delay_on_empty_queue"  => random_int(30, 90),
+		// не нужно значение это бездумно переносить, это для стейджа
+		"next_iteration_delay_on_empty_queue"  => 5,
+		"next_iteration_delay_on_filled_queue" => 1, // требование он Жени, никогда не ставим здесь 0
+		"next_iteration_delay_on_fail"         => random_int(30, 90),
+
+		// для паблика 8гб нужно выставить 0.5 лимит
+		"ini_memory_limit"     => "2G",
+		"memory_percent_limit" => 0.9,
+		"execution_time_limit" => 5 * 60,
+	],
+
+	// правила ошибок для обработки очереди индексации сущностей
+	//  — allow — разрешены, задачи с ошибками пропускаются
+	//  — disallow — запрещены, задачи с останавливают очередь
+	"index_filling_queue" => [
+		"fail_rule"                            => "allow",
+
+		// для stage & production согласовано значение:
+		// "next_iteration_delay_on_empty_queue"  => random_int(30, 90),
+		// не нужно значение это бездумно переносить, это для стейджа
+		"next_iteration_delay_on_empty_queue"  => 5,
+		"next_iteration_delay_on_filled_queue" => 1, // требование он Жени, никогда не ставим здесь 0
+		"next_iteration_delay_on_fail"         => random_int(30, 90),
+
+		// для паблика 8гб нужно выставить 0.5 лимит
+		"ini_memory_limit"     => "2G",
+		"memory_percent_limit" => 0.9,
+		"execution_time_limit" => 5 * 60,
+	],
+
+	// правила для select выборок
+	// лимиты работает без учета смещения (то есть офсет + лимит не могут превышать это значение)
+	// 	max_location_matches — сколько локаций можно в рамках одного запроса
+	// 	max_hit_matches — сколько совпадений можно получить в рамках одного запроса
+	"query"  => [
+		"max_location_matches" => 10000,
+		"max_hit_matches"      => 10000,
+	],
+
+	// правила для задач
+	"task"                     => [
+		"per_message_task_execution_complexity_limit" => 5000,
+		"per_file_task_execution_complexity_limit"    => 25,
+		"per_preview_task_execution_complexity_limit" => 5000,
+		"max_message_task_complexity"                 => 5000,
+		"max_file_task_complexity"                    => 25,
+		"max_preview_task_complexity"                 => 5000,
+	]
+];
+
+return $CONFIG;

@@ -1,0 +1,25 @@
+<?php
+
+namespace Compass\FileBalancer;
+
+use BaseFrame\Server\ServerProvider;
+
+$CONFIG["NODE_LIST"] = [
+
+	1 => [
+		"node_id"           => 1,
+		"node_url"          => "{{.protocol}}://{{.projects.file.file1.subdomain}}.{{.domain}}/",
+		"socket_url"        => "https://{{.projects.file.file1.host}}:{{.projects.file.file1.service.nginx.external_https_port}}/",
+		"enabled_for_new"   => 1,
+		"allow_file_source" => Type_File_Main::ALLOWED_FILE_SOURCE_LIST,
+	],
+	2 => [
+		"node_id"           => 2,
+		"node_url"          => "{{.protocol}}://{{.projects.file_default_nodes.file_default.subdomain}}.{{.domain}}/",
+		"socket_url"        => "https://{{.projects.file_default_nodes.file_default.host}}:{{.projects.file_default_nodes.file_default.service.nginx.external_https_port}}/",
+		"enabled_for_new"   => 1,
+		"allow_file_source" => Type_File_Main::ALLOWED_FILE_SOURCE_CDN_LIST,
+	],
+];
+
+return $CONFIG;
