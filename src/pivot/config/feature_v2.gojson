@@ -464,12 +464,12 @@
 	"invite_link": {
 		"electron": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			}
 		},
 		"iphone": {
