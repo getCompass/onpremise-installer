@@ -1,0 +1,13 @@
+version: '3.8'
+
+{{$domino := index .projects.domino .domino_id}}
+
+# --- DEPLOY ---
+services:
+
+  ##################
+  # STORAGES
+  ##################
+
+  manticore-domino:
+    image: "manticoresearch/manticore"

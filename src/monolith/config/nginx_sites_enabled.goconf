@@ -1,0 +1,129 @@
+{{$file_node := index .projects.file .file_node_id}}
+{{$domino := index .projects.domino .domino_id}}
+
+# Объявляем upstreams, ниже будет развилка,
+# которая потребует разделения на разниые апстимы файл-баласера
+
+upstream upstream_pusher {
+
+    least_conn;
+    keepalive 30;
+    server go-pusher-{{.projects.pivot.label}}:80;
+}
+
+# FILE_NODE PROJECT
+upstream upstream_file_node {
+
+    least_conn;
+    keepalive 30;
+    server php-file-node-{{$file_node.label}}:9000;
+}
+
+upstream upstream_userbot_cache {
+
+    least_conn;
+    keepalive 30;
+    server go-userbot-cache-{{.projects.userbot.label}}:80;
+}
+
+upstream upstream_world_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-world-{{$domino.label}}:9000;
+}
+
+upstream upstream_company_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-company-{{$domino.label}}:9000;
+}
+
+upstream upstream_announcement {
+
+    least_conn;
+    keepalive 30;
+    server php-announcement-{{.projects.announcement.label}}:9000;
+}
+
+upstream upstream_pivot {
+
+    least_conn;
+    keepalive 30;
+    server php-pivot-{{.projects.pivot.label}}:9000;
+}
+
+upstream upstream_userbot {
+
+    least_conn;
+    keepalive 30;
+    server php-userbot-{{.projects.userbot.label}}:9000;
+}
+
+upstream upstream_speaker_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-speaker-{{$domino.label}}:9000;
+}
+
+upstream upstream_file_balancer_pivot {
+
+    least_conn;
+    keepalive 30;
+    server php-file-balancer-{{$domino.label}}:9000;
+}
+
+upstream upstream_file_balancer_{{$domino.label}} {
+
+    least_conn;
+    keepalive 30;
+    server php-file-balancer-{{$domino.label}}:9000;
+}
+
+# Делаем маппинг для файл-балансера, там один путь,
+# но нужно направить в разные модули (домино и глобальный).
+# Разруливаем это дело по заголовку, пока так.
+map $http_x_backend_refer_file_balancer_instance $file_balancer_instance {
+
+    "pivot" "upstream_file_balancer_pivot";
+    "space" "upstream_file_balancer_{{$domino.label}}";
+
+    # по умолчанию шлем на домино, так будет пока проще
+    default "upstream_file_balancer_{{$domino.label}}";
+}
+
+server {
+
+    # Это конфигурационный файл нужен, чтобы на одном nginx можно было разруливать
+    # внутрении запросы к разным серверам. Он слушается как сервер по умолчанию на 443 порте
+    # и сюда будут приходит все запросы, которые прилетают по ip-адресу
+
+    listen 443 http2 ssl default_server;
+
+    client_max_body_size    2048m; # макс размер запроса, присылаемый клиентом
+
+    ssl_certificate     /etc/nginx/ssl/{{.projects.monolith.host}}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{.projects.monolith.host}}.key;
+
+    resolver 127.0.0.11 ipv6=off;
+
+    error_log /var/log/nginx/error.log;
+
+    #######################################################
+    # shared
+    #######################################################
+
+    # запрещаем доступ к скрытым файлам
+    location ~ /\. {
+        return 404;
+    }
+
+    include includes/announcement.nginx;
+    include includes/pivot.nginx;
+    include includes/file.nginx;
+    include includes/domino.nginx;
+    include includes/userbot.nginx;
+    include includes/janus.nginx;
+}

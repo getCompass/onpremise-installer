@@ -1,0 +1,23 @@
+[
+	{
+		"name": "Оповещения",
+		"npc_type": 5,
+		"short_description": "Системный чат",
+		"avatar_file_map": "",
+		"user_id": {{.auth_bot_user_id}}
+	},
+	{
+		"name": "Напоминание",
+		"npc_type": 6,
+		"short_description": "Системный чат",
+		"avatar_file_map": "",
+		"user_id": {{.remind_bot_user_id}}
+	},
+	{
+		"name": "Служба поддержки",
+		"npc_type": 7,
+		"short_description": "Системный чат",
+		"avatar_file_map": "",
+		"user_id": {{.support_bot_user_id}}
+	}
+]

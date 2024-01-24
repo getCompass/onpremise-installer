@@ -1,0 +1,135 @@
+version: '3.8'
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+# --- DEFINES ----
+configs:
+
+  # настройки nginx
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".project.nginx.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+
+  # настройки janus
+  janus:
+    name: "{{.stack_name}}_janus-{{.config_revisions.project.janus.jcfg}}"
+    file: ".project.janus.jcfg"
+  janus-transport-http:
+    name: "{{.stack_name}}_janus_transport_http-{{.config_revisions.project.janus_transport_http.jcfg}}"
+    file: ".project.janus_transport_http.jcfg"
+  janus-eventhandler-sampleevh:
+    name: "{{.stack_name}}_janus_eventhandler_sampleevh-{{.config_revisions.project.janus_eventhandler_sampleevh.jcfg}}"
+    file: ".project.janus_eventhandler_sampleevh.jcfg"
+  janus-plugin-videoroom:
+    name: "{{.stack_name}}_janus_plugin_videoroom-{{.config_revisions.project.janus_plugin_videoroom.jcfg}}"
+    file: ".project.janus_plugin_videoroom.jcfg"
+
+networks:
+
+  # приватная сеть проекта
+  janus-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.janus.network.subnet}}"
+
+# --- SERVICES ---
+services:
+
+  ## Nginx
+  nginx-{{.projects.janus.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "janus-private"
+    ports:
+      - "{{.projects.janus.service.nginx.external_https_port}}:443"
+    <<: *default-deploy
+    <<: *log-rule-default
+    configs:
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/janus.nginx"
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+
+  ## Janus
+  janus-{{.projects.janus.label}}:
+    image: "{{.registry_service_path}}/janus:{{.projects.janus.service.janus.tag}}"
+    depends_on:
+      - "nginx-{{.projects.janus.label}}"
+    networks:
+      - "janus-private"
+    ports:
+      - "{{.projects.janus.service.janus.port}}:8088"
+      - "{{.projects.janus.service.janus.admin_port}}:7088"
+      {{range $port := loop .projects.janus.service.janus.rtp_port_from .projects.janus.service.janus.rtp_port_to}}
+      - target: {{$port}}
+        published: {{$port}}
+        mode: "host"
+        protocol: "udp"
+      {{end}}
+    <<: *default-deploy
+    <<: *log-rule-default
+    configs:
+      - source: "janus"
+        target: "/etc/janus/janus.jcfg"
+      - source: "janus-transport-http"
+        target: "/etc/janus/janus.transport.http.jcfg"
+      - source: "janus-eventhandler-sampleevh"
+        target: "/etc/janus/janus.eventhandler.sampleevh.jcfg"
+      - source: "janus-plugin-videoroom"
+        target: "/etc/janus/janus.plugin.videoroom.jcfg"
+
+  ## php_janus
+  php-janus-{{.projects.janus.label}}:
+    image: "{{.registry_compass_path}}/php_janus:{{.projects.janus.service.php_janus.tag}}"
+    depends_on:
+      - "janus-{{.projects.janus.label}}"
+      - "nginx-{{.projects.janus.label}}"
+    networks:
+      - "janus-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    env_file:
+      - ".global.common.env"
+      - ".project.php_janus.env"
+    <<: *default-deploy
+    <<: *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "10s"
+      timeout: "120s"
+      retries: 10

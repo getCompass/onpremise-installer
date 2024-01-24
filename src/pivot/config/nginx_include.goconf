@@ -1,0 +1,302 @@
+{{$pivot_locprefix := locprefix .url_path .projects.pivot.url_path}}
+{{$global_locprefix := locprefix .url_path}}
+{{$start_locprefix := locprefix .url_path .projects.pivot.url_path_start}}
+
+set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
+set $upstream_file_balancer php-file-balancer-{{.projects.pivot.label}}:9000;
+set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
+set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
+set $upstream_join_web join_web:80;
+
+# запрещаем доступ к скрытым файлам для пути pivot
+location ~ {{$pivot_locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+#######################################################
+# php_pivot
+#######################################################
+
+# apiv1 2 level
+location ~* ^{{$pivot_locprefix}}/api/v1/(faq|global|company|graph|notifications|talking|phone|invitelink|announcement)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# apiv2 2 level
+location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|premium|invitelink|joinlink|link|global|auth)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# api www
+location ~* ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/www/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# api on premise web
+location ~* ^{{$pivot_locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/onpremiseweb/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# apiv1 3 level
+location ~* ^{{$pivot_locprefix}}/api/v1/(pivot)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v1/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# apiv2 3 level
+location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# api www
+location ~* ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/www/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# socket
+location {{$pivot_locprefix}}/api/socket/pivot/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/pivot/socket/ break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# страничка с капчей
+location {{$global_locprefix}}/captcha/ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^ /captcha/ break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# mbti html
+location ~* ^{{$pivot_locprefix}}/html/mbti/?$ {
+
+	root /app/www/;
+
+	index index.php;
+
+	rewrite ^ /html/mbti/ break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
+# join
+location ~* ^{{$global_locprefix}}/join/([a-zA-Z0-9_\-\.]+)/?$ {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_set_header X-Request-Id      $request_id;
+
+	rewrite ^.*$ / break;
+	proxy_pass  http://$upstream_join_web;
+}
+
+# статика (для отображения страницы с приглашением)
+location ~* ^/assets/  {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+
+	proxy_pass  http://$upstream_join_web;
+}
+
+location ^/favicon.ico {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_set_header X-Request-Id      $request_id;
+
+	proxy_pass  http://$upstream_join_web;
+}
+
+# start
+location / {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+
+	proxy_pass  http://$upstream_join_web;
+}
+
+# start
+location ~* ^{{$start_locprefix}}/*$ {
+
+	root /app/www/;
+    	index index.php;
+
+    	rewrite ^ / break;
+    	fastcgi_pass $upstream_pivot_php;
+}
+
+#######################################################
+# php_file_balancer | php_file_node
+#######################################################
+
+# api
+location ~* ^{{$pivot_locprefix}}/api/v1/(files)/[a-zA-Z0-9_\-]+/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/file_balancer/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+# socket
+location {{$pivot_locprefix}}/api/socket/files/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/file_balancer/socket/ break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+#######################################################
+# WEBSOCKET
+#######################################################
+
+location {{$pivot_locprefix}}/ws0 {
+
+	# prevents 502 bad gateway error
+	proxy_buffer_size	64k;
+	proxy_buffers		8 32k;
+	proxy_busy_buffers_size	64k;
+
+	proxy_http_version	1.1;
+	proxy_set_header	Upgrade $http_upgrade;
+	proxy_set_header	Connection "Upgrade";
+	proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_pass http://$upstream_sender;
+}
+
+#######################################################
+# PUSHER SOCKET
+#######################################################
+
+location {{$pivot_locprefix}}/api/socket/pusher/ {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_pass  http://$upstream_pusher;
+}

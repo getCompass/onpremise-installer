@@ -1,0 +1,61 @@
+{{$locprefix := locprefix .url_path .projects.announcement.url_path -}}
+
+set $upstream_announcement php-announcement-{{.projects.announcement.label}}:9000;
+set $upstream_sender go-sender-{{.projects.announcement.label}}:30000;
+
+#######################################################
+# php_announcement
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+# apiv1
+location ~* ^{{$locprefix}}/api/v1/(announcement)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/announcement/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_announcement;
+}
+
+# socket-методы
+location {{$locprefix}}/api/socket/announcement/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/announcement/socket/ break;
+	fastcgi_pass $upstream_announcement;
+}
+
+# WEBSOCKET
+location {{$locprefix}}/ws0 {
+
+	# prevents 502 bad gateway error
+	proxy_buffer_size	64k;
+	proxy_buffers		8 32k;
+	proxy_busy_buffers_size	64k;
+
+	proxy_http_version	1.1;
+	proxy_set_header	Upgrade $http_upgrade;
+	proxy_set_header	Connection 'Upgrade';
+	proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+
+	proxy_pass http://$upstream_sender;
+}

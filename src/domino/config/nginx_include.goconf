@@ -1,0 +1,340 @@
+{{$domino := index .projects.domino .domino_id}}
+{{$space_locprefix := ""}}
+{{$domino_locprefix := locprefix .url_path $domino.url_path}}
+{{if $domino_locprefix}}{{$space_locprefix = printf "%s/%s" $domino_locprefix "[0-9]+"}}{{- end -}}
+
+set $upstream_company php-company-{{$domino.label}}:9000;
+set $upstream_domino php-world-{{$domino.label}}:9000;
+set $upstream_speaker php-speaker-{{$domino.label}}:9000;
+set $upstream_file_balancer php-file-balancer-{{$domino.label}}:9000;
+set $upstream_sender go-sender-{{$domino.label}}:30000;
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$domino_locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+#######################################################
+# WEBSOCKET
+#######################################################
+
+location {{$domino_locprefix}}/ws {
+
+	# prevents 502 bad gateway error
+	proxy_buffer_size	64k;
+	proxy_buffers		8 32k;
+	proxy_busy_buffers_size	64k;
+
+	proxy_http_version	1.1;
+	proxy_set_header	Upgrade $http_upgrade;
+	proxy_set_header	Connection "Upgrade";
+	proxy_set_header	X-Forwarded-For $proxy_add_x_forwarded_for;
+
+	proxy_pass http://$upstream_sender;
+}
+
+#######################################################
+# php_company
+#######################################################
+
+# apiv2 2 level
+location ~* ^{{$space_locprefix}}/api/v1/(global|auth|profile|security|notifications)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/company/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_company;
+}
+
+# apif1 3 level
+location ~* ^{{$space_locprefix}}/api/v1/(company|employeecard|hiring)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/company/v1/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_company;
+}
+
+# apiv2 2 level
+location ~* ^{{$space_locprefix}}/api/v2/(userbot|company|premium|notifications|member|tariff)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/company/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_company;
+}
+
+# apiv2 3 level
+location ~* ^{{$space_locprefix}}/api/v2/(hiring|userbot|company|premium|space|member)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/company/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_company;
+}
+
+# socket
+location {{$domino_locprefix}}/api/socket/company/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/company/socket/ break;
+	fastcgi_pass $upstream_company;
+}
+
+## start
+#location ~* ^{{$domino_locprefix}}/*$ {
+#
+#	root /app/www/;
+#	index index.php;
+#
+#	fastcgi_pass $upstream_company;
+#}
+
+#######################################################
+# php_conversation
+#######################################################
+
+# apiv1 2 level
+location ~* ^{{$space_locprefix}}/api/v1/(conversations|groups|invites|talking|cmd|previews|communication)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/conversation/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# apiv2 2 level
+location ~* ^{{$space_locprefix}}/api/v2/(conversations|search)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/conversation/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# apiv2 3 level
+location ~* ^{{$space_locprefix}}/api/v2/(conversations)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/conversation/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# socket
+location {{$domino_locprefix}}/api/socket/conversation/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/conversation/socket/ break;
+	fastcgi_pass $upstream_domino;
+}
+
+# redirector
+location ~* ^{{$space_locprefix}}/redirect/?$ {
+
+	root /app/www/;
+	rewrite ^{{$space_locprefix}}/(.*)$ /$1 break;
+	index index.php;
+
+	fastcgi_pass $upstream_domino;
+}
+
+#######################################################
+# php_file_balancer
+#######################################################
+
+# apiv1 2 level
+location ~* ^{{$space_locprefix}}/api/v1/(files)/[a-zA-Z0-9_\-]+/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/file_balancer/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+# socket
+location {{$domino_locprefix}}/api/socket/files/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/file_balancer/socket/ break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+#######################################################
+# php_thread
+#######################################################
+
+# apiv1 2 level
+location ~* ^{{$space_locprefix}}/api/v1/(threads)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/thread/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# apiv2 2 level
+location ~* ^{{$space_locprefix}}/api/v2/(threads)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/thread/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# apiv2 3 level
+location ~* ^{{$space_locprefix}}/api/v2/(threads)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/thread/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_domino;
+}
+
+# socket
+location {{$domino_locprefix}}/api/socket/thread/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/thread/socket/ break;
+	fastcgi_pass $upstream_domino;
+}
+
+#######################################################
+# php_speaker
+#######################################################
+
+# apiv1 2 level
+location ~* ^{{$space_locprefix}}/api/v1/(calls)/[a-zA-Z0-9_\-]+/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/speaker/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_speaker;
+}
+
+# socket
+location {{$domino_locprefix}}/api/socket/speaker/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/speaker/socket/ break;
+	fastcgi_pass $upstream_speaker;
+}
+
+# janus
+location ~* ^{{$space_locprefix}}/janus/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$space_locprefix}}/janus/?$ /api/speaker/janus/index.php break;
+	fastcgi_pass $upstream_speaker;
+}

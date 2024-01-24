@@ -1,0 +1,12 @@
+version: '3.8'
+
+# override конфигурация для pivot-части
+# определяет разницу конфига для локального окружения
+{{$domino := index .projects.domino .domino_id}}
+
+services:
+
+  # MYSQL
+  mysql-{{$domino.label}}:
+    volumes:
+      - "{{.root_mount_path}}/{{$domino.label}}/database:/var/lib/mysql"

@@ -1,0 +1,180 @@
+version: '3.8'
+
+# файл композиции для file-части
+{{$file_node := index .projects.file .file_node_id}}
+
+configs:
+
+  # настройки коллектор-агента
+  go-collector-agent-sharding-conf:
+    name: "{{.stack_name}}_go_collector_agent_sharding-{{.config_revisions.global.go_collector_agent_sharding.json}}"
+    file: ".global.go_collector_agent_sharding.json"
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+services:
+  ## NGINX
+  nginx-{{$file_node.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "file-node-private"
+    ports:
+      - "{{$file_node.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    configs:
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/file.nginx"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+      - "{{.root_mount_path}}/tmp_files:/tmp/files/"
+      - "{{.root_mount_path}}/files:/home/files/"
+  # MYSQL
+  mysql-{{$file_node.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      - "file-node-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{$file_node.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{$file_node.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # RABBIT
+  rabbit-{{$file_node.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      - "file-node-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # MEMCACHED
+  memcached-{{$file_node.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      - "file-node-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # FILE_NODE
+  php-file-node-{{$file_node.label}}:
+    image: "{{.registry_compass_path}}/php_file_node:{{$file_node.service.php_file_node.tag}}"
+    environment:
+      NODE_ID: "1"
+      NODE_URL: "{{.protocol}}://{{$file_node.subdomain}}.{{.domain}}/"
+      VIDEO_PROCESS_THREAD_COUNT: "2"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_file_node.env"
+    networks:
+      - "file-node-private"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{.root_mount_path}}/tmp_files:/tmp/files/"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+  # GO_COLLECTOR_AGENT
+  go-collector-agent-{{$file_node.label}}:
+    image: "{{.registry_compass_path}}/go_collector_agent:{{$file_node.service.go_collector_agent.tag}}"
+    depends_on:
+      - "rabbit-{{$file_node.label}}"
+    environment:
+      HTTP_PORT: 2000
+      TCP_PORT: 1000
+    env_file:
+      - ".global.common.env"
+      - ".global.go_collector_request_balancing.env"
+      - ".project.common.env"
+      - ".project.php_file_node.env"
+    networks:
+      - "file-node-private"
+    configs:
+      - source: "go-collector-agent-sharding-conf"
+        target: "/app/api/conf/sharding.example.json"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+networks:
+  file-node-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{$file_node.network.subnet}}"

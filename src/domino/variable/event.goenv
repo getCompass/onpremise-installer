@@ -1,0 +1,5 @@
+{{$domino := index .projects.domino .domino_id}}
+
+PER_DELIVERY_LIMIT={{$domino.service.go_event.per_delivery_limit}}
+DELIVERY_DELAY={{$domino.service.go_event.delivery_delay}}
+COURIER_COUNT={{$domino.service.go_event.courier_count}}

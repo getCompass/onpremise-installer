@@ -1,0 +1,103 @@
+security_keys:
+  admin:
+    socket_key_admin: ""
+  analytic:
+    socket_key_collector: ""
+    socket_key_webstat: ""
+    socket_key_go_collector_agent: ""
+    socket_key_go_partner_agent: ""
+    salt_analytic: ""
+  file:
+    socket_key_file_node: ""
+    socket_key_file_balancer: ""
+  announcement:
+    socket_key_go_sender: ""
+    salt_sender_hash: ""
+    salt_sender_balancer_hash: ""
+    global_announcement_socket_key: ""
+    company_announcement_socket_key: ""
+    salt_initial_announcement_token: ""
+    socket_key_announcement: ""
+  domino:
+    socket_key_company: ""
+    socket_key_conversation: ""
+    socket_key_thread: ""
+    socket_key_go_event: ""
+    socket_key_go_timer: ""
+    socket_key_go_company: ""
+    socket_key_go_rating: ""
+    socket_key_go_sender: ""
+    socket_key_go_partner_agent: ""
+    socket_key_speaker: ""
+    socket_key_migration: ""
+    socket_key_compass_company: ""
+    salt_talking_hash: ""
+    salt_sender_hash: ""
+  intercom:
+    socket_key_intercom: ""
+  pivot:
+    socket_key_go_pusher: ""
+    socket_key_go_sender: ""
+    socket_key_go_event: ""
+    salt_sender_balancer_hash: ""
+    salt_sender_hash: ""
+    socket_key_pivot: ""
+  userbot:
+    socket_key_userbot_cache: ""
+    global_userbot_private_key: ""
+  stage:
+    socket_key_stage: ""
+  crm:
+    socket_key_crm: ""
+  bothub:
+    socket_key_bothub: ""
+  solution:
+    socket_key_solution: ""
+    socket_key_push_sender: ""
+salt_keys:
+  salt_pack_session_v1: ""
+  salt_pack_auth_v1: ""
+  salt_pack_file_1: ""
+  salt_pack_file_2: ""
+  salt_useragent_v1: ""
+  salt_sender_hash: ""
+  salt_code_v1: ""
+  salt_pack_company_session_v1: ""
+  salt_action_users: ""
+  salt_auth_pin_code_v1: ""
+  salt_pack_message_1: ""
+  salt_pack_conversation_1: ""
+  salt_pack_thread_1: ""
+  salt_pack_invite_1: ""
+  salt_pack_preview_1: ""
+  salt_pack_call_1: ""
+  salt_archive_block_signature: ""
+  salt_allowed_users_for_invite: ""
+  salt_pack_session: ""
+encrypt_keys:
+  encrypt_iv_action: ""
+  encrypt_key_default: ""
+  encrypt_iv_default: ""
+  encrypt_passphrase_action: ""
+  extended_encrypt_key_default: ""
+  extended_encrypt_iv_default: ""
+  encrypt_key_pivot_session: ""
+  encrypt_iv_pivot_session: ""
+  encrypt_key_session: ""
+  encrypt_iv_session: ""
+  encrypt_iv_company_session: ""
+  encrypt_key_company_session: ""
+ssl_keys:
+  company_to_pivot:
+    public_key: ""
+    private_key: ""
+  pivot_to_company:
+    public_key: ""
+    private_key: ""
+
+
+
+
+
+
+

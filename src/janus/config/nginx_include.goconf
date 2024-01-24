@@ -1,0 +1,58 @@
+{{$locprefix := locprefix .url_path .projects.janus.url_path -}}
+
+set $upstream_php_janus php-janus-{{.projects.janus.label}};
+set $upstream_janus janus-{{.projects.janus.label}};
+
+#######################################################
+# janus
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ /\. {
+
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+# проксируем запросы с janus (через php_janus)
+location ~ {{$locprefix}}/proxy/? {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$locprefix}}/proxy/?(.*)$ /proxy/index.php break;
+
+	fastcgi_pass $upstream_php_janus:9000;
+}
+
+# проксируем запросы на janus (через php_janus)
+location ~ {{$locprefix}}/janus/? {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$locprefix}}/janus/?(.*)$ /janus/index.php break;
+
+	fastcgi_pass $upstream_php_janus:9000;
+	fastcgi_read_timeout 300s;
+}
+
+# доступ к управляющему api
+location {{$locprefix}}/admin {
+
+	proxy_pass http://$upstream_janus:7088/admin;
+}
+
+# доступ к панели управления janus
+location {{$locprefix}}/monitor {
+
+	proxy_pass http://$upstream_janus:7088/;
+}
+
+# оно тут было, не знаю, что оно должно делать
+# но там в любом случае ничего нет, просто для проверки пусть будет
+location {{$locprefix}}/ {
+
+	return 200;
+}

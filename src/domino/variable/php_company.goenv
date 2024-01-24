@@ -1,0 +1,17 @@
+{{$domino := index .projects.domino .domino_id}}
+
+SOCKET_KEY_INTERCOM={{.security_keys.intercom.socket_key_intercom}}
+INTERCOM_PROTOCOL="{{.protocol}}"
+USER_SCREEN_TIME_SECONDS=900
+
+INTERCOM_DOMAIN=""
+
+NEED_SEND_ACTIVE_MEMBER_PUSH=true
+NEED_SEND_JOIN_REQUEST_PUSH=true
+NEED_SEND_GUEST_MEMBER_PUSH=true
+
+GO_EVENT_GLOBAL_EVENT_QUEUE={{$domino.service.go_event.rabbit_service_queue}}
+GO_EVENT_SERVICE_EVENT_EXCHANGE={{$domino.service.go_event.rabbit_service_exchange}}
+GO_EVENT_SERVICE_EVENT_QUEUE={{$domino.service.go_event.rabbit_service_queue}}
+GO_COMPANY_QUEUE={{$domino.service.go_company.rabbit_queue}}
+GO_COMPANY_EXCHANGE={{$domino.service.go_company.rabbit_exchange}}

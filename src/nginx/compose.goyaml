@@ -1,0 +1,17 @@
+version: '3.8'
+
+# конфигурация для nginx
+
+services:
+
+  nginx-{{.nginx.label}}:
+    image: "{{.registry_service_path}}/nginx:add_log"
+    ports:
+      - "{{.external_port}}:80"
+    environment:
+      NGINX_ENVSUBST_OUTPUT_DIR: "/etc/nginx/sites-enabled"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"

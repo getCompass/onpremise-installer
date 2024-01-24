@@ -1,0 +1,98 @@
+{{$locprefix := locprefix .url_path .projects.userbot.url_path -}}
+
+set $upstream_userbot php-userbot-{{.projects.userbot.label}}:9000;
+set $upstream_userbot_cache go-userbot-cache-{{.projects.userbot.label}}:80;
+
+#######################################################
+# php_userbot
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+# apiv1 2 level
+location ~* ^{{$locprefix}}/api/v1/(user|group|thread|message|command|request|file|system)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/userbot/v1/index.php?$args&api_method=$1.$2? break;
+
+	fastcgi_pass $upstream_userbot;
+}
+
+# apiv2 2 level
+location ~* ^{{$locprefix}}/api/v2/(user|group|thread|message|command|request|file|system|webhook)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/userbot/v2/index.php?$args&api_method=$1.$2? break;
+
+	fastcgi_pass $upstream_userbot;
+}
+
+# apiv3 2 level
+location ~* ^{{$locprefix}}/api/v3/(user|group|thread|message|command|file|system|webhook)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$locprefix}}/api/v3/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/userbot/v3/index.php?$args&api_method=$1.$2? break;
+
+	fastcgi_pass $upstream_userbot;
+}
+
+# socket-методы
+location {{$locprefix}}/api/socket/userbot/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/userbot/socket/ break;
+	fastcgi_pass $upstream_userbot;
+}
+
+#######################################################
+# USERBOT_CACHE SOCKET
+#######################################################
+
+location {{$locprefix}}/api/socket/userbot_cache/ {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_pass  http://$upstream_userbot_cache;
+}

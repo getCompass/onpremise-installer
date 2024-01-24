@@ -1,0 +1,702 @@
+version: '3.8'
+
+# файл композиции для domino-части
+  {{$domino := index .projects.domino .domino_id}}
+
+configs:
+
+  # настройки коллектор-агента
+  go-collector-agent-sharding-conf:
+    name: "{{.stack_name}}_go_collector_agent_sharding-{{.config_revisions.global.go_collector_agent_sharding.json}}"
+    file: ".global.go_collector_agent_sharding.json"
+  tariff-conf:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.global.tariff.php}}"
+    file: ".global.tariff.php"
+  tariff-thread-conf:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.global.tariff.php}}"
+    file: ".global.tariff.php"
+  file-nodes:
+    name: "{{.stack_name}}_file_nodes-{{.config_revisions.project.file_nodes.php}}"
+    file: ".project.file_nodes.php"
+  search-conf:
+    name: "{{.stack_name}}_search-{{.config_revisions.project.search.php}}"
+    file: ".project.search.php"
+  monitor-conf:
+    name: "{{.stack_name}}_monitor-{{.config_revisions.project.monitor.php}}"
+    file: ".project.monitor.php"
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  janus:
+    name: "{{.stack_name}}_janus-{{.config_revisions.project.janus.php}}"
+    file: ".project.janus.php"
+  stun-server-list:
+    name: "{{.stack_name}}_stun_server_list-{{.config_revisions.project.stun_server_list.php}}"
+    file: ".project.stun_server_list.php"
+  turn-server-list:
+    name: "{{.stack_name}}_turn_server_list-{{.config_revisions.project.turn_server_list.php}}"
+    file: ".project.turn_server_list.php"
+services:
+
+  ## NGINX
+  nginx-{{$domino.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "domino-private"
+    ports:
+      - "{{$domino.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    configs:
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/domino.nginx"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+  # MYSQL
+  mysql-{{$domino.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      - "domino-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{$domino.service.mysql.root_password}}"
+    ports:
+      - "{{$domino.service.mysql.external_port}}:{{$domino.service.mysql.port}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{$domino.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # RABBIT
+  rabbit-{{$domino.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      - "domino-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # MEMCACHED
+  memcached-{{$domino.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      - "domino-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_WORLD
+  php-world-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_world:{{$domino.service.php_world.tag}}"
+    depends_on:
+      - "memcached-{{$domino.label}}"
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_world.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    configs:
+      - source: "tariff-conf"
+        target: "/app/src/Compass/Conversation/api/conf/tariff.php"
+      - source: "tariff-thread-conf"
+        target: "/app/src/Compass/Thread/api/conf/tariff.php"
+      - source: "search-conf"
+        target: "/app/src/Compass/Conversation/api/conf/search.php"
+      - source: "monitor-conf"
+        target: "/app/src/Compass/Conversation/api/conf/monitor.php"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_COMPANY
+  php-company-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_company:{{$domino.service.php_company.tag}}"
+    depends_on:
+      - "memcached-{{$domino.label}}"
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_company.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_MIGRATION
+  php-migration-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_migration:{{$domino.service.php_migration.tag}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    environment:
+      MYSQL_DOMINO_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_PORT: "{{$domino.go_database_controller_port}}"
+    networks:
+      - "domino-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # PHP_REPAIRER
+  php-repairer-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_repairer:{{$domino.service.php_repairer.tag}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    environment:
+      SOCKET_KEY_MIGRATION: "{{.projects.pivot.php_migration_socket_key}}"
+      MYSQL_DOMINO_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_PORT: "{{$domino.go_database_controller_port}}"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_SPEAKER
+  php-speaker-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_speaker:{{$domino.service.php_speaker.tag}}"
+    depends_on:
+      - "memcached-{{$domino.label}}"
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+    configs:
+      - source: "janus"
+        target: "/app/src/Compass/Speaker/api/conf/janus.php"
+      - source: "stun-server-list"
+        target: "/app/src/Compass/Speaker/api/conf/stun.php"
+      - source: "turn-server-list"
+        target: "/app/src/Compass/Speaker/api/conf/turn.php"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_speaker.env"
+    environment:
+      JANUS_CLIENT_OPTIMAL_BANDWIDTH_MB: 6
+      JANUS_ROOM_BITRATE_LIST: |
+        [256 * 1000, 512 * 1000, 1024 * 1000]
+      JANUS_USER_TOKEN_SECRET: "user_token"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_FILE_BALANCER
+  php-file-balancer-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_file_balancer:{{$domino.service.php_file_balancer.tag}}"
+    depends_on:
+      - "memcached-{{$domino.label}}"
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+      - "go-company-cache-{{$domino.label}}"
+      - "go-sender-{{$domino.label}}"
+    configs:
+      - source: "file-nodes"
+        target: "/app/src/Compass/FileBalancer/api/conf/node.php"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_file_balancer.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_COMPANY_CACHE
+  go-company-cache-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_company_cache:{{$domino.service.go_company_cache.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_company_cache.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_company_cache.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.go_company_cache.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_RATING
+  go-rating-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_rating:{{$domino.service.go_rating.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_rating.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_rating.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - "{{$domino.company_config_dir}}/:/config"
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_SENDER
+  go-sender-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_sender:{{$domino.service.go_sender.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      WS_PORT: 30000
+      NODE_ID: 0
+      IS_HAS_BALANCER: "true"
+      RABBIT_QUEUE: {{$domino.service.go_sender.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_sender.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_COLLECTOR_AGENT
+  go-collector-agent-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_collector_agent:{{$domino.service.go_collector_agent.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      HTTP_PORT: 2000
+      TCP_PORT: 1000
+    env_file:
+      - ".global.common.env"
+      - ".global.go_collector_request_balancing.env"
+      - ".project.common.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    configs:
+      - source: "go-collector-agent-sharding-conf"
+        target: "/app/api/conf/sharding.example.json"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_COMPANY
+  go-company-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_company:{{$domino.service.go_company.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      HTTP_PORT: 80
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_company.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_company.rabbit_exchange}}
+      TZ: Europe/Moscow
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_EVENT
+  go-event-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_event:{{$domino.service.go_event.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      SERVICE_ROLE_SET: "domino"
+      HTTP_PORT: 80
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_event.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_event.rabbit_exchange}}
+      SERVICE_RABBIT_QUEUE: {{$domino.service.go_event.rabbit_service_queue}}
+      SERVICE_RABBIT_EXCHANGE: {{$domino.service.go_event.rabbit_service_exchange}}
+      MYSQL_SYSTEM_DATABASE_NAME: {{$domino.service.go_event.mysql_system_database_name}}
+      MYSQL_GLOBAL_DATABASE_NAME: {{$domino.service.go_event.mysql_global_database_name}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.event.env"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{$domino.company_config_dir}}/:/config"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # GO_DATABASE_CONTROLLER
+  go-database-controller-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_database_controller:{{$domino.service.go_database_controller.tag}}"
+    depends_on:
+      - "mysql-{{$domino.label}}"
+    environment:
+      LOGGING_LEVEL: 2
+      GRPC_PORT: {{$domino.go_database_controller_port}}
+      PROFILER_PORT: {{$domino.go_database_controller_profiler_port}}
+      MYSQL_COMPANY_HOST: {{$domino.mysql_host}}
+      COMPANY_DB_PATH: "{{.company_db_path}}"
+      DOMINO_ID: {{$domino.label}}
+      REGISTRY_SERVICE_PATH: {{.registry_service_path}}
+      DOMINO_TIER: {{$domino.tier}}
+      STACK_NAME_PREFIX: "{{.stack_name_prefix}}"
+      BACKUP_USER: {{.backup_user}}
+      BACKUP_USER_PASSWORD: {{.backup_user_password}}
+      BACKUP_ARCHIVE_PASSWORD: {{.backup_archive_password}}
+      BACKUP_SSH_KEY_FILE_PATH: {{$domino.service}}
+      DOMINO_MYSQL_INNODB_FLUSH_METHOD: {{.domino_mysql_innodb_flush_method}}
+      DOMINO_MYSQL_INNODB_FLUSH_LOG_AT_TIMEOUT: {{.domino_mysql_innodb_flush_log_at_timeout}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_pivot.env"
+    ports:
+      - "{{$domino.go_database_controller_port}}:{{$domino.go_database_controller_port}}"
+    networks:
+      - "domino-private"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 {{$domino.go_database_controller_port}}"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+networks:
+  domino-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{$domino.network.subnet}}"

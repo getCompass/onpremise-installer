@@ -1,0 +1,474 @@
+protocol: "https"
+
+registry_compass_path: "docker.getcompass.ru/backend_compass"
+registry_service_path: "docker.getcompass.ru/service"
+
+company_hibernation_delayed_time: 60*10
+need_company_hibernate: true
+external_port: 20000
+domino_controller_port: 10000
+host: "example.com"
+billing_protocol: "https"
+billing_domain: "billing.example.com"
+partner_web_protocol: "https"
+partner_web_domain: "partner.example.com"
+monit_mount_path: "/home/monit"
+main_partner_id: 1
+backup_user: "backup_user"
+backup_user_password: "backup_user_password"
+backup_archive_password: "backup_archive_password"
+is_call_analytics_enabled: false
+is_partner_web_enabled: false
+is_crm_web_enabled: false
+url_path: ""
+subdomain_enabled: 0
+
+# настройки mysql конфига для всех домино
+domino_mysql_innodb_flush_method: "O_DSYNC" # O_DIRECT – надежно (используем на production); O_DSYNC – быстро не надежно (используем на тестовых и stage)
+domino_mysql_innodb_flush_log_at_timeout: 5 # 1 для production (это значение по умолчанию); параметр работает только совместно с innodb_flush_method = O_DSYNC
+
+# фиксированные id ботов, начиная с id = 1000 для прода
+auth_bot_user_id: 17
+remind_bot_user_id: 19
+support_bot_user_id: 20
+
+# начальное значение user_id, с которого начинается инкремент user_id реальных пользователей
+begin_increment_user_id: 0
+
+# эта штука перезаписывается в скрипте up.sh на имя values файла;
+# здесь она просто есть для демонстрации своего существования;
+# если нужно перезаписать, то нужно пробросить --data stack_name_prefix=required-label
+stack_name_prefix: "dev-backend"
+
+# дефолтное домино, которое будет использовано при поднятии проекта domino через up.sh
+# если нужно поднять другое, то нужно явно его указать с помощью --data domino_id=required-domino
+# домино выбирается по ключу конфига, не по значению label
+domino_id: "d1"
+
+# дефолтная файловая нода, которая будет использована при поднятии проекта file через up.sh
+# если нужно поднять другую, то нужно явно его указать с помощью --data file_node_id=required-file-node
+# нода выбирается по ключу конфига, не по значению label
+file_node_id: "file1"
+file_default_node_id: "file_default"
+
+triggers:
+  before:
+    - "triggers/check_security.py"
+nginx:
+  label: "compass"
+  ssl_crt: "example.crt"
+  ssl_key: "example.key"
+
+projects:
+
+  monolith:
+    triggers:
+      before:
+        - "triggers/prepare_deploy_symbolic_links.py"
+      finally:
+        - "triggers/delete_deploy_symbolic_links.py"
+    label: "monolith"
+    network:
+      subnet: "172.20.1.0/24"
+    deploy_units:
+      - "pivot"
+      - "announcement"
+      - "userbot"
+      - "file"
+      - "domino"
+      - "join_web"
+      - "janus"
+    service:
+      mysql:
+        root_password: "4321"
+        user: "root"
+        password: "4321"
+        port: 3306
+        host: "mysql-monolith"
+      nginx:
+        external_https_port: 20101
+      php_monolith:
+        tag: "v1.5.0"
+      go_event:
+        # очереди rabbitmq
+        rabbit_queue: "monolith_go_event_queue"
+        rabbit_exchange: "monolith_go_event_exchange"
+        rabbit_service_queue: "monolith_event_system_queue"
+        rabbit_service_exchange: "monolith_event_system_service_exchange"
+        # имена баз, где изоляции ожидают системные таблицы
+        mysql_system_database_name: "company_system"
+        mysql_global_database_name: "pivot_system"
+        # глобальные настройки доставщиков задач/событий
+        per_delivery_limit: 5
+        delivery_delay: 20 # в миллисекундах
+        courier_count: 1
+        tag: "v1.5.0"
+      go_sender_balancer:
+        rabbit_queue: "monolith_go_sender_balancer_queue"
+        rabbit_exchange: "monolith_go_sender_balancer_exchange"
+        tag: "v1.5.0"
+      go_sender:
+        rabbit_queue: "monolith_go_sender_queue"
+        rabbit_exchange: "monolith_go_sender_exchange"
+        tag: "v1.5.0"
+
+  pivot:
+    host: "0.0.0.0"
+    label: "pivot"
+    subdomain: ""
+    subdomain_start: "start"
+    url_path: "pivot"
+    url_path_start: "start"
+    php_migration_socket_key: "abcdef1234567890"
+    network:
+      subnet: "172.20.1.0/24"
+    service:
+      mysql:
+        root_password: "4321"
+        user: "root"
+        password: "4321"
+        port: 3306
+        host: "mysql-pivot"
+      php_pivot:
+        tag: "v1.5.0"
+      php_file_balancer:
+        tag: "v1.5.0"
+        mysql_user: "root"
+        mysql_password: "4321"
+      go_pivot_cache:
+        tag: "1.0.0"
+        rabbit_queue: "go_pivot_cache_queue"
+        rabbit_exchange: "go_pivot_cache_exchange"
+      go_pusher:
+        tag: "v1.5.0"
+        rabbit_queue: "go_pusher_queue"
+        rabbit_exchange: "go_pusher_exchange"
+        is_push_mock_enable: 0
+        firebase_text_push_version: 2
+        firebase_voip_push_version: 1
+        huawei_text_push_version: 2
+        huawei_voip_push_version: 1
+        apns_push_version: 2
+      go_sender_balancer:
+        tag: "v1.5.0"
+        rabbit_queue: "go_sender_balancer_queue"
+        rabbit_exchange: "go_sender_balancer_exchange"
+      go_sender:
+        tag: "v1.5.0"
+        rabbit_queue: "go_sender_queue"
+        rabbit_exchange: "go_sender_exchange"
+      go_collector_agent:
+        tag: "1.0.0"
+        rabbit_queue: "go_collector_agent_queue"
+        rabbit_exchange: "go_collector_agent_exchange"
+      go_partner_agent:
+        tag: "1.0.0"
+        rabbit_queue: "go_partner_agent_queue"
+        rabbit_exchange: "go_partner_agent_exchange"
+      go_event:
+        tag: "v1.5.0"
+        rabbit_queue: "go_event_queue"
+        rabbit_exchange: "go_event_exchange"
+        rabbit_service_queue: "event_system_bus"
+        rabbit_service_exchange: "event_system_service_exchange"
+        per_delivery_limit: 5
+        delivery_delay: 20 # в миллисекундах
+        courier_count: 1
+        mysql_system_database_name: "pivot_system"
+        mysql_global_database_name: "pivot_system"
+      prometheus:
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+      nginx:
+        external_https_port: 20100
+      default_file:
+        tag: "1.0.0"
+  announcement:
+    host: "0.0.0.0"
+    label: "announcement"
+    subdomain: ""
+    url_path: "announcement"
+    network:
+      subnet: "172.20.3.0/24"
+    service:
+      mysql:
+        root_password: "4321"
+        host: "mysql-announcement"
+        port: 3306
+        user: "root"
+        password: "4321"
+        external_port: 5000
+      php_announcement:
+        tag: "v1.5.0"
+      go_sender_balancer:
+        tag: "v1.5.0"
+        rabbit_queue: "go_sender_balancer_queue"
+        rabbit_exchange: "go_sender_balancer_exchange"
+      go_sender:
+        tag: "v1.5.0"
+        rabbit_queue: "go_sender_queue"
+        rabbit_exchange: "go_sender_exchange"
+      prometheus:
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+      nginx:
+        external_https_port: 20102
+  analytic:
+    host: "0.0.0.0"
+    label: "analytic"
+    subdomain: ""
+    network:
+      subnet: "172.20.4.0/24"
+    service:
+      mysql:
+        root_password: "4321"
+        host: "mysql-analytic"
+        user: "root"
+        password: "4321"
+        port: 3306
+      php_collector_server:
+        tag: "v1.5.0"
+        mysql_user: "root"
+        mysql_password: "4321"
+      php_webstat:
+        tag: "v1.5.0"
+        mysql_user: "root"
+        mysql_password: "4321"
+      prometheus:
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+      nginx:
+        external_https_port: 20103
+  file:
+    file1:
+      label: "file1"
+      subdomain: ""
+      host: "0.0.0.0"
+      url_path: "file1"
+      network:
+        subnet: "172.20.5.0/24"
+      service:
+        php_file_node:
+          tag: "v1.5.0"
+        mysql:
+          host: "mysql-file1"
+          root_password: "4321"
+          user: "root"
+          password: "4321"
+          port: 3306
+        go_collector_agent:
+          tag: "v1.5.0"
+        prometheus:
+          auth:
+            username: "scrapman"
+            password: "1234"
+            password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+        nginx:
+          external_https_port: 20104
+
+  domino:
+    d1:
+      code_host: "0.0.0.0"
+      mysql_host: "0.0.0.0"
+      subdomain: ""
+      url_path: "d1"
+      label: "d1"
+      tier: 1
+      company_config_dir: '/home/compass/mount/company_configs/1_domino'
+      company_mysql_user: "user"
+      company_mysql_pass: "1234"
+      manticore_path: ""
+      go_database_controller_port: 31019
+      go_database_controller_profiler_port: 20200
+      template_public_company_url: ""
+      network:
+        subnet: "172.20.7.0/24"
+      service:
+        mysql:
+          root_password: "root2"
+          host: "mysql-domino"
+          user: "root"
+          password: "root2"
+          port: 3306
+        manticore:
+          host: "manticore-domino"
+          external_port: 20602
+          port: 9306
+        php_company:
+          tag: "v1.5.0"
+        php_file_balancer:
+          tag: "v1.5.0"
+        php_speaker:
+          tag: "v1.5.0"
+        php_world:
+          tag: "v1.5.0"
+        php_monolith:
+          tag: "v1.5.0"
+        php_migration:
+          tag: "v1.5.0"
+        php_repairer:
+          tag: "v1.5.0"
+        go_sender:
+          tag: "v1.5.0"
+          rabbit_queue: "go_sender_queue"
+          rabbit_exchange: "go_sender_exchange"
+        go_company:
+          tag: "v1.5.0"
+          rabbit_queue: "go_company_queue"
+          rabbit_exchange: "go_company_exchange"
+        go_company_cache:
+          tag: "1.0.0"
+          rabbit_queue: "go_company_cache_queue"
+          rabbit_exchange: "go_company_cache_exchange"
+        go_event:
+          tag: "v1.5.0"
+          rabbit_queue: "go_event_queue"
+          rabbit_exchange: "go_event_exchange"
+          rabbit_service_queue: "event_system_bus"
+          rabbit_service_exchange: "event_system_service_exchange"
+          per_delivery_limit: 5
+          delivery_delay: 20 # в миллисекундах
+          courier_count: 1
+          mysql_system_database_name: "company_system"
+          mysql_global_database_name: "company_system"
+        go_collector_agent:
+          tag: "v1.5.0"
+          rabbit_queue: "go_collector_agent_queue"
+          rabbit_exchange: "go_collector_agent_exchange"
+        go_partner_agent:
+          tag: "1.0.0"
+          rabbit_queue: "go_partner_agent_queue"
+          rabbit_exchange: "go_partner_agent_exchange"
+        go_rating:
+          tag: "v1.5.0"
+          rabbit_queue: "go_rating_queue"
+          rabbit_exchange: "go_rating_exchange"
+        go_database_controller:
+          tag: "1.0.0"
+        nginx:
+          external_https_port: 20106
+  userbot:
+    label: "userbot"
+    host: "0.0.0.0"
+    subdomain: ""
+    url_path: "userbot"
+    network:
+      subnet: "172.20.9.0/24"
+    service:
+      mysql:
+        root_password: "4321"
+        host: "mysql-userbot"
+        user: "root"
+        password: "4321"
+        port: 3306
+      php_userbot:
+        tag: "v1.5.0"
+      go_userbot_cache:
+        tag: "v1.5.0"
+        rabbit_queue: "go_userbot_cache_queue"
+        rabbit_exchange: "go_userbot_cache_exchange"
+      prometheus:
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+      nginx:
+        external_https_port: 20108
+
+  monitoring:
+
+    host: "0.0.0.0"
+    label: "monitoring"
+    network:
+      subnet: "172.20.11.0/24"
+    service:
+      grafana:
+        exposed_port: 3000
+        auth:
+          default_admin_username: "jack"
+          default_admin_password: "rnb5zrNf"
+        server:
+          domain: "localhost"
+          serve_from_sub_path: "false"
+          root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+      minio:
+        exposed_api_port: 9000
+        exposed_cli_port: 9001
+        auth:
+          username: "scrapman"
+          password: "12345678"
+      prometheus:
+        server:
+          domain: "prometheus.example.com"
+        exposed_port: 9090
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+        scrapping:
+          protocol: "https"
+          target_announcement: "announcement.example.com"
+          target_collector_server: "analytic.example.com"
+          target_file_node1: "file1.example.com"
+          target_intercom: "intercom.example.com"
+          target_pivot: "local.example.com"
+          target_userbot: "userbot.example.com"
+          target_solution: "solution.example.com"
+      alertmanager:
+        exposed_port: 9093
+        auth:
+          username: "alertmanager"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+      php_monitoring:
+        external_fcgi_port: 9002
+      loki:
+        exposed_proxy_port: 8080 # порт proxy-балансировщика (nginx)
+        exposed_port: 3100
+        auth:
+          username: "scrapman"
+          password: "1234"
+          password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
+
+  janus:
+    host: "0.0.0.0"
+    label: "janus"
+    domain: "janus.example.com"
+    subdomain: ""
+    url_path: "janus"
+    network:
+      subnet: "172.20.18.0/24"
+    service:
+      nginx:
+        external_https_port: 43000
+        external_http_port: 43008
+      janus:
+        tag: "1.0.0"
+        api_secret: "tmp"
+        admin_secret: "admin_secret"
+        user_token_secret: "user_token"
+        is_enabled: 1
+        available_for_new: 1
+        port: 43001
+        admin_port: 43002
+        rtp_port_from: 43010
+        rtp_port_to: 43019
+        stun_server_domain: stun.l.google.com
+        stun_port: 19302
+      php_janus:
+        tag: "v1.5.0"
+
+  join_web:
+    label: "join_web"
+    network:
+      subnet: "172.20.20.0/24"
+    service:
+      join_web:
+        tag: "v1.5.0"
+        external_port: 43100

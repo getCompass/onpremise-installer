@@ -1,0 +1,38 @@
+# В этом файле нужно описать разницу всех значений, которые в теории могут пересекаться в монолите
+# Важный момент — этот файл нужно подключать последним в списке env в compose-файлах
+
+## Используем тут идентификатор по умолчанию, в теории можно пройтись циклом и поднять все проекты,
+## но там есть проблема — при деплое записывается имя проекта, ан е резолвится его идентификатор
+{{$domino := index .projects.domino .domino_id}}
+
+# Ключи микросервиса, обычно они отличаются между проекта, но в рамках
+# единого экземпляра сервиса мы должны использовать только один
+SOCKET_KEY_GO_EVENT={{.security_keys.pivot.socket_key_go_event}}
+SOCKET_KEY_GO_SENDER={{.security_keys.pivot.socket_key_go_sender}}
+
+# Соли для sender-сервисов, один sender/sender_balancer, поэтому ключи не должны различаться
+SALT_SENDER_HASH={{.security_keys.pivot.salt_sender_hash}}
+SALT_SENDER_BALANCER_HASH={{.security_keys.pivot.salt_sender_balancer_hash}}
+
+# Данные для подключения к event
+GO_EVENT_GRPC_PORT="2000"
+GO_EVENT_HOST="go-event-{{.projects.monolith.label}}"
+GO_EVENT_GLOBAL_EVENT_QUEUE={{.projects.monolith.service.go_event.rabbit_service_queue}}
+GO_EVENT_SERVICE_EVENT_EXCHANGE={{.projects.monolith.service.go_event.rabbit_service_exchange}}
+
+# Данные для подключения к sender-balancer
+GO_SENDER_BALANCER_QUEUE="{{.projects.monolith.service.go_sender_balancer.rabbit_queue}}"
+
+# Данные для подключения к sender
+GO_SENDER_HOST="go-sender-{{.projects.monolith.label}}"
+GO_SENDER_TCP_PORT=1000
+GO_SENDER_GRPC_PORT=2000
+GO_SENDER_WS_PORT=30000
+
+# Данные для подключения к pusher
+GO_PUSHER_HOST="go-pusher-{{.projects.pivot.label}}"
+GO_PUSHER_TCP_PORT=1000
+
+# Точка входа для домино
+ENTRYPOINT_DOMINO="{{.protocol}}://{{entrypoint (netaddr $domino.code_host $domino.service.nginx.external_https_port) .url_path $domino.url_path 0}}"
+

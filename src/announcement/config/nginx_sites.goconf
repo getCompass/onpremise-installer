@@ -1,0 +1,16 @@
+server {
+
+     listen 443 http2 ssl;
+
+	server_name     {{.projects.announcement.subdomain}}.{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{.projects.announcement.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{.projects.announcement.host}}.key;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	error_log	/var/log/nginx/error.log;
+
+	include includes/announcement.nginx;
+}

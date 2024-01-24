@@ -1,0 +1,2020 @@
+{
+	"mbti": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"calls": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"emojis": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			}
+		}
+	},
+	"groups": {
+		"electron": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		}
+	},
+	"rating": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"premium": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"reminds": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"sharing": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"userbot": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"reactions": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"group_calls": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"invite_link": {
+		"electron": {
+			"compass": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			},
+			"comteam": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 5,
+				"supported_version_list": [1, 2, 3, 4, 5]
+			},
+			"comteam": {
+				"current_version": 5,
+				"supported_version_list": [1, 2, 3, 4, 5]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"thread_menu": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"employeecard": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"file_actions": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"user_profile": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			}
+		}
+	},
+	"user_support": {
+		"electron": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"message_input": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		}
+	},
+	"space_tariffs": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"company_invite": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"space_settings": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1, 2]
+			}
+		}
+	},
+	"account_removal": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_removal": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_creation": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"closed_registration": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"partnership_program": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"phone_number_change": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"extended_employeecard": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"message_platform_icon": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_payment_request": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_role_management": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"download_files_in_parts": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			},
+			"compass": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": []
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": []
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_member_dismissal": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"notifications_management": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"company_member_self_dismissal": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"conversations_instant_opening": {
+		"electron": {
+			"comteam": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			},
+			"compass": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"camera": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"left_menu": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"guest_access": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"media_viewer": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"message_search": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"text_formatting": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"member_permissions": {
+		"electron": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"camera": {
+		"iphone": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		}
+	},
+	"conversation_scroll": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"left_menu": {
+		"iphone": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"space_notifications": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		}
+	},
+	"space_member_section": {
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"electron": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"conversation_file_popup": {
+		"electron": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"attribution": {
+		"electron": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	},
+	"attribution_join_space": {
+		"electron": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
+	}
+}

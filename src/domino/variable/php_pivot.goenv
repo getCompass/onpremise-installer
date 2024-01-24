@@ -1,0 +1,2 @@
+EXTENDED_ENCRYPT_KEY_DEFAULT={{.encrypt_keys.extended_encrypt_key_default}}
+EXTENDED_ENCRYPT_IV_DEFAULT={{.encrypt_keys.extended_encrypt_iv_default}}

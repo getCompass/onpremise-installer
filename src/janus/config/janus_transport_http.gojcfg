@@ -1,0 +1,16 @@
+{{$locprefix := locprefix .url_path .projects.janus.url_path -}}
+
+general: {
+    json = "indented"
+    base_path = "{{$locprefix}}/janus"
+    threads = "unlimited"
+    http = true # работаем через http без сертификата, так как запросы проксируются с nginx где ssl
+    port = 8088 # работаем через http без сертификата, так как запросы проксируются с nginx где ssl
+}
+
+admin: {
+    admin_base_path = "{{$locprefix}}/admin"
+    admin_threads = "unlimited"
+    admin_http = true # работаем через http без сертификата, так как запросы проксируются с nginx где ssl
+    admin_port = 7088 # работаем через http без сертификата, так как запросы проксируются с nginx где ssl
+}

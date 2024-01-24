@@ -1,0 +1,499 @@
+version: '3.8'
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+# правила логирования для go-сервисов с отправкой в локи
+# работать будет только для go, для пыхи эффекта не будет
+x-log-rule-loki-go: &log-rule-loki-go
+  logging:
+    driver: "loki"
+    options:
+      # настройки для файла логов
+      # чтобы можно было если что их почитать, иначе они удаляются сами
+      max-size: "5m"
+      keep-file: "true"
+      # политика отправки данных в loki
+      # loki-retries нельзя выставлять в 0, иначе все может поломаться
+      loki-retries: 1
+      loki-timeout: 2s
+      # полный url, куда будем слать данные
+      loki-url: "http://{{.projects.monitoring.service.loki.auth.username}}:{{.projects.monitoring.service.loki.auth.password}}@{{.projects.monitoring.host}}:{{.projects.monitoring.service.loki.exposed_proxy_port}}/loki/api/v1/push"
+      # настраиваем список наших лейблов
+      loki-external-labels: "project=pivot,job=pivot_go_logs,name={{"{{"}}.Name{{"}}"}}"
+      # настраиваем пайплайн для сбора логов,
+      # оборачиваем все это дело в json для удобства в дальнейшем
+      loki-pipeline-stages: |
+        - regex:
+            expression: '^(?P<time>\d{4,4}/\d{2,2}/\d{2,2} \d{2,2}:\d{2,2}:\d{2,2}) .*?\[(?P<level>\w+?)\].*?\[(?P<line>\S+?)\]\[(?P<func>\S+?)\] (?P<message>.*)$$'
+        - timestamp:
+            source: 'time'
+            format: '2006.01.02 15:04:05'
+        - drop:
+            source: 'level'
+            expression: '^$$|INFO'
+        - regex:
+            source: 'name'
+            expression: '{{.stack_name}}_(?P<service>[a-zA-Z0-9_-]+?)-{{.projects.pivot.label}}\.(?P<task_slot>\d+?)'
+        - drop:
+            source: 'service'
+            value: ''
+        - template:
+            source: 'replica'
+            template: '{{"{{"}}.service{{"}}"}}.{{"{{"}}.task_slot{{"}}"}}'
+        - template:
+            source: 'message'
+            template: '{{"{{"}}regexReplaceAll "\"" .Value ""{{"}}"}}'
+        - template:
+            source: 'result'
+            template: >
+              {
+                "level": "{{"{{"}}.level{{"}}"}}",
+                "line": "{{"{{"}}.line{{"}}"}}",
+                "func": "{{"{{"}}.func{{"}}"}}",
+                "message": "{{"{{"}}.message{{"}}"}}",
+              }
+        - output:
+            source: 'result'
+        - labels:
+            service:
+            replica:
+        - labeldrop:
+           - name
+      # сбрасываем все ненужные метки, мы выше создали все необходимые
+      loki-relabel-config: |
+        - action: labeldrop
+          regex: 'source|swarm_stack|swarm_service|container_name|filename'
+
+# --- DEFINES ---
+networks:
+  pivot-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.pivot.network.subnet}}"
+
+# --- DEPLOY ---
+configs:
+
+  feature-conf:
+    name: "{{.stack_name}}_feature_v2-{{.config_revisions.project.feature_v2.json}}"
+    file: ".project.feature_v2.json"
+  feature-v1-conf:
+    name: "{{.stack_name}}_feature_v1-{{.config_revisions.project.feature_v1.json}}"
+    file: ".project.feature_v1.json"
+  rule-conf:
+    name: "{{.stack_name}}_rule_v2-{{.config_revisions.project.rule_v2.json}}"
+    file: ".project.rule_v2.json"
+  rule-v1-conf:
+      name: "{{.stack_name}}_rule_v1-{{.config_revisions.project.rule_v1.json}}"
+      file: ".project.rule_v1.json"
+  pivot-monitor:
+    name: "{{.stack_name}}_pivot_monitor-{{.config_revisions.project.pivot_monitor.php}}"
+    file: ".project.pivot_monitor.php"
+  pivot-sms:
+    name: "{{.stack_name}}_pivot_sms-{{.config_revisions.project.pivot_sms.php}}"
+    file: ".project.pivot_sms.php"
+  file-nodes:
+    name: "{{.stack_name}}_file_nodes-{{.config_revisions.project.file_nodes_saas.php}}"
+    file: ".project.file_nodes_saas.php"
+  pivot-captcha:
+    name: "{{.stack_name}}_pivot_captcha-{{.config_revisions.project.pivot_captcha.php}}"
+    file: ".project.pivot_captcha.php"
+  go-pusher-firebase-compass-key:
+    name: "{{.stack_name}}_compass-key-{{.config_revisions.global.firebase_compass_key.json}}"
+    file: ".global.firebase_compass_key.json"
+  go-pusher-firebase-comteam-key:
+    name: "{{.stack_name}}_comteam-key-{{.config_revisions.global.firebase_comteam_key.json}}"
+    file: ".global.firebase_comteam_key.json"
+  tariff-conf:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.project.tariff.php}}"
+    file: ".project.tariff.php"
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  domino-hosts:
+    name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.domino.php}}"
+    file: ".project.domino.php"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+  bot-conf:
+    name: "{{.stack_name}}_bot_info_list-{{.config_revisions.project.bot_info_list.json}}"
+    file: ".project.bot_info_list.json"
+
+  # настройки коллектор-агента
+  go-collector-agent-sharding-conf:
+    name: "{{.stack_name}}_go_collector_agent_sharding-{{.config_revisions.global.go_collector_agent_sharding.json}}"
+    file: ".global.go_collector_agent_sharding.json"
+
+# файл композиции для pivot-части
+services:
+
+  ## NGINX
+  nginx-{{.projects.pivot.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "pivot-private"
+    ports:
+      - "{{.projects.pivot.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    configs:
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/pivot.nginx"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+  ## MYSQL
+  mysql-{{.projects.pivot.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      - "pivot-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{.projects.pivot.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.pivot.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 6
+    <<: *log-rule-default
+
+  ## RABBIT
+  rabbit-{{.projects.pivot.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      - "pivot-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    <<: *log-rule-default
+
+  ## MEMCACHE
+  memcached-{{.projects.pivot.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      - "pivot-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    <<: *log-rule-default
+
+  default-file-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/default_file:{{.projects.pivot.service.default_file.tag}}"
+    volumes:
+     - "default-file-{{.projects.pivot.service.default_file.tag}}:/files"
+    deploy:
+     replicas: 1
+     restart_policy:
+       condition: "none"
+
+  ## PHP_PIVOT
+  php-pivot-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/php_pivot:{{.projects.pivot.service.php_pivot.tag}}"
+    depends_on:
+      - "memcached-{{.projects.pivot.label}}"
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+      - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-sender-balancer-{{.projects.pivot.label}}"
+      - "go-event-{{.projects.pivot.label}}"
+      - "default-file-{{.projects.pivot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".global.solution.env"
+      - ".project.common.env"
+      - ".project.php_pivot.env"
+    networks:
+      - "pivot-private"
+    volumes:
+      - type: "volume"
+        source: "default-file-{{.projects.pivot.service.default_file.tag}}"
+        target: "/app/www/default_file/"
+        read_only: false
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{.company_config_mount_path}}:/pivot_config"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "10s"
+      timeout: "1s"
+      retries: 30
+    configs:
+      - source: "feature-conf"
+        target: "/app/src/Compass/Pivot/conf/feature_v2.json"
+      - source: "feature-v1-conf"
+        target: "/app/src/Compass/Pivot/conf/feature_v1.json"
+      - source: "rule-conf"
+        target: "/app/src/Compass/Pivot/conf/rule_v2.json"
+      - source: "rule-v1-conf"
+        target: "/app/src/Compass/Pivot/conf/rule_v1.json"
+      - source: "pivot-monitor"
+        target: "/app/src/Compass/Pivot/api/conf/monitor.php"
+      - source: "pivot-sms"
+        target: "/app/src/Compass/Pivot/api/conf/sms.php"
+      - source: "pivot-captcha"
+        target: "/app/src/Compass/Pivot/api/conf/captcha.php"
+      - source: "tariff-conf"
+        target: "/app/src/Compass/Pivot/api/conf/tariff.php"
+      - source: "domino-hosts"
+        target: "/app/src/Compass/Pivot/api/conf/domino.php"
+      - source: "bot-conf"
+        target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
+    <<: *log-rule-default
+
+  ## PHP_FILE_BALANCER
+  php-file-balancer-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/php_file_balancer:{{.projects.pivot.service.php_file_balancer.tag}}"
+    depends_on:
+      - "memcached-{{.projects.pivot.label}}"
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+      - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-sender-balancer-{{.projects.pivot.label}}"
+    environment:
+      CDN_URL: "{{.protocol}}://{{.projects.file_default_nodes.file_default.subdomain}}.{{.domain}}/"
+      SOCKET_KEY_INTERCOM: {{.security_keys.intercom.socket_key_intercom}}
+    configs:
+      - source: "file-nodes"
+        target: "/app/src/Compass/FileBalancer/api/conf/node.php"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+  # GO_PIVOT_CACHE
+  go-pivot-cache-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_pivot_cache:{{.projects.pivot.service.go_pivot_cache.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_pivot_cache.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pivot_cache.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.go_pivot_cache.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+  # GO_PUSHER
+  go-pusher-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_pusher:{{.projects.pivot.service.go_pusher.tag}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      HTTP_PORT: 80
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_pusher.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pusher.rabbit_exchange}}"
+      IS_PUSH_MOCK_ENABLE: "{{.projects.pivot.service.go_pusher.is_push_mock_enable}}"
+
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.go_pusher.env"
+      - ".global.solution.env"
+    networks:
+      - "pivot-private"
+    configs:
+      - source: "go-pusher-firebase-compass-key"
+        target: "/app/private/firebase_compass_key.json"
+      - source: "go-pusher-firebase-comteam-key"
+        target: "/app/private/firebase_comteam_key.json"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+  # GO_SENDER_BALANCER
+  go-sender-balancer-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_sender_balancer:{{.projects.pivot.service.go_sender_balancer.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      - "go-sender-{{.projects.pivot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_sender_balancer.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_sender_balancer.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_SENDER
+  go-sender-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_sender:{{.projects.pivot.service.go_sender.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      WS_PORT: 30000
+      NODE_ID: 0
+      IS_HAS_BALANCER: "true"
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_sender.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_sender.rabbit_exchange}}"
+      GO_SENDER_BALANCER_QUEUE: "{{.projects.pivot.service.go_sender_balancer.rabbit_queue}}"
+      GO_SENDER_BALANCER_EXCHANGE: "{{.projects.pivot.service.go_sender_balancer.rabbit_exchange}}"
+      COMPANY_ID: 0
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 30000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_COLLECTOR_AGENT
+  go-collector-agent-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_collector_agent:{{.projects.pivot.service.go_collector_agent.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+    environment:
+      HTTP_PORT: 2000
+      TCP_PORT: 1000
+    env_file:
+      - ".global.common.env"
+      - ".global.go_collector_request_balancing.env"
+      - ".project.common.env"
+    networks:
+      - "pivot-private"
+    configs:
+      - source: "go-collector-agent-sharding-conf"
+        target: "/app/api/conf/sharding.example.json"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_EVENT
+  go-event-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_event:{{.projects.pivot.service.go_event.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+    environment:
+      SERVICE_ROLE_SET: "pivot"
+      TCP_PORT: 2000
+      GRPC_PORT: 3000
+      RABBIT_QUEUE: {{.projects.pivot.service.go_event.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.pivot.service.go_event.rabbit_exchange}}
+      SERVICE_RABBIT_QUEUE: {{.projects.pivot.service.go_event.rabbit_service_queue}}
+      SERVICE_RABBIT_EXCHANGE: {{.projects.pivot.service.go_event.rabbit_service_exchange}}
+      MYSQL_SYSTEM_DATABASE_NAME: {{.projects.pivot.service.go_event.mysql_system_database_name}}
+      MYSQL_GLOBAL_DATABASE_NAME: {{.projects.pivot.service.go_event.mysql_global_database_name}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.event.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 3000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+volumes:
+  default-file-{{.projects.pivot.service.default_file.tag}}:

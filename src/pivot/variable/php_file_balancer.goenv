@@ -1,0 +1,11 @@
+# перезаписываем данные подключения к бд
+MYSQL_USER="{{.projects.pivot.service.php_file_balancer.mysql_user}}"
+MYSQL_PASS="{{.projects.pivot.service.php_file_balancer.mysql_password}}"
+
+# перезаписываем данные подключения к системной бд
+MYSQL_SYSTEM_USER="{{.projects.pivot.service.php_file_balancer.mysql_user}}"
+MYSQL_SYSTEM_PASS="{{.projects.pivot.service.php_file_balancer.mysql_password}}"
+
+CDN_URL={{.protocol}}://{{.projects.file.file1.subdomain}}.{{.domain}}/
+
+SOCKET_KEY_INTERCOM=""

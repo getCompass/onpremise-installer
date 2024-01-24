@@ -1,0 +1,34 @@
+version: '3.8'
+
+# файл композиции для лендинга на онпремайзе .../join/...
+
+services:
+
+  # join web
+  join_web:
+    image: "{{.registry_compass_path}}/onpremise_join_web:{{.projects.join_web.service.join_web.tag}}"
+    ports:
+      - "{{.projects.join_web.service.join_web.external_port}}:80"
+    env_file:
+      - ".project.common.env"
+    networks:
+      - "join_web-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+
+networks:
+  join_web-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.join_web.network.subnet}}"

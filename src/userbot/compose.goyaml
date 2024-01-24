@@ -1,0 +1,195 @@
+version: '3.8'
+
+# файл композиции для userbot-части
+
+# --- DEFINES ---
+configs:
+
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  domino-hosts:
+    name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.domino.php}}"
+    file: ".project.domino.php"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+
+# --- DEPLOY ---
+services:
+
+  nginx-{{.projects.userbot.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "userbot-private"
+    ports:
+      - "{{.projects.userbot.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    configs:
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/userbot.nginx"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+
+  # MYSQL
+  mysql-{{.projects.userbot.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      - "userbot-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{.projects.userbot.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.userbot.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 9
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # RABBIT
+  rabbit-{{.projects.userbot.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      - "userbot-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # MEMCACHED
+  memcached-{{.projects.userbot.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      - "userbot-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_userbot
+  php-userbot-{{.projects.userbot.label}}:
+    image: "{{.registry_compass_path}}/php_userbot:{{.projects.userbot.service.php_userbot.tag}}"
+    depends_on:
+      - "memcached-{{.projects.userbot.label}}"
+      - "rabbit-{{.projects.userbot.label}}"
+      - "mysql-{{.projects.userbot.label}}"
+      - "go-userbot-cache-{{.projects.userbot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "userbot-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    configs:
+      - source: "domino-hosts"
+        target: "/app/src/Compass/Userbot/api/conf/domino.php"
+
+# GO_USERBOT_CACHE
+  go-userbot-cache-{{.projects.userbot.label}}:
+    image: "{{.registry_compass_path}}/go_userbot_cache:{{.projects.userbot.service.go_userbot_cache.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.userbot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      HTTP_PORT: 80
+      RABBIT_QUEUE: {{.projects.userbot.service.go_userbot_cache.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.userbot.service.go_userbot_cache.rabbit_exchange}}
+      USERBOT_CACHE_LISTEN_ADDRESS: "0.0.0.0"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "userbot-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+networks:
+  userbot-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.userbot.network.subnet}}"

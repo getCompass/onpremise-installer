@@ -1,0 +1,57 @@
+server {
+
+      	listen 443 ssl http2 default;
+
+	server_name		{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{.projects.pivot.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{.projects.pivot.host}}.key;
+
+	error_log	/var/log/nginx/error.log;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
+	set $upstream_file_balancer php-file-balancer-{{.projects.pivot.label}}:9000;
+	set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
+	set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
+	set $upstream_partner php-partner-{{.projects.pivot.label}}:9000;
+	set $upstream_sidecar_php php-sidecar-pivot-{{.projects.pivot.label}}:9000;
+	set $upstream_crm_php php-crm-{{.projects.pivot.label}}:9000;
+
+	include includes/pivot.nginx;
+}
+
+server {
+
+      	listen 443 ssl http2;
+
+	server_name		start.{{.domain}};
+	client_max_body_size	256m; # макс размер запроса, присылаемый клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{.projects.pivot.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{.projects.pivot.host}}.key;
+
+	error_log	/var/log/nginx/error.log;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
+
+	# запрещаем доступ к скрытым файлам
+	location ~ /\. {
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+        # start
+        location ~* ^/*$ {
+
+		root /app/www/;
+		index index.php;
+
+		fastcgi_pass $upstream_pivot_php;
+	}
+}

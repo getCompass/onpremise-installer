@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+
+import sys
+
+sys.dont_write_bytecode = True
+import string, random, yaml
+from pathlib import Path
+import collections.abc, argparse
+from OpenSSL import crypto
+from loader import Loader
+
+from utils import scriptutils
+
+script_dir = str(Path(__file__).parent.resolve())
+
+
+parser = argparse.ArgumentParser(add_help=False)
+
+parser.add_argument(
+    "-e",
+    "--environment",
+    required=True,
+    type=str,
+    help="среда, для которой производим развертывание",
+)
+
+parser.add_argument(
+    "-v",
+    "--values",
+    required=True,
+    type=str,
+    help="название файла со значениями для развертывания",
+)
+args = parser.parse_args()
+
+values_name = args.values
+environment = args.environment
+
+# длина ключа
+key_size = 32
+rsa_key_size = 768
+
+# проверяем, что запустили от рута
+scriptutils.assert_root()
+
+
+# класс для того, чтобы отличать значения в кавычках
+class quoted(str):
+    pass
+
+
+# добавляем кавычки
+def quoted_presenter(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="'")
+
+
+# добавляем знак | многострочным значениям
+def str_presenter(dumper, data):
+    if data.count("\n") > 0:  # check for multiline string
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+yaml.add_representer(quoted, quoted_presenter)
+yaml.add_representer(str, str_presenter)
+
+
+def start():
+
+    values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
+
+    if not values_file_path.exists():
+        print(scriptutils.error("Отсутствует файл конфигурации, не можем сгенерировать ключ безопасности"))
+        exit(1)
+    
+    with values_file_path.open("r") as values_file:
+        current_values = yaml.safe_load(values_file)
+        current_values = {} if current_values is None else current_values
+
+    root_mount_path = current_values.get("root_mount_path")
+
+    if (root_mount_path is None) or (not Path(root_mount_path).exists()):
+        print(scriptutils.error("Не найдена папка root_mount_path, куда развертывается приложение Compass. Запустите скрипт init.py"))
+        exit(1)
+
+    security_file_path = Path(root_mount_path + "/security.yaml")
+    security_tpl_file_path = Path(script_dir + "/../yaml_template/security.tpl.yaml")
+
+    if security_file_path.exists():
+        print(scriptutils.success("Файл с секретами уже сгенерирован"))
+        exit(0)
+
+    loader = Loader(
+        "Генерируем ключи безопасности для проекта",
+        "Ключи безопасности сгенерированы по следующему пути: %s"
+        % str(security_file_path.resolve()),
+    ).start()
+    with security_tpl_file_path.open("r") as security_file_contents:
+        security_tpl_values = yaml.safe_load(security_file_contents)
+
+    security_values = update_security_values(security_tpl_values)
+    security_file_path.open("wt").write(
+        yaml.dump(security_values, default_flow_style=False)
+    )
+
+    loader.success()
+
+
+def update_security_values(security_tpl_values: dict, security_values: dict = {}):
+    for k, v in security_tpl_values.items():
+        if isinstance(v, collections.abc.Mapping):
+            if k == "ssl_keys":
+                security_values["ssl_keys"] = {}
+
+                for ssl_k, _ in v.items():
+                    pub, priv = generate_ssl_key_pair()
+                    security_values["ssl_keys"][ssl_k] = {}
+                    security_values["ssl_keys"][ssl_k]["public_key"] = pub
+                    security_values["ssl_keys"][ssl_k]["private_key"] = priv
+                continue
+
+            security_values[k] = update_security_values(v, security_values.get(k, {}))
+        else:
+            security_values[k] = quoted(generate_random_string(key_size))
+
+    return security_values
+
+
+def generate_random_string(size: int):
+    characters = (string.ascii_letters + string.digits).translate(
+        {
+            ord('"'): None,
+            ord("'"): None,
+            ord("\\"): None,
+            ord("`"): None,
+            ord("$"): None,
+            ord("-"): None,
+            ord("="): None,
+            ord("{"): None,
+            ord("}"): None,
+            ord("|"): None,
+            ord("%"): None,
+            ord("@"): None,
+        }
+    )
+    generated_string = "".join(random.choice(characters) for i in range(size))
+
+    return generated_string
+
+
+def generate_ssl_key_pair():
+    priv_key = crypto.PKey()
+    priv_key.generate_key(crypto.TYPE_RSA, rsa_key_size)
+
+    pub = crypto.dump_publickey(crypto.FILETYPE_PEM, priv_key).decode("utf-8")
+    priv = crypto.dump_privatekey(crypto.FILETYPE_PEM, priv_key).decode("utf-8")
+
+    return pub, priv
+
+
+start()

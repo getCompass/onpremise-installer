@@ -1,0 +1,805 @@
+version: '3.8'
+
+## Используем тут идентификатор по умолчанию, в теории можно пройтись циклом и поднять все проекты,
+## но там есть проблема — при деплое записывается имя проекта, ан е резолвится его идентификатор
+{{$file_node := index .projects.file .file_node_id}}
+## Такая же ситуация с домино — работаем только с домино по умолчанию
+{{$domino := index .projects.domino .domino_id}}
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+# healthcheck по умолчанию для php-сервисов,
+# обычно там проверяется только 9000 порт
+x-healthcheck-php-9000: &healthcheck-php-9000
+  healthcheck:
+    test: "nc -z 127.0.0.1 9000"
+    interval: "15s"
+    timeout: "25s"
+    retries: 60 # php-monolith из-за миграций php-pivot встает дольше чем обычно
+
+# healthcheck по умолчанию для go-сервисов,
+# обычно там проверяется только 2000 порт
+x-healthcheck-go-2000: &healthcheck-go-2000
+  healthcheck:
+    test: "nc -z 127.0.0.1 2000"
+    interval: "5s"
+    timeout: "25s"
+    retries: 10
+
+# --- DEFINES ---
+# единая сеть монолита
+networks:
+  monolith-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.monolith.network.subnet}}"
+
+# логика файлов по умолчанию
+volumes:
+  default-file-{{.projects.pivot.service.default_file.tag}}:
+
+# --- DEPLOY ---
+configs:
+
+  ## ОБЩИЕ КОНФИГУРАЦИИ
+  # конфигурация веб-сервера
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+  nginx-sites-enabled:
+    name: "{{.stack_name}}_nginx_nginx_sites_enabled-{{.config_revisions.project.nginx_sites_enabled.conf}}"
+    file: ".project.nginx_sites_enabled.conf"
+
+  # настройки пушера
+  go-pusher-firebase-compass-key:
+    name: "{{.stack_name}}_compass-key-{{.config_revisions.global.firebase_compass_key.json}}"
+    file: ".global.firebase_compass_key.json"
+  go-pusher-firebase-comteam-key:
+    name: "{{.stack_name}}_comteam-key-{{.config_revisions.global.firebase_comteam_key.json}}"
+    file: ".global.firebase_comteam_key.json"
+
+  ## КОНФИГУРАЦИИ ПИВОТА
+  # настройки nginx пивота
+  nginx-include-pivot:
+    name: "{{.stack_name}}_nginx_include_pivot-{{.config_revisions.project.pivot.nginx_include.conf}}"
+    file: ".project.pivot.nginx_include.conf"
+
+  # настройки для php/go
+  feature-conf:
+    name: "{{.stack_name}}_feature_v2-{{.config_revisions.project.pivot.feature_v2.json}}"
+    file: ".project.pivot.feature_v2.json"
+  feature-v1-conf:
+    name: "{{.stack_name}}_feature_v1-{{.config_revisions.project.pivot.feature_v1.json}}"
+    file: ".project.pivot.feature_v1.json"
+  rule-conf:
+    name: "{{.stack_name}}_rule_v2-{{.config_revisions.project.pivot.rule_v2.json}}"
+    file: ".project.pivot.rule_v2.json"
+  rule-v1-conf:
+    name: "{{.stack_name}}_rule_v1-{{.config_revisions.project.pivot.rule_v1.json}}"
+    file: ".project.pivot.rule_v1.json"
+  pivot-monitor:
+    name: "{{.stack_name}}_pivot_monitor-{{.config_revisions.project.pivot.pivot_monitor.php}}"
+    file: ".project.pivot.pivot_monitor.php"
+  pivot-sms:
+    name: "{{.stack_name}}_pivot_sms-{{.config_revisions.project.pivot.pivot_sms.php}}"
+    file: ".project.pivot.pivot_sms.php"
+  pivot-captcha:
+    name: "{{.stack_name}}_pivot_captcha-{{.config_revisions.project.pivot.pivot_captcha.php}}"
+    file: ".project.pivot.pivot_captcha.php"
+  tariff-conf:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.project.pivot.tariff.php}}"
+    file: ".project.pivot.tariff.php"
+  domino-hosts-pivot:
+    name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.pivot.domino.php}}"
+    file: ".project.pivot.domino.php"
+  bot-conf:
+    name: "{{.stack_name}}_bot_info_list-{{.config_revisions.project.pivot.bot_info_list.json}}"
+    file: ".project.pivot.bot_info_list.json"
+  file-nodes-pivot:
+    name: "{{.stack_name}}_file_nodes_pivot-{{.config_revisions.project.pivot.file_nodes_on_premise.php}}"
+    file: ".project.pivot.file_nodes_on_premise.php"
+
+  ## КОНФИГУРАЦИИ АНОНСОВ
+  # настройки nginx анонсов
+  nginx-include-announcement:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.announcement.nginx_include.conf}}"
+    file: ".project.announcement.nginx_include.conf"
+
+  ## КОНФИГУРАЦИИ USERBOT
+  # настройки nginx userbot
+  nginx-include-userbot:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.userbot.nginx_include.conf}}"
+    file: ".project.userbot.nginx_include.conf"
+
+  ## КОНФИГУРАЦИИ JANUS
+  # настройки nginx janus
+  nginx-include-janus:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.janus.nginx_include.conf}}"
+    file: ".project.janus.nginx_include.conf"
+
+  # настройки для php/go
+  domino-hosts:
+    name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.userbot.domino.php}}"
+    file: ".project.userbot.domino.php"
+
+  ## КОНФИГУРАЦИИ FILE_NODE
+  nginx-include-{{$file_node.label}}:
+    name: "{{.stack_name}}_nginx_include-{{index .config_revisions "project" "file" "nginx_include" "conf"}}"
+    file: ".project.file.nginx_include.conf"
+
+  ## КОНФИГУРАЦИИ DOMINO
+  # настройки nginx анонсов
+  nginx-include-{{$domino.label}}:
+    name: "{{.stack_name}}_nginx_include-{{index .config_revisions "project" "domino" "nginx_include" "conf"}}"
+    file: ".project.domino.nginx_include.conf"
+
+  ## КОНФИГУРАЦИЯ JANUS
+  nginx-janus-sites:
+    name: "{{.stack_name}}_nginx_janus_sites-{{.config_revisions.project.janus.nginx_sites.conf}}"
+    file: ".project.janus.nginx_sites.conf"
+  nginx-janus-conf:
+    name: "{{.stack_name}}_nginx_janus_conf-{{.config_revisions.project.janus.nginx.conf}}"
+    file: ".project.janus.nginx.conf"
+  coturn:
+    name: "{{.stack_name}}_coturn-{{.config_revisions.project.janus.turnserver.conf}}"
+    file: ".project.janus.turnserver.conf"
+  janus:
+    name: "{{.stack_name}}_janus-{{.config_revisions.project.janus.janus.jcfg}}"
+    file: ".project.janus.janus.jcfg"
+  janus-transport-http:
+    name: "{{.stack_name}}_janus-transport-http-{{.config_revisions.project.janus.janus_transport_http.jcfg}}"
+    file: ".project.janus.janus_transport_http.jcfg"
+  janus-eventhandler-sampleevh:
+    name: "{{.stack_name}}_janus-eventhandler-sampleevh-{{.config_revisions.project.janus.janus_eventhandler_sampleevh.jcfg}}"
+    file: ".project.janus.janus_eventhandler_sampleevh.jcfg"
+  janus-plugin-videoroom:
+    name: "{{.stack_name}}_janus-plugin-videoroom-{{.config_revisions.project.janus.janus_plugin_videoroom.jcfg}}"
+    file: ".project.janus.janus_plugin_videoroom.jcfg"
+
+  # настройки для php/go
+  tariff-conf-conversation-{{$domino.label}}:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.global.tariff.php}}"
+    file: ".global.tariff.php"
+  tariff-conf-thread-{{$domino.label}}:
+    name: "{{.stack_name}}_tariff-{{.config_revisions.global.tariff.php}}"
+    file: ".global.tariff.php"
+  file-nodes-{{$domino.label}}:
+    name: "{{.stack_name}}_file_nodes_{{$domino.label}}-{{index .config_revisions "project" "domino" "file_nodes" "php"}}"
+    file: ".project.domino.file_nodes.php"
+  search-conf-{{$domino.label}}:
+    name: "{{.stack_name}}_search-{{index .config_revisions "project" "domino" "search" "php"}}"
+    file: ".project.domino.search.php"
+  monitor-conf-{{$domino.label}}:
+    name: "{{.stack_name}}_monitor-{{index .config_revisions "project" "domino" "monitor" "php"}}"
+    file: ".project.domino.monitor.php"
+  janus-{{$domino.label}}:
+    name: "{{.stack_name}}_janus-{{index .config_revisions "project" "domino" "janus" "php"}}"
+    file: ".project.domino.janus.php"
+  stun-server-list-{{$domino.label}}:
+    name: "{{.stack_name}}_stun_server_list-{{index .config_revisions "project" "domino" "stun_server_list" "php"}}"
+    file: ".project.domino.stun_server_list.php"
+  turn-server-list-{{$domino.label}}:
+    name: "{{.stack_name}}_turn_server_list-{{index .config_revisions "project" "domino" "turn_server_list" "php"}}"
+    file: ".project.domino.turn_server_list.php"
+
+# файл композиции монолита
+services:
+
+  # Пока для всех общих сервисов перечисляем их потенциальные имена через алиасы.
+  # Иначе там придется городить огород для отдельных сервисов
+
+  ## COMPASS MONOLITH
+  # SINGLE NGINX
+  nginx-{{.projects.monolith.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      monolith-private:
+        aliases:
+          - "nginx-{{.projects.pivot.label}}"
+          - "nginx-{{.projects.announcement.label}}"
+          - "nginx-{{.projects.userbot.label}}"
+          - "nginx-{{$file_node.label}}"
+          - "nginx-{{$domino.label}}"
+    ports:
+      - "{{.projects.monolith.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    configs:
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "nginx-sites-enabled"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include-announcement"
+        target: "/etc/nginx/includes/announcement.nginx"
+      - source: "nginx-include-{{$domino.label}}"
+        target: "/etc/nginx/includes/domino.nginx"
+      - source: "nginx-include-{{$file_node.label}}"
+        target: "/etc/nginx/includes/file.nginx"
+      - source: "nginx-include-pivot"
+        target: "/etc/nginx/includes/pivot.nginx"
+      - source: "nginx-include-userbot"
+        target: "/etc/nginx/includes/userbot.nginx"
+      - source: "nginx-include-janus"
+        target: "/etc/nginx/includes/janus.nginx"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+      - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+      - "{{.root_mount_path}}/tmp_files:/tmp/files/"
+      - "{{.root_mount_path}}/files:/home/files/"
+    <<: *log-rule-default
+
+  # RABBIT
+  rabbit-{{.projects.monolith.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      monolith-private:
+        aliases:
+          - "rabbit-{{.projects.pivot.label}}"
+          - "rabbit-{{.projects.announcement.label}}"
+          - "rabbit-{{.projects.userbot.label}}"
+          - "rabbit-{{$file_node.label}}"
+          - "rabbit-{{$domino.label}}"
+    env_file:
+      - ".project.monolith.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    <<: *log-rule-default
+
+  # MEMCACHE
+  memcached-{{.projects.monolith.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      monolith-private:
+        aliases:
+          - "memcached-{{.projects.pivot.label}}"
+          - "memcached-{{.projects.announcement.label}}"
+          - "memcached-{{.projects.userbot.label}}"
+          - "memcached-{{$file_node.label}}"
+          - "memcached-{{$domino.label}}"
+    env_file:
+      - ".project.monolith.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    <<: *log-rule-default
+
+  # MYSQL
+  mysql-{{.projects.monolith.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      monolith-private:
+        aliases:
+          - "mysql-{{.projects.pivot.label}}"
+          - "mysql-{{.projects.announcement.label}}"
+          - "mysql-{{.projects.userbot.label}}"
+          - "mysql-{{$file_node.label}}"
+          - "mysql-{{$domino.label}}"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{.projects.pivot.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.pivot.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 6
+    <<: *log-rule-default
+
+  # GO_EVENT
+  go-event-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/go_event:{{.projects.monolith.service.go_event.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.monolith.label}}"
+    environment:
+      HTTP_PORT: 80
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      CURRENT_SERVER: "monolith"
+      SERVICE_ROLE_SET: "pivot domino"
+      RABBIT_QUEUE: {{.projects.monolith.service.go_event.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.monolith.service.go_event.rabbit_exchange}}
+      SERVICE_RABBIT_QUEUE: {{.projects.monolith.service.go_event.rabbit_service_queue}}
+      SERVICE_RABBIT_EXCHANGE: {{.projects.monolith.service.go_event.rabbit_service_exchange}}
+      MYSQL_SYSTEM_DATABASE_NAME: {{.projects.monolith.service.go_event.mysql_system_database_name}}
+      MYSQL_GLOBAL_DATABASE_NAME: {{.projects.monolith.service.go_event.mysql_global_database_name}}
+      PER_DELIVERY_LIMIT: {{.projects.monolith.service.go_event.per_delivery_limit}}
+      DELIVERY_DELAY: {{.projects.monolith.service.go_event.delivery_delay}}
+      COURIER_COUNT: {{.projects.monolith.service.go_event.courier_count}}
+    env_file:
+      - ".global.common.env"
+      - ".project.pivot.common.env"
+      - ".project.monolith.env"
+      - ".project.override.env"
+    networks:
+      monolith-private:
+        aliases:
+          - "go-event-{{$domino.label}}"
+          - "go-event-{{.projects.pivot.label}}"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{$domino.company_config_dir}}/:/config"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-go-2000
+
+  # GO_SENDER_BALANCER
+  go-sender-balancer-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/go_sender_balancer:{{.projects.monolith.service.go_sender_balancer.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.monolith.label}}"
+      - "go-sender-{{.projects.monolith.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.monolith.service.go_sender_balancer.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.monolith.service.go_sender_balancer.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.monolith.env"
+      - ".project.override.env"
+    networks:
+      monolith-private:
+        aliases:
+          - "go-sender-balancer-{{.projects.pivot.label}}"
+          - "go-sender-balancer-{{.projects.announcement.label}}"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    <<: *healthcheck-go-2000
+    <<: *log-rule-default
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+
+  # GO_SENDER
+  go-sender-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/go_sender:{{.projects.monolith.service.go_sender.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.monolith.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      WS_PORT: 30000
+      NODE_ID: 0
+      IS_HAS_BALANCER: "true"
+      CURRENT_SERVER: "monolith"
+      ROLE: "pivot domino announcement"
+      RABBIT_QUEUE: "{{.projects.monolith.service.go_sender.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.monolith.service.go_sender.rabbit_exchange}}"
+      GO_SENDER_BALANCER_QUEUE: "{{.projects.monolith.service.go_sender_balancer.rabbit_queue}}"
+      GO_SENDER_BALANCER_EXCHANGE: "{{.projects.monolith.service.go_sender_balancer.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.monolith.env"
+      - ".project.override.env"
+    networks:
+      monolith-private:
+        aliases:
+          - "go-sender-{{.projects.announcement.label}}"
+          - "go-sender-{{.projects.pivot.label}}"
+          - "go-sender-{{$domino.label}}"
+    <<: *default-deploy
+    <<: *healthcheck-go-2000
+    <<: *log-rule-default
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{$domino.company_config_dir}}/:/config"
+
+  ## WEBJOIN PROJECT
+  join_web:
+    image: "{{.registry_compass_path}}/onpremise_join_web:{{.projects.join_web.service.join_web.tag}}"
+    env_file:
+      - ".project.join_web.common.env"
+    networks:
+      - "monolith-private"
+    <<: *default-deploy
+
+  ## PIVOT PROJECT
+  # ФАЙЛЫ ПО УМОЛЧАНИЮ
+  default-file-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/default_file:{{.projects.pivot.service.default_file.tag}}"
+    volumes:
+     - "default-file-{{.projects.pivot.service.default_file.tag}}:/files"
+    deploy:
+     replicas: 1
+     restart_policy:
+       condition: "none"
+
+  # GO_PIVOT_CACHE
+  go-pivot-cache-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_pivot_cache:{{.projects.pivot.service.go_pivot_cache.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_pivot_cache.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pivot_cache.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.pivot.common.env"
+      - ".project.pivot.go_pivot_cache.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+
+  # GO_PUSHER
+  go-pusher-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_pusher:{{.projects.pivot.service.go_pusher.tag}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      HTTP_PORT: 80
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_pusher.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pusher.rabbit_exchange}}"
+      IS_PUSH_MOCK_ENABLE: "{{.projects.pivot.service.go_pusher.is_push_mock_enable}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".global.solution.env"
+      - ".project.pivot.common.env"
+      - ".project.pivot.go_pusher.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    configs:
+      - source: "go-pusher-firebase-compass-key"
+        target: "/app/private/firebase_compass_key.json"
+      - source: "go-pusher-firebase-comteam-key"
+        target: "/app/private/firebase_comteam_key.json"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_USERBOT_CACHE
+  go-userbot-cache-{{.projects.userbot.label}}:
+    image: "{{.registry_compass_path}}/go_userbot_cache:{{.projects.userbot.service.go_userbot_cache.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.userbot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      HTTP_PORT: 80
+      RABBIT_QUEUE: {{.projects.userbot.service.go_userbot_cache.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.userbot.service.go_userbot_cache.rabbit_exchange}}
+      USERBOT_CACHE_LISTEN_ADDRESS: "0.0.0.0"
+    env_file:
+      - ".global.common.env"
+      - ".project.userbot.common.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    <<: *default-deploy
+    <<: *healthcheck-go-2000
+    <<: *log-rule-default
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+
+  ## FILE-NODE PROJECT
+  # FILE_NODE
+  php-file-node-{{$file_node.label}}:
+    image: "{{.registry_compass_path}}/php_file_node:{{$file_node.service.php_file_node.tag}}"
+    environment:
+      NODE_ID: "1"
+      NODE_URL: "{{.protocol}}://{{entrypoint $file_node.subdomain .domain .url_path $file_node.url_path 1}}/"
+      VIDEO_PROCESS_THREAD_COUNT: "2"
+    env_file:
+      - ".global.common.env"
+      - ".project.file.common.env"
+      - ".project.file.php_file_node.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-php-9000
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{.root_mount_path}}/tmp_files:/tmp/files/"
+      - "{{.root_mount_path}}/files:/app/www/files"
+
+  ## DOMINO 1
+  # MANTICORE
+  manticore-{{$domino.label}}:
+    image: "manticoresearch/manticore"
+    environment:
+      - EXTRA=0
+      - MCL=1
+    volumes:
+      - "{{$domino.manticore_path}}:/var/lib/manticore/"
+    ports:
+      - "{{$domino.service.manticore.external_port}}:{{$domino.service.manticore.port}}"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    <<: *default-deploy
+    <<: *log-rule-default
+
+  # PHP_MONOLITH
+  php-monolith-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_monolith:{{.projects.monolith.service.php_monolith.tag}}"
+    depends_on:
+      - "memcached-{{$domino.label}}"
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+      - "go-company-cache-{{$domino.label}}"
+      - "go-sender-{{$domino.label}}"
+      - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-sender-balancer-{{.projects.pivot.label}}"
+      - "go-event-{{$domino.label}}"
+      - "default-file-{{.projects.pivot.label}}"
+      - "go-userbot-cache-{{.projects.userbot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".global.solution.env"
+      - ".project.announcement.common.env"
+      - ".project.pivot.common.env"
+      - ".project.pivot.php_pivot.env"
+      - ".project.domino.common.env"
+      - ".project.domino.php_world.env"
+      - ".project.domino.php_company.env"
+      - ".project.domino.php_speaker.env"
+      - ".project.domino.php_file_balancer.env"
+      - ".project.userbot.common.env"
+      - ".project.file.common.env"
+      - ".project.override.env"
+    environment:
+      CDN_URL: "{{.protocol}}://{{entrypoint .projects.file.file1.subdomain .domain .url_path .projects.file.file1.url_path 1}}/"
+      SOCKET_KEY_INTERCOM: {{.security_keys.intercom.socket_key_intercom}}
+      GO_EVENT_GLOBAL_EVENT_QUEUE: {{.projects.monolith.service.go_event.rabbit_queue}}
+      GO_EVENT_SERVICE_EVENT_EXCHANGE: {{.projects.monolith.service.go_event.rabbit_service_exchange}}
+    networks:
+      monolith-private:
+        aliases:
+          - "php-pivot-{{.projects.pivot.label}}"
+          - "php-file-balancer-{{.projects.pivot.label}}"
+          - "php-announcement-{{.projects.announcement.label}}"
+          - "php-company-{{$domino.label}}"
+          - "php-speaker-{{$domino.label}}"
+          - "php-file-balancer-{{$domino.label}}"
+          - "php-world-{{$domino.label}}"
+          - "php-userbot-{{.projects.userbot.label}}"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
+      - "{{$domino.company_config_dir}}/:/config"
+      - type: "volume"
+        source: "default-file-{{.projects.pivot.service.default_file.tag}}"
+        target: "/app/www/default_file/"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-php-9000
+    configs:
+          - source: "feature-conf"
+            target: "/app/src/Compass/Pivot/conf/feature_v2.json"
+          - source: "feature-v1-conf"
+            target: "/app/src/Compass/Pivot/conf/feature_v1.json"
+          - source: "rule-conf"
+            target: "/app/src/Compass/Pivot/conf/rule_v2.json"
+          - source: "rule-v1-conf"
+            target: "/app/src/Compass/Pivot/conf/rule_v1.json"
+          - source: "pivot-monitor"
+            target: "/app/src/Compass/Pivot/api/conf/monitor.php"
+          - source: "pivot-sms"
+            target: "/app/src/Compass/Pivot/api/conf/sms.php"
+          - source: "pivot-captcha"
+            target: "/app/src/Compass/Pivot/api/conf/captcha.php"
+          - source: "tariff-conf"
+            target: "/app/src/Compass/Pivot/api/conf/tariff.php"
+          - source: "domino-hosts-pivot"
+            target: "/app/src/Compass/Pivot/api/conf/domino.php"
+          - source: "bot-conf"
+            target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
+          - source: "tariff-conf-conversation-{{$domino.label}}"
+            target: "/app/src/Compass/Conversation/api/conf/tariff.php"
+          - source: "tariff-conf-thread-{{$domino.label}}"
+            target: "/app/src/Compass/Thread/api/conf/tariff.php"
+          - source: "search-conf-{{$domino.label}}"
+            target: "/app/src/Compass/Conversation/api/conf/search.php"
+          - source: "monitor-conf-{{$domino.label}}"
+            target: "/app/src/Compass/Conversation/api/conf/monitor.php"
+          - source: "janus-{{$domino.label}}"
+            target: "/app/src/Compass/Speaker/api/conf/janus.php"
+          - source: "stun-server-list-{{$domino.label}}"
+            target: "/app/src/Compass/Speaker/api/conf/stun.php"
+          - source: "turn-server-list-{{$domino.label}}"
+            target: "/app/src/Compass/Speaker/api/conf/turn.php"
+          - source: "file-nodes-pivot"
+            target: "/app/src/Compass/FileBalancer/api/conf/node.php"
+          - source: "domino-hosts"
+            target: "/app/src/Compass/Userbot/api/conf/domino.php"
+
+  # GO_COMPANY_CACHE
+  go-company-cache-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_company_cache:{{$domino.service.go_company_cache.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_company_cache.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_company_cache.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.domino.common.env"
+      - ".project.domino.go_company_cache.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{$domino.company_config_dir}}/:/config"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-go-2000
+
+  # GO_RATING
+  go-rating-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_rating:{{$domino.service.go_rating.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_rating.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_rating.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.domino.common.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    volumes:
+      - "{{$domino.company_config_dir}}/:/config"
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-go-2000
+
+  # GO_COMPANY
+  go-company-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_company:{{$domino.service.go_company.tag}}"
+    depends_on:
+      - "rabbit-{{$domino.label}}"
+    environment:
+      HTTP_PORT: 80
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{$domino.service.go_company.rabbit_queue}}
+      RABBIT_EXCHANGE: {{$domino.service.go_company.rabbit_exchange}}
+      TZ: Europe/Moscow
+    env_file:
+      - ".global.common.env"
+      - ".project.domino.common.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{$domino.company_config_dir}}/:/config"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-go-2000
+
+  # GO_DATABASE_CONTROLLER
+  go-database-controller-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/go_database_controller:{{$domino.service.go_database_controller.tag}}"
+    depends_on:
+      - "mysql-{{$domino.label}}"
+    environment:
+      LOGGING_LEVEL: 2
+      GRPC_PORT: {{$domino.go_database_controller_port}}
+      PROFILER_PORT: {{$domino.go_database_controller_profiler_port}}
+      MYSQL_COMPANY_HOST: {{$domino.mysql_host}}
+      COMPANY_DB_PATH: "{{.company_db_path}}"
+      DOMINO_ID: {{$domino.label}}
+      REGISTRY_SERVICE_PATH: {{.registry_service_path}}
+      DOMINO_TIER: {{$domino.tier}}
+      STACK_NAME_PREFIX: "{{.stack_name_prefix}}"
+      BACKUP_USER: {{.backup_user}}
+      BACKUP_USER_PASSWORD: {{.backup_user_password}}
+      BACKUP_ARCHIVE_PASSWORD: {{.backup_archive_password}}
+      BACKUP_SSH_KEY_FILE_PATH: {{$domino.service}}
+      DOMINO_MYSQL_INNODB_FLUSH_METHOD: {{.domino_mysql_innodb_flush_method}}
+      DOMINO_MYSQL_INNODB_FLUSH_LOG_AT_TIMEOUT: {{.domino_mysql_innodb_flush_log_at_timeout}}
+    env_file:
+      - ".global.common.env"
+      - ".project.domino.common.env"
+      - ".project.domino.php_pivot.env"
+      - ".project.override.env"
+    ports:
+      - "{{$domino.go_database_controller_port}}:{{$domino.go_database_controller_port}}"
+    networks:
+      - "monolith-private"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
+    <<: *default-deploy
+    <<: *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 {{$domino.go_database_controller_port}}"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+networks:
+  monolith-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.monolith.network.subnet}}"

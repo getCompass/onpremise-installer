@@ -1,0 +1,22 @@
+{{$file_node := index .projects.file .file_node_id}}
+server {
+
+      	listen 443 http2 ssl;
+
+	server_name {{$file_node.subdomain}}.{{.domain}};
+
+	client_max_body_size 	2000m;  # макс размер запроса, присылаемый клиентом
+	client_body_buffer_size 25m; # размер буфера для запроса присланного клиентом
+
+      	ssl_certificate     /etc/nginx/ssl/{{$file_node.host}}.crt;
+      	ssl_certificate_key /etc/nginx/ssl/{{$file_node.host}}.key;
+
+	resolver 127.0.0.11 ipv6=off;
+
+	chunked_transfer_encoding       off;
+	error_log /var/log/nginx/error_file.log;
+
+	set $upstream_file_node php-file-node-{{$file_node.label}}:9000;
+
+    include includes/file.nginx;
+}

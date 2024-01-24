@@ -1,0 +1,235 @@
+version: '3.8'
+
+# файл композиции для announcement-части
+
+# --- DEPLOY ---
+configs:
+
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-include:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+
+services:
+
+  ## NGINX
+  nginx-{{.projects.announcement.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      - "announcement-private"
+    ports:
+      - "{{.projects.announcement.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    configs:
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include"
+        target: "/etc/nginx/includes/announcement.nginx"
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+
+  # MYSQL
+  mysql-{{.projects.announcement.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28"
+    networks:
+      - "announcement-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{.projects.announcement.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.announcement.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # RABBIT
+  rabbit-{{.projects.announcement.label}}:
+    image: "{{.registry_service_path}}/rabbitmq:master"
+    networks:
+      - "announcement-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # MEMCACHED
+  memcached-{{.projects.announcement.label}}:
+    image: "{{.registry_service_path}}/memcached:master"
+    networks:
+      - "announcement-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 11211"
+      interval: "5s"
+      timeout: "25s"
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+
+  # PHP_ANNOUNCEMENT
+  php-announcement-{{.projects.announcement.label}}:
+    image: "{{.registry_compass_path}}/php_announcement:{{.projects.announcement.service.php_announcement.tag}}"
+    depends_on:
+      - "memcached-{{.projects.announcement.label}}"
+      - "rabbit-{{.projects.announcement.label}}"
+      - "mysql-{{.projects.announcement.label}}"
+      - "go-sender-balancer-{{.projects.announcement.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_announcement.env"
+    networks:
+      - "announcement-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_SENDER_BALANCER
+  go-sender-balancer-{{.projects.announcement.label}}:
+    image: "{{.registry_compass_path}}/go_sender_balancer:{{.projects.announcement.service.go_sender_balancer.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.announcement.label}}"
+      - "go-sender-{{.projects.announcement.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: {{.projects.announcement.service.go_sender_balancer.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.announcement.service.go_sender_balancer.rabbit_exchange}}
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "announcement-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+  # GO_SENDER
+  go-sender-{{.projects.announcement.label}}:
+    image: "{{.registry_compass_path}}/go_sender:{{.projects.announcement.service.go_sender.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.announcement.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      WS_PORT: 30000
+      NODE_ID: 0
+      IS_HAS_BALANCER: "true"
+      RABBIT_QUEUE: {{.projects.announcement.service.go_sender.rabbit_queue}}
+      RABBIT_EXCHANGE: {{.projects.announcement.service.go_sender.rabbit_exchange}}
+      GO_SENDER_BALANCER_QUEUE: {{.projects.announcement.service.go_sender_balancer.rabbit_queue}}
+      GO_SENDER_BALANCER_EXCHANGE: {{.projects.announcement.service.go_sender_balancer.rabbit_exchange}}
+      COMPANY_ID: 0
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "announcement-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+
+networks:
+  announcement-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.announcement.network.subnet}}"

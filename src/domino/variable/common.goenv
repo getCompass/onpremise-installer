@@ -1,0 +1,165 @@
+{{$domino := index .projects.domino .domino_id}}
+
+DOMINO_ID="{{$domino.label}}"
+
+# адреса входных точек проектов для внутреннего общения,
+# т.е. тут описаны сокеты, они, как правило, используют прямое
+# соединения по ip адресу в обход общего веб-сервер
+ENTRYPOINT_DOMINO="{{.protocol}}://{{entrypoint (netaddr $domino.code_host $domino.service.nginx.external_https_port) .url_path $domino.url_path 0}}"
+
+# веб-сокет точки входа
+PUBLIC_WEBSOCKET_DOMINO="wss://{{entrypoint $domino.subdomain .domain .url_path $domino.url_path 1}}/ws"
+
+ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
+PARTNER_PROTOCOL="{{.protocol}}"
+PARTNER_DOMAIN="{{.domain}}"
+
+CURRENT_SERVER=domino
+ROLE=domino
+IS_LOCAL={{.is_local}}
+SUBDOMAIN="{{$domino.subdomain}}"
+MYSQL_HOST="mysql-{{$domino.label}}"
+MYSQL_USER="root"
+MYSQL_PASS="{{$domino.service.mysql.root_password}}"
+MYSQL_ROOT_PASSWORD="{{$domino.service.mysql.root_password}}"
+MYSQL_PORT={{$domino.service.mysql.port}}
+
+MYSQL_SYSTEM_HOST="mysql-{{$domino.label}}"
+MYSQL_SYSTEM_USER="root"
+MYSQL_SYSTEM_PASS="{{$domino.service.mysql.root_password}}"
+MYSQL_SYSTEM_PORT={{$domino.service.mysql.port}}
+
+MCACHE_HOST=memcached-{{$domino.label}}
+MCACHE_PORT=11211
+
+MANTICORE_HOST={{$domino.service.manticore.host}}
+MANTICORE_PORT={{$domino.service.manticore.external_port}}
+
+RABBIT_HOST=rabbit-{{$domino.label}}
+RABBIT_PORT=5672
+RABBIT_HTTP_PORT=15672
+RABBIT_USER=user
+RABBIT_PASS=root2
+RABBITMQ_DEFAULT_USER=user
+RABBITMQ_DEFAULT_PASS=root2
+
+# сколько очередей рэббита поднимается для сервиса
+RABBIT_QUEUES_COUNT=10
+
+PHP_PIVOT_PORT=9001
+PHP_PIVOT_HTTP_PORT=8001
+PHP_FILE_BALANCER_PORT=9002
+
+GO_SENDER_HOST=go-sender-{{$domino.label}}
+GO_SENDER_GRPC_PORT=2000
+GO_SENDER_TCP_PORT=1000
+GO_SENDER_WS_PORT=30000
+
+GO_COMPANY_CACHE_HOST="go-company-cache-{{$domino.label}}"
+GO_COMPANY_CACHE_TCP_PORT="30003"
+GO_COMPANY_CACHE_GRPC_PORT="2000"
+GO_COMPANY_CACHE_QUEUE="go-company-cache-queue"
+GO_COMPANY_CACHE_EXCHANGE="go-company-cache-exchange"
+
+GO_RATING_HOST="go-rating-{{$domino.label}}"
+GO_RATING_TCP_PORT="30004"
+GO_RATING_GRPC_PORT="2000"
+GO_RATING_QUEUE="go-rating-queue"
+GO_RATING_EXCHANGE="go-rating-exchange"
+
+GO_EVENT_HOST="go-event-{{$domino.label}}"
+GO_EVENT_PORT="2000"
+GO_EVENT_TCP_PORT="1000"
+GO_EVENT_GRPC_PORT="2000"
+
+GO_COMPANY_HOST="go-company-{{$domino.label}}"
+GO_COMPANY_PORT="2000"
+GO_COMPANY_TCP_PORT="30001"
+GO_COMPANY_GRPC_PORT="2000"
+
+GO_COLLECTOR_AGENT_PROTOCOL=http
+GO_COLLECTOR_AGENT_HOST=go-collector-agent-{{$domino.label}}
+GO_COLLECTOR_AGENT_HTTP_PORT=2000
+
+GO_PARTNER_AGENT_PROTOCOL=http
+GO_PARTNER_AGENT_HOST=go-partner-agent-{{$domino.label}}
+GO_PARTNER_AGENT_HTTP_PORT=2000
+
+# соли
+SALT_PACK_SESSION_V1={{.salt_keys.salt_pack_session_v1}}
+SALT_PACK_COMPANY_SESSION_V1={{.salt_keys.salt_pack_company_session_v1}}
+SALT_PACK_AUTH_V1={{.salt_keys.salt_pack_auth_v1}}
+SALT_ACTION_USERS={{.salt_keys.salt_action_users}}
+SALT_USERAGENT_V1={{.salt_keys.salt_useragent_v1}}
+SALT_AUTH_PIN_CODE_V1={{.salt_keys.salt_auth_pin_code_v1}}
+SALT_CODE_V1={{.salt_keys.salt_code_v1}}
+SALT_PACK_MESSAGE_1={{.salt_keys.salt_pack_message_1}}
+SALT_PACK_CONVERSATION_1={{.salt_keys.salt_pack_conversation_1}}
+SALT_PACK_THREAD_1={{.salt_keys.salt_pack_thread_1}}
+SALT_PACK_INVITE_1={{.salt_keys.salt_pack_invite_1}}
+SALT_PACK_PREVIEW_1={{.salt_keys.salt_pack_preview_1}}
+SALT_PACK_CALL_1={{.salt_keys.salt_pack_call_1}}
+SALT_PACK_FILE_1={{.salt_keys.salt_pack_file_1}}
+SALT_PACK_FILE_2={{.salt_keys.salt_pack_file_2}}
+SALT_ARCHIVE_BLOCK_SIGNATURE={{.salt_keys.salt_archive_block_signature}}
+SALT_ALLOWED_USERS_FOR_INVITE={{.salt_keys.salt_allowed_users_for_invite}}
+SALT_INITIAL_ANNOUNCEMENT_TOKEN={{.security_keys.announcement.salt_initial_announcement_token}}
+SALT_TALKING_HASH={{.security_keys.domino.salt_talking_hash}}
+SALT_SENDER_HASH={{.security_keys.domino.salt_sender_hash}}
+
+# rsa ключи
+COMPANY_TO_PIVOT_PRIVATE_KEY="{{.ssl_keys.company_to_pivot.private_key}}"
+PIVOT_TO_COMPANY_PUBLIC_KEY="{{.ssl_keys.pivot_to_company.public_key}}"
+
+# сокет ключи
+SOCKET_KEY_COMPANY={{.security_keys.domino.socket_key_company}}
+SOCKET_KEY_CONVERSATION={{.security_keys.domino.socket_key_conversation}}
+SOCKET_KEY_THREAD={{.security_keys.domino.socket_key_thread}}
+SOCKET_KEY_GO_EVENT={{.security_keys.domino.socket_key_go_event}}
+SOCKET_KEY_GO_TIMER={{.security_keys.domino.socket_key_go_timer}}
+SOCKET_KEY_GO_COMPANY={{.security_keys.domino.socket_key_go_company}}
+SOCKET_KEY_GO_RATING={{.security_keys.domino.socket_key_go_rating}}
+SOCKET_KEY_GO_SENDER={{.security_keys.domino.socket_key_go_sender}}
+SOCKET_KEY_GO_COLLECTOR_AGENT={{.security_keys.analytic.socket_key_go_collector_agent}}
+SOCKET_KEY_GO_PARTNER_AGENT={{.security_keys.domino.socket_key_go_partner_agent}}
+SOCKET_KEY_SPEAKER={{.security_keys.domino.socket_key_speaker}}
+SOCKET_KEY_MIGRATION={{.security_keys.domino.socket_key_migration}}
+SOCKET_KEY_DEVELOPMENT=abcdef1234567890
+SOCKET_KEY_WEBSTAT={{.security_keys.analytic.socket_key_webstat}}
+SOCKET_KEY_COMPASS_COMPANY={{.security_keys.domino.socket_key_compass_company}}
+SOCKET_KEY_COLLECTOR={{.security_keys.analytic.socket_key_collector}}
+SOCKET_KEY_GO_PUSHER={{.security_keys.pivot.socket_key_go_pusher}}
+SOCKET_KEY_ADMIN={{.security_keys.admin.socket_key_admin}}
+SOCKET_KEY_TEST=abcdef1234567890
+SOCKET_KEY_PARTNER="abcdef1234567890"
+COMPANY_ANNOUNCEMENT_PRIVATE_KEY="{{.security_keys.announcement.company_announcement_socket_key}}"
+
+# ключи шифрования
+ENCRYPT_KEY_PIVOT_SESSION={{.encrypt_keys.encrypt_key_pivot_session}}
+ENCRYPT_IV_PIVOT_SESSION={{.encrypt_keys.encrypt_iv_pivot_session}}
+ENCRYPT_KEY_COMPANY_SESSION={{.encrypt_keys.encrypt_key_company_session}}
+ENCRYPT_IV_COMPANY_SESSION={{.encrypt_keys.encrypt_iv_company_session}}
+ENCRYPT_IV_ACTION={{.encrypt_keys.encrypt_iv_action}}
+ENCRYPT_PASSPHRASE_ACTION={{.encrypt_keys.encrypt_passphrase_action}}
+
+IS_URL_PREVIEW_ENABLED=true
+IS_IMAGE_URL_PREVIEW_ENABLED=true
+IS_VIDEO_URL_PREVIEW_ENABLED=true
+IS_WS_USERS_FOR_GO_ENABLED=true
+IS_HIRING_SYSTEM_MESSAGES_ENABLED=true
+IS_ENABLED_EXPERIMENTAL_UNREAD_MENU_FOR_ALL=true
+ENABLED_EXPERIMENTAL_UNREAD_MENU_FOR_USER_LIST=[]
+
+NOTICE_BOT_USER_ID=0
+NOTICE_ENDPOINT=""
+NOTICE_BOT_TOKEN=""
+NOTICE_CHANNEL_KEY=""
+
+COMPANY_HIBERNATION_DELAYED_TIME={{.company_hibernation_delayed_time}}
+NEED_COMPANY_HIBERNATE={{.need_company_hibernate}}
+
+{{if .subdomain_enabled}}
+DOMAIN_REGEX = {{escape "./" (prepare_url (concatne "" "(^c([0-9]+)-" $domino.label "." .domain ")"))}}
+{{else}}
+DOMAIN_REGEX = {{escape "./" (prepare_url (concatne "" "(" .domain "/" .url_path "/" $domino.url_path "/([0-9]+))/"))}}
+{{end}}

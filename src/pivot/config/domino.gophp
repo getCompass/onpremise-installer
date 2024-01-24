@@ -1,0 +1,19 @@
+<?php
+
+namespace Compass\Pivot;
+
+$CONFIG["DOMINO_ENTRYPOINT"] = [
+{{- range $domino_id, $domino := .projects.domino -}}
+{{- with $code_host := index $domino "code_host" -}}
+{{- if and $code_host (not (eq $code_host "0.0.0.0")) -}}
+	"{{$domino.label}}" => [
+		"private_entrypoint"          => "{{$.protocol}}://{{entrypoint (netaddr $code_host $domino.service.nginx.external_https_port) $.url_path $domino.url_path 0}}",
+		"public_url"                  => "{{entrypoint $domino.subdomain $.domain $.url_path $domino.url_path 1}}",
+		"template_public_company_url" => "{{$domino.template_public_company_url}}",
+	]
+{{- end -}}
+{{- end -}}
+{{- end -}}
+];
+
+return $CONFIG;

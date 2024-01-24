@@ -1,0 +1,155 @@
+user nginx;
+
+worker_processes 5;
+pid /run/nginx.pid;
+
+# core
+worker_rlimit_nofile 512000;
+timer_resolution 100ms;
+
+events {
+        worker_connections 8192;
+        worker_aio_requests 512;
+        multi_accept on;
+        use epoll;
+}
+
+http {
+
+        log_format access_log_default_format '$request_time $upstream_response_time "$host" "$server_name"  $remote_addr $http_x_request_id - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio"';
+
+	#######################################################
+	# Common
+	#######################################################
+
+        # говорим браузеру что у нас только https
+        add_header Strict-Transport-Security "max-age=15768000; includeSubDomains" always;
+
+        # уязвимость 206 Partial Content
+        proxy_set_header Range "";
+        proxy_set_header Request-Range "";
+
+        aio		threads;
+        server_tokens	off; # отключаем показ версии nginx
+        sendfile	on; # оставляем включенным в любом случае
+
+        # отправка заголовков одним пакетом
+        tcp_nopush	on;
+	tcp_nodelay	on;
+
+        # keepalive соединения клиент -> сервер
+        keepalive_timeout	120s;
+        keepalive_requests	300;
+
+        # сброс соединения с тупящими клиентами
+        reset_timedout_connection on;
+
+        # таймауты
+        client_header_timeout	35s; # заголовок запроса
+        client_body_timeout	35s; # тело запроса
+        send_timeout		35s; # чтение ответа
+
+        # разрешаем продолжение загрузки
+        max_ranges 2;
+
+        # буферы
+        client_body_buffer_size		1M; # максимальный размер буфера для хранения тела запроса клиента
+        client_header_buffer_size	1M; # максимальный размер буфера для хранения заголовков запроса клиента
+        large_client_header_buffers	2 1M; # количество и размер буферов для чтения большого заголовка запроса клиента
+
+        # максимальный размер тела запроса
+        # нужен для больших POST запросов
+        client_max_body_size 30m;
+
+        # максимальный размер хэш таблицы для mime типов файлов
+        types_hash_max_size 2048;
+
+        # кэширование директив server_name
+        server_names_hash_bucket_size	128;
+        server_names_hash_max_size	1024;
+
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        #######################################################
+        # SSL
+        #######################################################
+
+        ssl_protocols			TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers			kEECDH+AES128:kEECDH:kEDH:-3DES:kRSA+AES128:kEDH+3DES:DES-CBC3-SHA:!RC4:!aNULL:!eNULL:!MD5:!EXPORT:!LOW:!SEED:!CAMELLIA:!IDEA:!PSK:!SRP:!SSLv2;
+        ssl_prefer_server_ciphers	on;
+        ssl_session_cache		shared:SSL:20m;
+        ssl_session_timeout		1h;
+
+	#######################################################
+	# logs
+	#######################################################
+
+        access_log /var/log/nginx/access.log access_log_default_format buffer=64k;
+        error_log /var/log/nginx/error.log;
+
+        #######################################################
+        # gzip
+        #######################################################
+
+        gzip			on;
+        gzip_static		on;
+        gzip_http_version	1.0;
+        gzip_proxied		any;
+        gzip_vary		on;
+        gzip_disable		"msie6";
+
+        gzip_min_length	1000; # минимальный размер сжимаемого файла
+        gzip_buffers	16 8k; # буферы: количество размер
+        gzip_comp_level	4; # уровень сжатия
+
+        gzip_types image/png image/jpeg image/jpg image/x-icon image/gif image/bmp video/quicktime video/webm video/ogg video/mpeg video/mp4 video/x-ms-wmv video/x-flv video/3gpp video/3gpp2 audio/mp4 audio/mpeg audio/midi audio/webm audio/ogg audio/basic audio/L24 audio/vorbis audio/x-ms-wma audio/x-ms-wax audio/vnd.rn-realaudio audio/vnd.wave audio/mp3 audio/aac audio/x-aac audio/x-hx-aac-adts application/pdf application/msword application/rtf application/vnd.ms-excel application/vnd.ms-powerpoint application/vnd.oasis.opendocument.text application/vnd.oasis.opendocument.spreadsheet application/javascript application/json application/xml application/cmd text/plain text/css text/csv text/javascript text/php text/xml text/markdown cache-manifest;
+
+	#######################################################
+	# http2
+	#######################################################
+
+	http2_recv_buffer_size		512k;
+	http2_chunk_size		2k;
+	http2_max_concurrent_streams	512;
+
+        #######################################################
+        # Fastcgi
+	#######################################################
+
+	# fastcgi
+        include                       /etc/nginx/fastcgi_params;
+        fastcgi_index                 index.php;
+        fastcgi_param                 SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param                 SERVER_NAME $http_host;
+        fastcgi_keep_conn             off; # обязательно отключаем keep-alive
+        fastcgi_cache                 off; # никакого кэширования ответов от fastcgi
+        fastcgi_force_ranges          off;
+        fastcgi_intercept_errors      off; # не обрабатываем ответы в которых код > 300 с помощью error_page
+        fastcgi_connect_timeout               30s;
+        fastcgi_send_timeout          30s;
+        fastcgi_read_timeout          30s;
+        fastcgi_limit_rate            0; # убираем лимит скорость чтения ответа от fastcgi
+        fastcgi_ignore_client_abort   off; # не закрываем соединение с fastcgi сервером в случае если клиент оборвался
+
+        # буферизация ответа от fastcgi сервера
+        fastcgi_buffering             on;
+        fastcgi_buffers               64 8k;
+        fastcgi_busy_buffers_size     252k;
+        fastcgi_buffer_size           8k; # размер буфера для первого заголовка ответа от fastcgi сервера
+        fastcgi_max_temp_file_size    0; # не пишем в файл
+
+        #######################################################
+        # Virtual Host Configs
+	#######################################################
+
+        include /etc/nginx/conf.d/*.conf;
+        include /etc/nginx/sites-enabled/*;
+}
+
+#######################################################
+# tcp балансировка
+#######################################################
+stream {
+        include /etc/nginx/stream-enabled/*;
+}

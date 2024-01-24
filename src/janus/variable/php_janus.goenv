@@ -1,0 +1,4 @@
+JANUS_PORT={{.projects.janus.service.janus.port}}
+JANUS_HOST="janus-{{.projects.janus.label}}"
+JANUS_USER_TOKEN_SECRET="{{.projects.janus.service.janus.user_token_secret}}"
+JANUS_API_SECRET="{{.projects.janus.service.janus.api_secret}}"
