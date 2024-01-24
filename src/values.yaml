@@ -116,7 +116,7 @@ projects:
     host: "0.0.0.0"
     label: "pivot"
     subdomain: ""
-    subdomain_start: "start"
+    subdomain_start: ""
     url_path: "pivot"
     url_path_start: "start"
     php_migration_socket_key: "abcdef1234567890"
