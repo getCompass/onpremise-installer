@@ -1,5 +1,9 @@
-![](https://getcompass.ru/static/github/ru/cover_dark.png#gh-dark-mode-only)
-![](https://getcompass.ru/static/github/ru/cover_light.png#gh-light-mode-only)
+<p align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://getcompass.ru/static/github/ru/cover_dark.png">
+      <img src="https://getcompass.ru/static/github/ru/cover_light.png" width="100%" height="100%" alt="">
+    </picture>
+</p>
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://getcompass.ru/static/github/ru/1_dark.png">
