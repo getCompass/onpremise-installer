@@ -4,6 +4,3 @@ COURIER_COUNT={{.projects.pivot.service.go_event.courier_count}}
 
 BILLING_PROTOCOL={{.billing_protocol}}
 BILLING_DOMAIN={{.billing_domain}}
-
-PARTNER_WEB_PROTOCOL="{{.partner_web_protocol}}"
-PARTNER_WEB_DOMAIN="{{.partner_web_domain}}"

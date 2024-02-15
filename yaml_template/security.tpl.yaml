@@ -5,7 +5,6 @@ security_keys:
     socket_key_collector: ""
     socket_key_webstat: ""
     socket_key_go_collector_agent: ""
-    socket_key_go_partner_agent: ""
     salt_analytic: ""
   file:
     socket_key_file_node: ""
@@ -27,7 +26,6 @@ security_keys:
     socket_key_go_company: ""
     socket_key_go_rating: ""
     socket_key_go_sender: ""
-    socket_key_go_partner_agent: ""
     socket_key_speaker: ""
     socket_key_migration: ""
     socket_key_compass_company: ""
@@ -42,6 +40,8 @@ security_keys:
     salt_sender_balancer_hash: ""
     salt_sender_hash: ""
     socket_key_pivot: ""
+  partner:
+    socket_key_partner: ""
   userbot:
     socket_key_userbot_cache: ""
     global_userbot_private_key: ""

@@ -192,6 +192,7 @@ location ~* ^{{$space_locprefix}}/redirect/?$ {
 
 	root /app/www/;
 	rewrite ^{{$space_locprefix}}/(.*)$ /$1 break;
+
 	index index.php;
 
 	fastcgi_pass $upstream_domino;

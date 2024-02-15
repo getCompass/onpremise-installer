@@ -8,13 +8,12 @@ set $upstream_file_node php-file-node-{{$file_node.label}}:9000;
 ########################################################
 location {{$locprefix}}/files/ {
 
-	# отключаем gzip чтобы в ответе возвращался content-length
-	gzip off;
-
 	# перенаправляем в примаунченную папку, где хранятся файлы
 	root /home;
-
 	rewrite ^{{$locprefix}}/(.*)$ /$1 break;
+
+	# отключаем gzip чтобы в ответе возвращался content-length
+	gzip off;
 
 	# кэшируем файлы
 	open_file_cache max=10000 inactive=600s; # максимальное количество файлов
@@ -41,6 +40,7 @@ location {{$locprefix}}/files/ {
 	location ~* \.(mp4|mov)$ {
 
 		rewrite ^{{$locprefix}}/(.*)$ /$1 break;
+
 		# отключаем open_file_cache
 		# существует баг, из-за которого nginx будет отдавать 500 Internal Server Error
 		# при попытке закэшировать mp4 и включенном модуле mp4

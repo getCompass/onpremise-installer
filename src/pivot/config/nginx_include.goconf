@@ -134,6 +134,16 @@ location {{$global_locprefix}}/captcha/ {
 	fastcgi_pass $upstream_pivot_php;
 }
 
+# страничка с капчей enterprise
+location {{$global_locprefix}}/captcha/enterprise/ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^/captcha/enterprise /captcha/enterprise/index.php break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
 # mbti html
 location ~* ^{{$pivot_locprefix}}/html/mbti/?$ {
 

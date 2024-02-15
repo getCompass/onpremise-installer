@@ -11,8 +11,6 @@ ENTRYPOINT_DOMINO="{{.protocol}}://{{entrypoint (netaddr $domino.code_host $domi
 PUBLIC_WEBSOCKET_DOMINO="wss://{{entrypoint $domino.subdomain .domain .url_path $domino.url_path 1}}/ws"
 
 ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
-PARTNER_PROTOCOL="{{.protocol}}"
-PARTNER_DOMAIN="{{.domain}}"
 
 CURRENT_SERVER=domino
 ROLE=domino
@@ -81,10 +79,6 @@ GO_COLLECTOR_AGENT_PROTOCOL=http
 GO_COLLECTOR_AGENT_HOST=go-collector-agent-{{$domino.label}}
 GO_COLLECTOR_AGENT_HTTP_PORT=2000
 
-GO_PARTNER_AGENT_PROTOCOL=http
-GO_PARTNER_AGENT_HOST=go-partner-agent-{{$domino.label}}
-GO_PARTNER_AGENT_HTTP_PORT=2000
-
 # соли
 SALT_PACK_SESSION_V1={{.salt_keys.salt_pack_session_v1}}
 SALT_PACK_COMPANY_SESSION_V1={{.salt_keys.salt_pack_company_session_v1}}
@@ -121,7 +115,6 @@ SOCKET_KEY_GO_COMPANY={{.security_keys.domino.socket_key_go_company}}
 SOCKET_KEY_GO_RATING={{.security_keys.domino.socket_key_go_rating}}
 SOCKET_KEY_GO_SENDER={{.security_keys.domino.socket_key_go_sender}}
 SOCKET_KEY_GO_COLLECTOR_AGENT={{.security_keys.analytic.socket_key_go_collector_agent}}
-SOCKET_KEY_GO_PARTNER_AGENT={{.security_keys.domino.socket_key_go_partner_agent}}
 SOCKET_KEY_SPEAKER={{.security_keys.domino.socket_key_speaker}}
 SOCKET_KEY_MIGRATION={{.security_keys.domino.socket_key_migration}}
 SOCKET_KEY_DEVELOPMENT=abcdef1234567890
@@ -131,7 +124,7 @@ SOCKET_KEY_COLLECTOR={{.security_keys.analytic.socket_key_collector}}
 SOCKET_KEY_GO_PUSHER={{.security_keys.pivot.socket_key_go_pusher}}
 SOCKET_KEY_ADMIN={{.security_keys.admin.socket_key_admin}}
 SOCKET_KEY_TEST=abcdef1234567890
-SOCKET_KEY_PARTNER="abcdef1234567890"
+SOCKET_KEY_PARTNER=""
 COMPANY_ANNOUNCEMENT_PRIVATE_KEY="{{.security_keys.announcement.company_announcement_socket_key}}"
 
 # ключи шифрования

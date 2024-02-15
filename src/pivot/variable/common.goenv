@@ -4,8 +4,6 @@ ROLE=pivot
 SOLUTION_URL="https://solution.getcompass.com"
 
 ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
-PARTNER_PROTOCOL="{{.protocol}}"
-PARTNER_DOMAIN="{{.domain}}"
 CRM_PROTOCOL="{{.protocol}}"
 CRM_DOMAIN="crm.{{.domain}}"
 PIVOT_URL={{.protocol}}://{{.domain}}/pivot
@@ -60,11 +58,7 @@ GO_COLLECTOR_AGENT_HOST=go-collector-agent-{{.projects.pivot.label}}
 GO_COLLECTOR_AGENT_HTTP_HOST=http://go-collector-agent-{{.projects.pivot.label}}
 GO_COLLECTOR_AGENT_HTTP_PORT=2000
 
-GO_PARTNER_AGENT_PROTOCOL=http
-GO_PARTNER_AGENT_HOST=go-partner-agent-{{.projects.pivot.label}}
-GO_PARTNER_AGENT_HTTP_PORT=2000
-
-SOCKET_KEY_GO_EVENT={{.security_keys.pivot.socket_key_go_pusher}}
+SOCKET_KEY_GO_EVENT={{.security_keys.pivot.socket_key_go_event}}
 SOCKET_KEY_GO_RATING={{.security_keys.domino.socket_key_go_rating}}
 
 GO_USERBOT_GRPC_HOST=go-userbot-cache-{{.projects.userbot.label}}
@@ -79,7 +73,6 @@ SOCKET_KEY_MIGRATION={{.projects.pivot.php_migration_socket_key}}
 SOCKET_KEY_GO_TIMER={{.security_keys.domino.socket_key_go_timer}}
 SOCKET_KEY_GO_COMPANY={{.security_keys.domino.socket_key_go_company}}
 SOCKET_KEY_GO_COLLECTOR_AGENT={{.security_keys.analytic.socket_key_go_collector_agent}}
-SOCKET_KEY_GO_PARTNER_AGENT=abcdef1234567890
 SOCKET_KEY_GO_PUSHER={{.security_keys.pivot.socket_key_go_pusher}}
 SOCKET_KEY_GO_SENDER={{.security_keys.domino.socket_key_go_sender}}
 SOCKET_KEY_PUSHER={{.security_keys.pivot.socket_key_go_pusher}}
@@ -89,9 +82,8 @@ SOCKET_KEY_CRM=abcdef1234567890
 SOCKET_KEY_ADMIN={{.security_keys.admin.socket_key_admin}}
 SOCKET_KEY_DEVELOPMENT=abcdef1234567890
 SOCKET_KEY_COMPANY={{.security_keys.domino.socket_key_company}}
-SOCKET_KEY_PARTNER=abcdef1234567890
+SOCKET_KEY_PARTNER=""
 SOCKET_KEY_WEBSTAT="{{.security_keys.analytic.socket_key_webstat}}"
-SOCKET_KEY_PARTNER_WEB="abcdef1234567890"
 
 GLOBAL_ANNOUNCEMENT_PRIVATE_KEY={{.security_keys.announcement.global_announcement_socket_key}}
 SALT_INITIAL_ANNOUNCEMENT_TOKEN={{.security_keys.announcement.salt_initial_announcement_token}}

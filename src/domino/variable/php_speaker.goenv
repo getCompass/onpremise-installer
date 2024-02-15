@@ -1,10 +1,11 @@
 {{$domino := index .projects.domino .domino_id}}
 
-ANALYTICS_IS_ENABLED={{.is_call_analytics_enabled}}
-SORT_EVENTS_BY_IMPORTANCE_IS_ENABLED=false
-IS_USER_NETWORK_TRACEROUTE_ENABLED=false
 GO_EVENT_GLOBAL_EVENT_QUEUE={{$domino.service.go_event.rabbit_service_queue}}
 GO_EVENT_SERVICE_EVENT_EXCHANGE={{$domino.service.go_event.rabbit_service_exchange}}
 JANUS_CLIENT_OPTIMAL_BANDWIDTH_MB=6
 JANUS_ROOM_BITRATE_LIST="[256 * 1000, 512 * 1000, 1024 * 1000]"
 JANUS_USER_TOKEN_SECRET="{{.projects.janus.service.janus.user_token_secret}}"
+
+ANALYTICS_IS_ENABLED={{.is_call_analytics_enabled}}
+SORT_EVENTS_BY_IMPORTANCE_IS_ENABLED=false
+IS_USER_NETWORK_TRACEROUTE_ENABLED=false

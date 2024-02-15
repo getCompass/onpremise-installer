@@ -23,6 +23,8 @@ ANALYTIC_DOMAIN={{.projects.analytic.subdomain}}.{{.domain}}
 ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
 PHP_COLLECTOR_HOST=analytic.{{.domain}}
 FILE_NODE_1_DOMAIN="{{.projects.file.file1.subdomain}}.{{.domain}}"
+PARTNER_PROTOCOL=""
+PARTNER_DOMAIN=""
 
 AUTH_BOT_USER_ID={{.auth_bot_user_id}}
 TEST_BOT_USER_ID=17
@@ -39,9 +41,9 @@ PUBLIC_PROTOCOL={{.protocol}}
 # ==========================================================
 ENTRYPOINT_PIVOT="{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path 0}}"
 ENTRYPOINT_ANNOUNCEMENT="{{.protocol}}://{{entrypoint (netaddr .projects.announcement.host .projects.announcement.service.nginx.external_https_port) .url_path .projects.announcement.url_path 0}}"
+ENTRYPOINT_INTERCOM=""
 ENTRYPOINT_USERBOT="{{.protocol}}://{{entrypoint (netaddr .projects.userbot.host .projects.userbot.service.nginx.external_https_port) .url_path .projects.userbot.url_path 0}}"
 ENTRYPOINT_WWW=""
-ENTRYPOINT_INTERCOM=""
 ENTRYPOINT_STAGE=""
 ENTRYPOINT_TEST=""
 ENTRYPOINT_ANALYTIC=""
@@ -62,13 +64,14 @@ PUBLIC_ENTRYPOINT_ANNOUNCEMENT="{{.protocol}}://{{entrypoint .projects.announcem
 PUBLIC_ENTRYPOINT_USERBOT="{{.protocol}}://{{entrypoint .projects.userbot.subdomain .domain .url_path .projects.userbot.url_path 1}}"
 PUBLIC_ENTRYPOINT_ANALYTIC=""
 PUBLIC_ENTRYPOINT_INTERCOM=""
-PUBLIC_ENTRYPOINT_PARTNER=""
 PUBLIC_ENTRYPOINT_ADMIN=""
 PUBLIC_ENTRYPOINT_WWW=""
 PUBLIC_ENTRYPOINT_STAGE=""
 PUBLIC_ENTRYPOINT_GO_TEST=""
+PUBLIC_ENTRYPOINT_PARTNER=""
 
 PUBLIC_ENTRYPOINT_CAPTCHA={{.protocol}}://{{.domain}}/captcha
+PUBLIC_ENTRYPOINT_CAPTCHA_ENTERPRISE={{.protocol}}://{{.domain}}/captcha/enterprise
 PUBLIC_ENTRYPOINT_JOIN={{.protocol}}://{{.domain}}/join
 PUBLIC_ENTRYPOINT_INVITE={{.protocol}}://{{.domain}}/invite
 PUBLIC_ENTRYPOINT_SOLUTION="https://solution.getcompass.com"
@@ -97,6 +100,7 @@ SOCKET_KEY_PIVOT="{{.security_keys.pivot.socket_key_pivot}}"
 SOCKET_KEY_CRM="{{.security_keys.crm.socket_key_crm}}"
 SOCKET_KEY_CONVERSATION="{{.security_keys.domino.socket_key_conversation}}"
 SOCKET_KEY_THREAD="{{.security_keys.domino.socket_key_thread}}"
+SOCKET_KEY_PARTNER=""
 GLOBAL_USERBOT_PRIVATE_KEY="{{.security_keys.userbot.global_userbot_private_key}}"
 
 ENCRYPT_KEY_DEFAULT={{.encrypt_keys.encrypt_key_default}}

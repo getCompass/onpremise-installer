@@ -34,7 +34,7 @@ configs:
     name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
     file: ".project.nginx.conf"
   nginx-include:
-    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_include.conf}}"
     file: ".project.nginx_include.conf"
   nginx-sites:
     name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
