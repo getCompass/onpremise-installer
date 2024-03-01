@@ -84,7 +84,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v1.6.0"
+        tag: "v1.6.1"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -132,7 +132,7 @@ projects:
         mysql_user: "root"
         mysql_password: "4321"
       go_pivot_cache:
-        tag: "1.0.0"
+        tag: "v1.6.1"
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
       go_pusher:
@@ -301,7 +301,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v1.6.0"
+          tag: "v1.6.1"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
