@@ -101,7 +101,7 @@ try:
         command=[
             "bash",
             "-c",
-            "php src/Compass/Pivot/sh/php/domino/create_user.php --dry-run=0",
+            "php src/Compass/Pivot/sh/php/domino/create_user.php --dry=0",
         ],
         interactive=True,
         tty=True,

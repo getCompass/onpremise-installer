@@ -36,8 +36,9 @@ validate_only = args.validate_only
 # путь к папке с проектом
 main_dir = str(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 script_dir = str(Path(__file__).parent.resolve())
+
 # загружаем конфиги
-config_path = Path(script_dir + "/../configs/sms.yaml")
+config_path = Path(script_dir + "/../configs/auth.yaml")
 
 config = {}
 validation_errors = []
@@ -222,6 +223,7 @@ def handle_exception(field, message: str):
 
 # генерируем конфигурационный файл по шаблону
 def generate_template_config(conf_values: dict):
+
     # проверяем, что есть шаблон, по которому генерируем конфигурационный файл
     if not os.path.isfile(conf_values["template"]):
         print(
@@ -263,17 +265,18 @@ def generate_template_config(conf_values: dict):
 
 # получаем провайдеров для конфигурации
 def get_config_provider(conf_values: dict, main_template=""):
-    try:
-        # если смски не включены - то и не делаем ничего
-        is_enabled = InteractiveValue(
-            "is_enabled", "Включены ли СМС", "int", config=config, is_required=True
-        ).from_config()
-    except IncorrectValueException as e:
-        handle_exception(e.field, e.message)
-        is_enabled = 0
 
-    if is_enabled != 1:
+    available_methods = InteractiveValue(
+        "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+    ).from_config()
+
+    if available_methods == "[]":
         return main_template
+
+    # если указан номер телефона, то смс провайдер должен быть заполнен
+    is_sms_provider_required = False
+    if "phone_number" in available_methods:
+        is_sms_provider_required = True
 
     uncompleted_provider_list = []
     for provider, name in provider_names.items():
@@ -315,7 +318,7 @@ def get_config_provider(conf_values: dict, main_template=""):
                 handle_exception(e.field, e.message)
                 value = None
 
-            if (value is None) and (conf_value["is_required"]):
+            if (value is None or value == "[]") and (conf_value["is_required"]):
                 uncompleted_provider_list.append(provider)
                 break
 
@@ -335,11 +338,9 @@ def get_config_provider(conf_values: dict, main_template=""):
         # добавляем к остальному шаблону
         main_template += template + "\r\n\r\n"
 
-    if len(uncompleted_provider_list) == len(provider_names):
-        print(
-            scriptutils.warning(
-                "В конфигурации нет достаточно данных ни для одного провайдера SMS"
-            )
+    if is_sms_provider_required and len(uncompleted_provider_list) == len(provider_names):
+        scriptutils.die(
+            "В конфигурации нет достаточно данных ни для одного провайдера SMS"
         )
 
         if validate_only:

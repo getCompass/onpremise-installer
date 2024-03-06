@@ -69,6 +69,16 @@ location ~* ^{{$pivot_locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9
 	fastcgi_pass $upstream_pivot_php;
 }
 
+# api on premise web 3 level
+location ~* ^{{$pivot_locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/onpremiseweb/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
 # apiv1 3 level
 location ~* ^{{$pivot_locprefix}}/api/v1/(pivot)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
 

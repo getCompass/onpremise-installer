@@ -123,6 +123,12 @@ configs:
   file-nodes-pivot:
     name: "{{.stack_name}}_file_nodes_pivot-{{.config_revisions.project.pivot.file_nodes_on_premise.php}}"
     file: ".project.pivot.file_nodes_on_premise.php"
+  pivot-auth:
+    name: "{{.stack_name}}_pivot_auth-{{.config_revisions.project.pivot.pivot_auth.php}}"
+    file: ".project.pivot.pivot_auth.php"
+  pivot-mail:
+    name: "{{.stack_name}}_pivot_mail-{{.config_revisions.project.pivot.pivot_mail.php}}"
+    file: ".project.pivot.pivot_mail.php"
 
   ## КОНФИГУРАЦИИ АНОНСОВ
   # настройки nginx анонсов
@@ -662,6 +668,10 @@ services:
             target: "/app/src/Compass/Pivot/api/conf/tariff.php"
           - source: "domino-hosts-pivot"
             target: "/app/src/Compass/Pivot/api/conf/domino.php"
+          - source: "pivot-auth"
+            target: "/app/src/Compass/Pivot/api/conf/auth.php"
+          - source: "pivot-mail"
+            target: "/app/src/Compass/Pivot/api/conf/mail.php"
           - source: "bot-conf"
             target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
           - source: "tariff-conf-conversation-{{$domino.label}}"

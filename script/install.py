@@ -56,6 +56,15 @@ subprocess.run(
     "Ошибка при валидации конфигурации sms провайдеров"
 )
 
+print("Валидируем конфигурацию аутентификации")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_auth_data_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации аутентификации")
+
 print("Валидируем конфигурацию приложения")
 command = [
     script_resolved_path + "/init.py",
@@ -108,6 +117,11 @@ print("Запускаем скрипт генерации конфигураци
 subprocess.run(
     ["python3", script_resolved_path + "/generate_sms_service_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации sms провайдеров")
+
+print("Запускаем скрипт генерации конфигурации аутентификации")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_auth_data_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации аутентификации")
 
 print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name]

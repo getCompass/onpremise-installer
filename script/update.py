@@ -24,6 +24,14 @@ parser.add_argument("--use-default-values", required=False, action="store_true")
 args = parser.parse_args()
 use_default_values = args.use_default_values
 
+# сначала актуализируем инсталлятор
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/installer_migrations_up.py",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
+
 # пишем константы
 values_name = "compass"
 environment = "production"
@@ -56,6 +64,15 @@ subprocess.run(
     "Ошибка при валидации конфигурации sms провайдеров"
 )
 
+print("Валидируем конфигурацию аутентификации")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_auth_data_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации аутентификации")
+
 print("Валидируем конфигурацию приложения")
 command = [
     script_resolved_path + "/init.py",
@@ -81,11 +98,6 @@ subprocess.run(
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации сертификатов")
 
-print("Валидируем данные главного пользователя")
-subprocess.run(
-    ["python3", script_resolved_path + "/create_root_user.py", "--validate-only"]
-).returncode == 0 or scriptutils.die("Ошибка при валидации данных пользователя")
-
 subprocess.run(
     [
         "python3",
@@ -108,6 +120,11 @@ print("Запускаем скрипт генерации конфигураци
 subprocess.run(
     ["python3", script_resolved_path + "/generate_sms_service_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации sms провайдеров")
+
+print("Запускаем скрипт генерации конфигурации аутентификации")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_auth_data_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации аутентификации")
 
 print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name]

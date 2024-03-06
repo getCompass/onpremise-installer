@@ -323,9 +323,11 @@ def copy_with_postfix(
     keys = keys.split(".", 1)
 
     if keys[0] == "_project":
-        return deep_get(project_values, ".".join(keys[1:])) + postfix
+        temp = deep_get(project_values, ".".join(keys[1:]))
+        return (str(temp) if temp == {} else temp) + postfix
     else:
-        return deep_get(global_values, ".".join(keys[1:])) + postfix
+        temp = deep_get(global_values, ".".join(keys[1:]))
+        return (str(temp) if temp == {} else temp) + postfix
 
 
 def copy_with_custom_postfix(
@@ -338,9 +340,11 @@ def copy_with_custom_postfix(
 ):
     keys = keys.split(".", 1)
     if keys[0] == "_project":
-        return deep_get(project_values, ".".join(keys[1:])) + "_" + postfix
+        temp = deep_get(project_values, ".".join(keys[1:]))
+        return (str(temp) if temp == {} else temp) + "_" + postfix
     else:
-        return deep_get(global_values, ".".join(keys[1:])) + postfix
+        temp = deep_get(global_values, ".".join(keys[1:]))
+        return (str(temp) if temp == {} else temp) + postfix
 
 
 def get_project_name(

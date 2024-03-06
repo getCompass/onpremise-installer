@@ -45,6 +45,7 @@ scriptutils.assert_root()
 script_dir = str(Path(__file__).parent.resolve())
 # загружаем конфиги
 config_path = Path(script_dir + "/../configs/team.yaml")
+auth_config_path = Path(script_dir + "/../configs/auth.yaml")
 
 config = {}
 validation_errors = []
@@ -57,10 +58,22 @@ if not config_path.exists():
     )
     exit(1)
 
+if not auth_config_path.exists():
+    print(
+        scriptutils.error(
+            "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+            % str(auth_config_path.resolve())
+        )
+    )
+    exit(1)
+
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+with auth_config_path.open("r") as config_file:
+    auth_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
 config.update(config_values)
+config.update(auth_config_values)
 
 values_arg = args.values if args.values else ""
 environment = args.environment if args.environment else ""
@@ -108,6 +121,7 @@ for user in required_user_list:
     except KeyError:
         scriptutils.die("Необходимо создать пользователя окружения" + user)
 
+# получаем имя для root-пользователя
 try:
     full_name = InteractiveValue(
         "root_user.full_name",
@@ -118,6 +132,16 @@ try:
     ).from_config()
 except IncorrectValueException as e:
     handle_exception(e.field, e.message)
+
+# получаем доступные методы для регистрации root-пользователя
+try:
+    available_method_list = InteractiveValue(
+        "available_methods", "Доступные способы аутентификации", "arr", config=config,
+    ).from_config()
+except IncorrectValueException as e:
+    handle_exception(e.field, e.message)
+
+# получаем значение номера телефона пользователя для регистрации
 try:
     phone_number = InteractiveValue(
         "root_user.phone_number",
@@ -125,10 +149,65 @@ try:
         "str",
         validation="phone",
         config=config,
-        is_required=True,
+        is_required=("phone_number" in available_method_list), # если среди доступных методов указан "phone_number"
+        default_value=""
     ).from_config()
 except IncorrectValueException as e:
     handle_exception(e.field, e.message)
+    phone_number = ""
+
+# получаем значение почты пользователя для регистрации
+try:
+    mail = InteractiveValue(
+        "root_user.mail",
+        "Введите почту",
+        "str",
+        validation="mail",
+        config=config,
+        is_required=("mail" in available_method_list), # если среди доступных методов указан "mail"
+        default_value=""
+    ).from_config()
+except IncorrectValueException as e:
+    handle_exception(e.field, e.message)
+    mail = ""
+
+try:
+   mail_allowed_domains = InteractiveValue(
+       "mail.allowed_domains",
+       "Получаем доступные домены для почты",
+       "arr",
+       config=config,
+       is_required=False,
+       default_value=[]
+   ).from_config()
+except IncorrectValueException as e:
+    handle_exception(e.field, e.message)
+    mail_allowed_domains = "[]"
+
+# если это проверка на валидацию, требуется почта и домен почты root-пользователя нет среди доступных доменов
+if validate_only and ("mail" in available_method_list) and mail_allowed_domains != "[]" and (mail[mail.rfind('@')+1:] not in mail_allowed_domains):
+   scriptutils.die(
+       "Домен почты root-пользователя не совпадает ни с одним из доступных доменов поля mail.allowed_domains"
+   )
+
+# получаем значение пароля для почты
+try:
+    password = InteractiveValue(
+        "root_user.password",
+        "Введите пароль для почты",
+        "str",
+        config=config,
+        is_required=("mail" in available_method_list), # если среди доступных методов указан "mail"
+        default_value=""
+    ).from_config()
+except IncorrectValueException as e:
+    handle_exception(e.field, e.message)
+    password = ""
+
+if (len(phone_number) == 0 and len(mail) == 0):
+   scriptutils.die(
+       "Необходимо заполнить в конфигурации номер телефона или почту пользователя"
+   )
 
 if validate_only:
 
@@ -171,8 +250,8 @@ try:
         command=[
             "bash",
             "-c",
-            "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry-run=0 --is-root --full-name=\"%s\" --phone-number=\"%s\""
-            % (full_name, phone_number),
+            "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry=0 --is-root --full-name=\"%s\" --phone-number=\"%s\" --mail=\"%s\" --password=\"%s\""
+            % (full_name, phone_number, mail, password),
         ],
         interactive=True,
         tty=True,

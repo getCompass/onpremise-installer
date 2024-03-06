@@ -123,6 +123,12 @@ configs:
   pivot-captcha:
     name: "{{.stack_name}}_pivot_captcha-{{.config_revisions.project.pivot_captcha.php}}"
     file: ".project.pivot_captcha.php"
+  pivot-auth:
+    name: "{{.stack_name}}_pivot_auth-{{.config_revisions.project.pivot_auth.php}}"
+    file: ".project.pivot_auth.php"
+  pivot-mail:
+    name: "{{.stack_name}}_pivot_sms-{{.config_revisions.project.pivot_mail.php}}"
+    file: ".project.pivot_mail.php"
   go-pusher-firebase-compass-key:
     name: "{{.stack_name}}_compass-key-{{.config_revisions.global.firebase_compass_key.json}}"
     file: ".global.firebase_compass_key.json"
@@ -282,6 +288,10 @@ services:
         target: "/app/src/Compass/Pivot/api/conf/sms.php"
       - source: "pivot-captcha"
         target: "/app/src/Compass/Pivot/api/conf/captcha.php"
+      - source: "pivot-auth"
+        target: "/app/src/Compass/Pivot/api/conf/auth.php"
+      - source: "pivot-mail"
+        target: "/app/src/Compass/Pivot/api/conf/mail.php"
       - source: "tariff-conf"
         target: "/app/src/Compass/Pivot/api/conf/tariff.php"
       - source: "domino-hosts"

@@ -48,8 +48,12 @@ stack_name_prefix = environment + "-" + values_name
 
 scriptutils.assert_root()
 
-if input("Удаляем приложение Compass, продолжить? [y/N]\n") != "y":
-    scriptutils.die("Удаление приложения было отменено")
+try:
+    if input("Удаляем приложение Compass, продолжить? [y/N]\n") != "y":
+        scriptutils.die("Удаление приложения было отменено")
+except UnicodeDecodeError as e:
+    print("Не смогли декодировать ответ. Error: ", e)
+    exit(0)
 
 # удаляем стаки докера
 get_stack_command = ["docker", "stack", "ls"]
@@ -116,14 +120,18 @@ if not root_mount_path.exists():
         "Путь, указанный в конфигурации %s в поле root_mount_path, не существует"
     )
 
-if (
-    input(
-        "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
-        % str(root_mount_path.resolve())
-    )
-    != "y"
-):
-    scriptutils.die("Удаление данных было отменено")
+try:
+    if (
+        input(
+            "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
+            % str(root_mount_path.resolve())
+        )
+        != "y"
+    ):
+        scriptutils.die("Удаление данных было отменено")
+except UnicodeDecodeError as e:
+    print("Не смогли декодировать ответ. Error: ", e)
+    exit(0)
 
 # Команда удаления (все, кроме инсталлятора)
 root_path = Path(script_dir + "/../").resolve()

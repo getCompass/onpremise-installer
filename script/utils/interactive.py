@@ -17,6 +17,8 @@ domain_pattern = re.compile(
     r"([a-zA-Z]{2,13}|[a-zA-Z0-9-]{2,30}.[a-zA-Z]{2,3})$"
 )
 
+mail_pattern = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
+
 phone_number_pattern = "^\\+?[1-9][0-9]{7,14}$"
 protocol_pattern = "^.+:\/\/"
 
@@ -59,9 +61,10 @@ class InteractiveValue:
             raise EmptyConfigException
 
         value = self.config.get(self.name)
+        error = ""
 
         if (value is None or (value == "")) and self.is_required:
-            raise IncorrectValueException(self.name, "В конфигурации отсутствует значение для поля %s " % self.name)
+            raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации отсутствует значение для поля %s " % self.name + bcolors.ENDC)
         
         if ((value is None) or (value == "")) and not self.is_required:
 
@@ -70,12 +73,15 @@ class InteractiveValue:
             else:
                 value = self.default_value
 
+        # если значение должно быть булевым - конвертим
+        if self.type == "bool":
+            value = bool(value == "true" or value == 1)
         # если значение должно быть интовым - конвертим
         if self.type == "int":
             try:
                 value = int(value)
             except:
-                raise IncorrectValueException(self.name, "В конфигурации введено нечисловое значение для поля %s" % self.name)
+                raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации введено нечисловое значение для поля %s" % self.name + bcolors.ENDC)
         if self.type == "arr_phone_prefix":
 
             string_values = ""
@@ -84,34 +90,55 @@ class InteractiveValue:
                 code_list = value.split(",")
             else:
                 code_list = value
+
             for index, code in enumerate(code_list):
                 # убираем отступы
                 # проверяем наличие + в начале кода, ставим если его нет
                 # оборачиваем в кавычки
                 code = str(code).strip()
                 error = validate_phone_prefix(code)
+                code_list[index] = code
 
-                if error != "":
-                    raise IncorrectValueException(self.name, "Ошибка валидации в поле %s" % self.name + ". " + error)
+            value = self.prepare_arr(code_list)
 
-                string_values += f'"{code}"'
+        if self.type == "arr":
+            value = self.prepare_arr(value)
 
-                if index != len(code_list) - 1:
-                        string_values += ", "
-
-            # отдаём в виде массива
-            value = f"[{string_values}]"
-
-            if value == "[]" and self.is_required:
-                raise IncorrectValueException(self.name, "В конфигурации не введено перечисление для поля %s, исправьте и попробуйте еще раз" % self.name)
-
-        error = validate(value, self.validation)
+        # если запрашивается значение или значение не пустое
+        if self.is_required or (value != ""):
+            error = validate(value, self.validation)
 
         if error != "":
-            raise IncorrectValueException(self.name, error + ", параметр в конфиге %s" % self.name)
+            raise IncorrectValueException(self.name, bcolors.WARNING + error + ", параметр в конфиге %s" % self.name + bcolors.ENDC)
 
         self.value = value
         return self.value
+
+    # подготавливаем массив
+    def prepare_arr(self, value):
+        string_values = ""
+        if type(value) is not list:
+            # разбиваем строку через запятую
+            item_list = value.split(",")
+        else:
+            item_list = value
+        for index, item in enumerate(item_list):
+            # убираем отступы
+            # оборачиваем в кавычки
+            item = str(item).strip()
+
+            string_values += f'"{item}"'
+
+            if index != len(item_list) - 1:
+                string_values += ", "
+
+        # отдаём в виде массива
+        value = f"[{string_values}]"
+
+        if value == "[]" and self.is_required:
+            raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации не введено перечисление для поля %s, исправьте и попробуйте еще раз" % self.name + bcolors.ENDC)
+
+        return value
 
     # Попросить значение у пользователя
     def input(self):
@@ -184,7 +211,8 @@ class InteractiveValue:
             else:
                 value = "[]"
 
-        error = validate(value, self.validation)
+        if self.is_required or (value != ""):
+            error = validate(value, self.validation)
 
         if error != "":
             print(bcolors.WARNING + error +", поле %s" % self.name + bcolors.ENDC)
@@ -195,7 +223,7 @@ class InteractiveValue:
         return self.value
 
 def validate(value: str, validation: Union[str, None]) -> str:
-    if validation is None:
+    if validation is None :
         return ""
     if validation == "ip":
         return validate_ip(value)
@@ -203,6 +231,8 @@ def validate(value: str, validation: Union[str, None]) -> str:
         return validate_idna(value)
     if validation == "phone":
         return validate_phone(value)
+    if validation == "mail":
+        return validate_mail(value)
 
     return "Не найден тип валидации"
 
@@ -212,6 +242,14 @@ def validate_phone(phone: str) -> str:
     if match is None:
         return "Неверный номер телефона"
     
+    return ""
+
+def validate_mail(mail: str) -> str:
+
+    match = re.match(mail_pattern, mail)
+    if match is None:
+        return "Неверный формат почты"
+
     return ""
 
 def validate_phone_prefix(phone_prefix: str) -> str:
