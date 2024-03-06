@@ -17,7 +17,7 @@ domain_pattern = re.compile(
     r"([a-zA-Z]{2,13}|[a-zA-Z0-9-]{2,30}.[a-zA-Z]{2,3})$"
 )
 
-mail_pattern = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
+mail_pattern = re.compile(r'([A-Za-z0-9]+[.\-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+', re.IGNORECASE)
 
 phone_number_pattern = "^\\+?[1-9][0-9]{7,14}$"
 protocol_pattern = "^.+:\/\/"
