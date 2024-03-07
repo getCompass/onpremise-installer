@@ -28,11 +28,7 @@
 - SSL сертификат;
 - ОС Ubuntu 20+;
 - Docker + Docker Swarm;
-- Python 3;
-- Аккаунт одного из SMS-провайдеров:
-    - [SMS-Агент](https://sms-agent.ru/)
-    - [Twilio](https://www.twilio.com/)
-    - [Vonage](https://vonage.com/)
+- Python 3.
 
 ### Требования к серверу
 
