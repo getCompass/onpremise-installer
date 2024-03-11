@@ -218,9 +218,9 @@ class MailSmtpConfig:
             "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
         ).from_config()
 
-        # если указан mail в качестве доступного метода авторизации или включён 2fa, то данные для smtp должны быть заполнены
+        # если указан mail в качестве доступного метода авторизации, то данные для smtp должны быть заполнены
         is_mail_smtp_required = False
-        if (("mail" in available_methods) and (registration_2fa_enabled or authorization_2fa_enabled)):
+        if "mail" in available_methods:
             is_mail_smtp_required = True
 
         try:
