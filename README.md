@@ -20,6 +20,13 @@
     <img src="https://getcompass.ru/static/github/ru/3_light.png" width="100%" height="100%" alt="">
 </picture>
 
+<p align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://getcompass.ru/static/github/ru/pilot_dark.png">
+      <img src="https://getcompass.ru/static/github/ru/pilot_light.png" width="100%" height="100%" alt="">
+    </picture>
+</p>
+
 ## 📦 Требования
 
 Для установки Compass On-premise требуется:
