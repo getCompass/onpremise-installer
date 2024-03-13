@@ -462,5 +462,5 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v1.7.0"
+        tag: "v1.7.2"
         external_port: 43100
