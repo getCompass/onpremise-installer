@@ -1650,8 +1650,8 @@
 				"supported_version_list": [0, 1]
 			},
 			"comteam": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 1,
+				"supported_version_list": [0, 1]
 			}
 		},
 		"android": {
@@ -1801,24 +1801,6 @@
 			}
 		}
 	},
-	"camera": {
-		"iphone": {
-			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [1]
-			}
-		},
-		"ipad": {
-			"compass": {
-				"current_version": 1,
-				"supported_version_list": [1]
-			},
-			"comteam": {
-				"current_version": 0,
-				"supported_version_list": [0]
-			}
-		}
-	},
 	"conversation_scroll": {
 		"electron": {
 			"compass": {
@@ -1855,14 +1837,6 @@
 				"current_version": 1,
 				"supported_version_list": [1]
 			},
-			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [1]
-			}
-		}
-	},
-	"left_menu": {
-		"iphone": {
 			"comteam": {
 				"current_version": 1,
 				"supported_version_list": [1]

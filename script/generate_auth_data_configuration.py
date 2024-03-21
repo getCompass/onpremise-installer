@@ -241,7 +241,7 @@ class MailSmtpConfig:
 
         try:
             smtp_username = interactive.InteractiveValue(
-                "smtp.username", "Имя пользователя для отправки писем по SMTP", "str", config=config, default_value="", is_required=is_mail_smtp_required, validation="mail"
+                "smtp.username", "Имя пользователя для отправки писем по SMTP", "str", config=config, default_value="", is_required=False, validation="mail"
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -249,7 +249,7 @@ class MailSmtpConfig:
 
         try:
             smtp_password = interactive.InteractiveValue(
-                "smtp.password", "Пароль для отправки писем по SMTP", "str", config=config, default_value="", is_required=is_mail_smtp_required
+                "smtp.password", "Пароль для отправки писем по SMTP", "str", config=config, default_value="", is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -257,7 +257,7 @@ class MailSmtpConfig:
 
         try:
             smtp_encryption = interactive.InteractiveValue(
-                "smtp.encryption", "Тип шифрования соединения по SMTP", "str", config=config, default_value="", is_required=is_mail_smtp_required
+                "smtp.encryption", "Тип шифрования соединения по SMTP", "str", config=config, default_value="", is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
