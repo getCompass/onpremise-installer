@@ -61,6 +61,13 @@ upstream upstream_userbot {
     server php-userbot-{{.projects.userbot.label}}:9000;
 }
 
+upstream upstream_federation {
+
+    least_conn;
+    keepalive 30;
+    server php-monolith-{{$domino.label}}:9000;
+}
+
 upstream upstream_speaker_{{$domino.label}} {
 
     least_conn;
@@ -121,6 +128,7 @@ server {
     }
 
     include includes/announcement.nginx;
+    include includes/federation.nginx;
     include includes/pivot.nginx;
     include includes/file.nginx;
     include includes/domino.nginx;

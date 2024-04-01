@@ -207,11 +207,16 @@ while n <= timeout:
     docker_container_list = docker.container.list(
         filters={
             "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+        }
+    )
+    healthy_docker_container_list = docker.container.list(
+        filters={
+            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
             "health": "healthy",
         }
     )
-    if len(docker_container_list) > 0:
-        found_monolith_container = docker_container_list[0]
+    if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
+        found_monolith_container = healthy_docker_container_list[0]
         break
     n = n + 5
     sleep(5)
@@ -228,7 +233,6 @@ except exceptions.DockerException as e:
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
 # ждем поднятия nginx
-
 timeout = 60
 n = 0
 loader = Loader(
@@ -242,11 +246,16 @@ while n <= timeout:
     docker_container_list = docker.container.list(
         filters={
             "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
+        }
+    )
+    healthy_docker_container_list = docker.container.list(
+        filters={
+            "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
             "health": "healthy",
         }
     )
-    if len(docker_container_list) > 0:
-        found_nginx_container = docker_container_list[0]
+    if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
+        found_nginx_container = healthy_docker_container_list[0]
         break
     n = n + 5
     sleep(5)

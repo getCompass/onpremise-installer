@@ -8,6 +8,8 @@ import yaml
 from utils import scriptutils
 from utils import interactive
 import imaplib
+import requests
+import json
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
@@ -48,6 +50,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--sso-output-path",
+    required=False,
+    default=root_path + "/src/federation/config/sso.gophp",
+    help="Путь до выходного файла конфига для SSO",
+)
+
+parser.add_argument(
     "--validate-only",
     required=False,
     action='store_true'
@@ -62,8 +71,10 @@ validate_only = args.validate_only
 # пути для конфигов
 auth_conf_path = args.auth_output_path
 smtp_conf_path = args.smtp_output_path
+sso_conf_path = args.sso_output_path
 auth_conf_path = Path(auth_conf_path)
 smtp_conf_path = Path(smtp_conf_path)
+sso_conf_path = Path(sso_conf_path)
 validation_errors = []
 
 
@@ -176,6 +187,42 @@ class AuthMailConfig:
         output = "\n%s,\n %s,\n %s\n" % (allowed_domain_list_output, mail_registration_2fa_enabled_output, mail_authorization_2fa_enabled_output)
         return output.encode().decode()
 
+class AuthSsoConfig:
+    def __init__(self) -> None:
+        self.input()
+
+    def init(
+            self,
+            sso_web_auth_button_text: str,
+    ):
+        self.sso_web_auth_button_text = sso_web_auth_button_text
+
+    def input(self):
+
+        # получаем значение доступных методов для авторизации
+        available_methods = interactive.InteractiveValue(
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+        ).from_config()
+
+        # если указан sso в качестве доступного метода авторизации, то данные должны быть заполнены
+        is_required = False
+        if "sso" in available_methods:
+            is_required = True
+
+        try:
+            sso_web_auth_button_text = interactive.InteractiveValue(
+                "sso.web_auth_button_text", "Кастомный текст кнопки для запуска аутентификации через SSO на веб-сайте On-Premise решения", "str", config=config, default_value="Войти через корп. портал (AD SSO)", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_web_auth_button_text = ""
+
+        return self.init(sso_web_auth_button_text)
+
+    # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
+    def make_output(self):
+        return """"start_button_text" => "{}",""".format(self.sso_web_auth_button_text)
+
 class MailSmtpConfig:
     def __init__(self) -> None:
         self.input()
@@ -285,6 +332,144 @@ class MailSmtpConfig:
         output = "\n%s,\n %s,\n %s,\n %s,\n %s,\n %s\n" % (smtp_host_output, smtp_port_output, smtp_username_output, smtp_password_output, smtp_encryption_output, smtp_from_output)
         return output.encode().decode()
 
+class SsoConfig:
+    def __init__(self) -> None:
+        self.input()
+
+    def init(
+            self,
+            sso_client_id: str,
+            sso_client_secret: str,
+            sso_oidc_provider_metadata: str,
+            sso_attribution_mapping_first_name: str,
+            sso_attribution_mapping_last_name: str,
+            sso_attribution_mapping_mail: str,
+            sso_attribution_mapping_phone_number: str,
+
+    ):
+        self.sso_client_id = sso_client_id
+        self.sso_client_secret = sso_client_secret
+        self.sso_oidc_provider_metadata = sso_oidc_provider_metadata
+        self.sso_attribution_mapping_first_name = sso_attribution_mapping_first_name
+        self.sso_attribution_mapping_last_name = sso_attribution_mapping_last_name
+        self.sso_attribution_mapping_mail = sso_attribution_mapping_mail
+        self.sso_attribution_mapping_phone_number = sso_attribution_mapping_phone_number
+
+    def input(self):
+
+        # получаем значение доступных методов для авторизации
+        available_methods = interactive.InteractiveValue(
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+        ).from_config()
+
+        # если указан sso в качестве доступного метода авторизации, то данные должны быть заполнены
+        is_required = False
+        if "sso" in available_methods:
+            is_required = True
+
+        try:
+            sso_client_id = interactive.InteractiveValue(
+                "sso.client_id", "ID клиентского приложения", "str", config=config, default_value="", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_client_id = ""
+
+        try:
+            sso_client_secret = interactive.InteractiveValue(
+                "sso.client_secret", "Секретный ключ клиентского приложения", "str", config=config, default_value="", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_client_secret = ""
+
+        try:
+
+            sso_oidc_provider_metadata_link = interactive.InteractiveValue(
+                "sso.oidc_provider_metadata_link", "Ссылка на метаданные SSO провайдера", "str", config=config, default_value="", is_required=is_required
+            ).from_config()
+
+            # если SSO параметры обязательны к заполнению, то получаем содержимое по ссылке
+            # иначе укажим дефолтные занчения
+            if is_required:
+                # загрузка содержимого страницы
+                response = requests.get(sso_oidc_provider_metadata_link)
+
+                # проверка на наличие ошибок при запросе
+                response.raise_for_status()
+
+                # Проверка, является ли содержимое JSON строкой
+                sso_oidc_provider_metadata = json.dumps(response.json(), ensure_ascii=False)
+            else:
+                sso_oidc_provider_metadata = "{}"
+
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_oidc_provider_metadata = "{}"
+
+        except requests.RequestException:
+            handle_exception("sso.oidc_provider_metadata_link", "Не удалось получить содержимое ссылки с метаданными SSO провайдера")
+            sso_oidc_provider_metadata = "{}"
+
+        except json.decoder.JSONDecodeError:
+            handle_exception("sso.oidc_provider_metadata_link", "Содержимое ссылки не является JSON объектом с метаданными SSO провайдера")
+            sso_oidc_provider_metadata = "{}"
+
+        try:
+            sso_attribution_mapping_first_name = interactive.InteractiveValue(
+                "sso.attribution_mapping.first_name", "Сопоставление атрибута first_name (имя) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_attribution_mapping_first_name = ""
+
+        try:
+            sso_attribution_mapping_last_name = interactive.InteractiveValue(
+                "sso.attribution_mapping.last_name", "Сопоставление атрибута last_name (фамилия) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_attribution_mapping_last_name = ""
+
+        try:
+            sso_attribution_mapping_mail = interactive.InteractiveValue(
+                "sso.attribution_mapping.mail", "Сопоставление атрибута mail (почта) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_attribution_mapping_mail = ""
+
+        try:
+            sso_attribution_mapping_phone_number = interactive.InteractiveValue(
+                "sso.attribution_mapping.phone_number", "Сопоставление атрибута phone_number (номер телефона) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_attribution_mapping_phone_number = ""
+
+        # проверяем, что одно из полей first_name или last_name заполнены и одно из полей mail или phone_number заполнены
+        if is_required and sso_attribution_mapping_first_name == "" and sso_attribution_mapping_last_name == "" and sso_attribution_mapping_mail == "" and sso_attribution_mapping_phone_number == "":
+            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров в парах:\n– sso.attribution_mapping.first_name или sso.attribution_mapping.last_name\n– sso.attribution_mapping.mail или sso.attribution_mapping.phone_number"))
+        elif is_required and sso_attribution_mapping_first_name == "" and sso_attribution_mapping_last_name == "":
+            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров:\nsso.attribution_mapping.first_name или sso.attribution_mapping.last_name"))
+        elif is_required and sso_attribution_mapping_mail == "" and sso_attribution_mapping_phone_number == "":
+            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров:\nsso.attribution_mapping.mail или sso.attribution_mapping.phone_number"))
+
+        return self.init(sso_client_id, sso_client_secret, sso_oidc_provider_metadata, sso_attribution_mapping_first_name, sso_attribution_mapping_last_name, sso_attribution_mapping_mail, sso_attribution_mapping_phone_number)
+
+    # подготавливаем содержимое для $CONFIG["SSO_OIDC_CONNECTION"]
+    def make_sso_oidc_connection_output(self):
+        return """"client_id" => "{}",\n\t"client_secret" => "{}",""".format(self.sso_client_id, self.sso_client_secret)
+
+    # подготавливаем содержимое для $CONFIG["SSO_ATTRIBUTION_MAPPING"]
+    def make_sso_attribution_mapping_output(self):
+        return """"first_name" => "{}",\n\t"last_name" => "{}",\n\t"mail" => "{}",\n\t"phone_number" => "{}",""".format(
+            self.sso_attribution_mapping_first_name,
+            self.sso_attribution_mapping_last_name,
+            self.sso_attribution_mapping_mail,
+            self.sso_attribution_mapping_phone_number,
+        )
+
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
@@ -334,6 +519,10 @@ def generate_config():
     smtp_config_list = generate_smtp_config()
     smtp_output = make_smtp_output(smtp_config_list)
 
+    # генерируем данные для sso
+    sso_config_list = generate_sso_config()
+    sso_output = make_sso_output(sso_config_list)
+
     # если только валидируем данные, то файлы не пишем
     if validate_only:
 
@@ -353,13 +542,17 @@ def generate_config():
 
     write_file(auth_output, auth_conf_path)
     write_file(smtp_output, smtp_conf_path)
+    write_file(sso_output, sso_conf_path)
 
 # получаем содержимое конфига для аутентификации
 def make_auth_output(auth_config_list: list):
 
-    # получаем конфиг для главной информации аутентификации
+    # получаем конфиги
     auth_main_config = auth_config_list[0]
-    auth_main_config_head = """<?php
+    auth_mail_config = auth_config_list[1]
+    auth_sso_config = auth_config_list[2]
+
+    return """<?php
 
 namespace Compass\Pivot;
 
@@ -367,49 +560,74 @@ namespace Compass\Pivot;
  * основные параметры аутентификации
  */
 $CONFIG["AUTH_MAIN"] = [
-"""
-    auth_main_output = auth_main_config.make_output()
-    auth_main_config_end = """];
-"""
 
-    # получаем конфиг для информации по почте
-    auth_mail_config = auth_config_list[1]
-    auth_mail_config_head = """
+    {}
+];
+
 
 /**
  * параметры аутентификации через почту
  */
 $CONFIG["AUTH_MAIL"] = [
-"""
-    auth_mail_output = auth_mail_config.make_output()
-    auth_mail_config_end = """];
 
-return $CONFIG;"""
+    {}
+];
 
-    return auth_main_config_head + auth_main_output + auth_main_config_end + auth_mail_config_head + auth_mail_output + auth_mail_config_end
+/**
+ * параметры аутентификации через sso
+ */
+$CONFIG["AUTH_SSO"] = [
+
+    {}
+];
+
+return $CONFIG;""".format(auth_main_config.make_output(), auth_mail_config.make_output(), auth_sso_config.make_output())
 
 # получаем содержимое конфига для smtp почты
 def make_smtp_output(smtp_config_list: list):
 
     smtp_main_config = smtp_config_list[0]
 
-    smtp_main_config_head = """<?php
+    return """<?php
 
 namespace Compass\Pivot;
 
 $CONFIG["MAIL_SMTP"] = [
-"""
-    smtp_main_output = smtp_main_config.make_output()
+    {}
+];
+return $CONFIG;""".format(smtp_main_config.make_output())
 
-    smtp_main_config_end = """];
-return $CONFIG;"""
+# получаем содержимое конфига для sso аутентификации
+def make_sso_output(sso_config_list: list):
 
-    return smtp_main_config_head + smtp_main_output + smtp_main_config_end
+    sso_main_config = sso_config_list[0]
+    return """<?php
+
+namespace Compass\Federation;
+
+/** параметры подключения SSO провайдера по OpenID Connect протоколу */
+$CONFIG["SSO_OIDC_CONNECTION"] = [
+	{}
+];
+
+/** маппинг аттрибутов/полей SSO аккаунта, для их передачи в Compass */
+$CONFIG["SSO_ATTRIBUTION_MAPPING"] = [
+	{}
+];
+
+/** конфигуруация SSO провайдера */
+$CONFIG["SSO_OIDC_PROVIDER_CONFIG"] = json_decode('{}', true, 512, JSON_BIGINT_AS_STRING);
+
+return $CONFIG;""".format(
+        sso_main_config.make_sso_oidc_connection_output(),
+        sso_main_config.make_sso_attribution_mapping_output(),
+        sso_main_config.sso_oidc_provider_metadata
+    )
 
 # генерируем данные для аутентификации
 def generate_auth_config() -> dict:
 
-    result = [AuthMainConfig(), AuthMailConfig()]
+    result = [AuthMainConfig(), AuthMailConfig(), AuthSsoConfig()]
 
     return result
 
@@ -417,6 +635,13 @@ def generate_auth_config() -> dict:
 def generate_smtp_config() -> dict:
 
     result = [MailSmtpConfig()]
+
+    return result
+
+# генерируем данные для sso
+def generate_sso_config() -> dict:
+
+    result = [SsoConfig()]
 
     return result
 

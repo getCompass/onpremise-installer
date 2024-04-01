@@ -72,7 +72,7 @@ def start():
     if not values_file_path.exists():
         print(scriptutils.error("Отсутствует файл конфигурации, не можем сгенерировать ключ безопасности"))
         exit(1)
-    
+
     with values_file_path.open("r") as values_file:
         current_values = yaml.safe_load(values_file)
         current_values = {} if current_values is None else current_values
@@ -86,19 +86,32 @@ def start():
     security_file_path = Path(root_mount_path + "/security.yaml")
     security_tpl_file_path = Path(script_dir + "/../yaml_template/security.tpl.yaml")
 
+    # если файл уже существует
     if security_file_path.exists():
-        print(scriptutils.success("Файл с секретами уже сгенерирован"))
-        exit(0)
+        loader = Loader(
+            "Файл с секретами уже сгенерирован. Добавляем новые значения, если есть",
+            "Добавлены новые ключи по следующему пути: %s"
+            % str(security_file_path.resolve()),
+            ).start()
 
-    loader = Loader(
-        "Генерируем ключи безопасности для проекта",
-        "Ключи безопасности сгенерированы по следующему пути: %s"
-        % str(security_file_path.resolve()),
-    ).start()
-    with security_tpl_file_path.open("r") as security_file_contents:
-        security_tpl_values = yaml.safe_load(security_file_contents)
+        with security_tpl_file_path.open("r") as security_tpl_file_contents:
+            security_tpl_values = yaml.safe_load(security_tpl_file_contents)
 
-    security_values = update_security_values(security_tpl_values)
+        with security_file_path.open("r") as security_file_contents:
+            security_values = yaml.safe_load(security_file_contents)
+
+        security_values = update_new_security_values_for_exists_file(security_tpl_values, security_values)
+    else:
+        loader = Loader(
+            "Генерируем ключи безопасности для проекта",
+            "Ключи безопасности сгенерированы по следующему пути: %s"
+            % str(security_file_path.resolve()),
+        ).start()
+        with security_tpl_file_path.open("r") as security_tpl_file_contents:
+            security_tpl_values = yaml.safe_load(security_tpl_file_contents)
+
+        security_values = update_security_values(security_tpl_values)
+
     security_file_path.open("wt").write(
         yaml.dump(security_values, default_flow_style=False)
     )
@@ -121,6 +134,34 @@ def update_security_values(security_tpl_values: dict, security_values: dict = {}
 
             security_values[k] = update_security_values(v, security_values.get(k, {}))
         else:
+            security_values[k] = quoted(generate_random_string(key_size))
+
+    return security_values
+
+
+# обновляем новые значения для существующего файла
+def update_new_security_values_for_exists_file(security_tpl_values: dict, security_values: dict = {}):
+    for k, v in security_tpl_values.items():
+
+        # если это сложная структура
+        if isinstance(v, collections.abc.Mapping):
+
+            # если это ssl ключи, то ничего с ними не делаем, оставляем как есть
+            if k == "ssl_keys":
+                continue
+
+            # обновляем всю его вложенность
+            security_values[k] = update_new_security_values_for_exists_file(v, security_values.get(k, {}))
+        else:
+
+            # если поле уже существует и оно не равняется дефолтному значению
+            if k in security_values and security_values[k] != v:
+
+                # оставляем его как есть
+                security_values[k] = quoted(security_values[k])
+                continue
+
+            # иначе заполняем новым значением
             security_values[k] = quoted(generate_random_string(key_size))
 
     return security_values

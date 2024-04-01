@@ -54,6 +54,8 @@ security_keys:
   solution:
     socket_key_solution: ""
     socket_key_push_sender: ""
+  federation:
+    socket_key_federation: ""
 salt_keys:
   salt_pack_session_v1: ""
   salt_pack_auth_v1: ""

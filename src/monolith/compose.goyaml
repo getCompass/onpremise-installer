@@ -129,12 +129,21 @@ configs:
   pivot-mail:
     name: "{{.stack_name}}_pivot_mail-{{.config_revisions.project.pivot.pivot_mail.php}}"
     file: ".project.pivot.pivot_mail.php"
+  federation-sso:
+    name: "{{.stack_name}}_federation_sso-{{.config_revisions.project.federation.sso.php}}"
+    file: ".project.federation.sso.php"
 
   ## КОНФИГУРАЦИИ АНОНСОВ
   # настройки nginx анонсов
   nginx-include-announcement:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.announcement.nginx_include.conf}}"
     file: ".project.announcement.nginx_include.conf"
+
+  ## КОНФИГУРАЦИИ ФЕДЕРАЦИИ
+  # настройки nginx федерации
+  nginx-include-federation:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.federation.nginx_include.conf}}"
+    file: ".project.federation.nginx_include.conf"
 
   ## КОНФИГУРАЦИИ USERBOT
   # настройки nginx userbot
@@ -228,6 +237,7 @@ services:
         aliases:
           - "nginx-{{.projects.pivot.label}}"
           - "nginx-{{.projects.announcement.label}}"
+          - "nginx-{{.projects.federation.label}}"
           - "nginx-{{.projects.userbot.label}}"
           - "nginx-{{$file_node.label}}"
           - "nginx-{{$domino.label}}"
@@ -249,6 +259,8 @@ services:
         target: "/etc/nginx/sites-enabled/default"
       - source: "nginx-include-announcement"
         target: "/etc/nginx/includes/announcement.nginx"
+      - source: "nginx-include-federation"
+        target: "/etc/nginx/includes/federation.nginx"
       - source: "nginx-include-{{$domino.label}}"
         target: "/etc/nginx/includes/domino.nginx"
       - source: "nginx-include-{{$file_node.label}}"
@@ -274,6 +286,7 @@ services:
         aliases:
           - "rabbit-{{.projects.pivot.label}}"
           - "rabbit-{{.projects.announcement.label}}"
+          - "rabbit-{{.projects.federation.label}}"
           - "rabbit-{{.projects.userbot.label}}"
           - "rabbit-{{$file_node.label}}"
           - "rabbit-{{$domino.label}}"
@@ -294,6 +307,7 @@ services:
         aliases:
           - "memcached-{{.projects.pivot.label}}"
           - "memcached-{{.projects.announcement.label}}"
+          - "memcached-{{.projects.federation.label}}"
           - "memcached-{{.projects.userbot.label}}"
           - "memcached-{{$file_node.label}}"
           - "memcached-{{$domino.label}}"
@@ -319,6 +333,7 @@ services:
         aliases:
           - "mysql-{{.projects.pivot.label}}"
           - "mysql-{{.projects.announcement.label}}"
+          - "mysql-{{.projects.federation.label}}"
           - "mysql-{{.projects.userbot.label}}"
           - "mysql-{{$file_node.label}}"
           - "mysql-{{$domino.label}}"
@@ -613,6 +628,7 @@ services:
       - ".global.common.env"
       - ".global.solution.env"
       - ".project.announcement.common.env"
+      - ".project.federation.common.env"
       - ".project.pivot.common.env"
       - ".project.pivot.php_pivot.env"
       - ".project.domino.common.env"
@@ -634,6 +650,7 @@ services:
           - "php-pivot-{{.projects.pivot.label}}"
           - "php-file-balancer-{{.projects.pivot.label}}"
           - "php-announcement-{{.projects.announcement.label}}"
+          - "php-federation-{{.projects.federation.label}}"
           - "php-company-{{$domino.label}}"
           - "php-speaker-{{$domino.label}}"
           - "php-file-balancer-{{$domino.label}}"
@@ -672,6 +689,8 @@ services:
             target: "/app/src/Compass/Pivot/api/conf/auth.php"
           - source: "pivot-mail"
             target: "/app/src/Compass/Pivot/api/conf/mail.php"
+          - source: "federation-sso"
+            target: "/app/src/Compass/Federation/api/conf/sso.php"
           - source: "bot-conf"
             target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
           - source: "tariff-conf-conversation-{{$domino.label}}"

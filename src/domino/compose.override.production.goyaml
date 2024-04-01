@@ -1,7 +1,7 @@
 version: '3.8'
 
 # override конфигурация для pivot-части
-# определяет разницу конфига для локального окружения
+# определяет разницу конфига для production окружения
 {{$domino := index .projects.domino .domino_id}}
 
 services:

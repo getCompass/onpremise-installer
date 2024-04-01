@@ -1,0 +1,13 @@
+version: '3.8'
+
+# override конфигурация для federation-части
+# определяет разницу конфига для production окружения
+
+services:
+
+  # MYSQL
+  mysql-{{.projects.federation.label}}:
+    networks:
+      - "federation-private"
+    volumes:
+      - "{{.root_mount_path}}/{{.projects.federation.label}}/database:/var/lib/mysql"

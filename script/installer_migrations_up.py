@@ -62,7 +62,7 @@ for migration_folder in sorted(config_files_path.glob("*")):
             if migration_scripts is not None:
 
                 for script in migration_scripts:
-                    print("Выполняю скрипт миграции " + script)
+                    print("Выполняю скрипт миграции {} версии {}".format(script, version))
                     exec(open(str(migration_files_path.resolve()) + "/" + script).read())
 
 

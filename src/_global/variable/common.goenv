@@ -41,6 +41,7 @@ PUBLIC_PROTOCOL={{.protocol}}
 # ==========================================================
 ENTRYPOINT_PIVOT="{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path 0}}"
 ENTRYPOINT_ANNOUNCEMENT="{{.protocol}}://{{entrypoint (netaddr .projects.announcement.host .projects.announcement.service.nginx.external_https_port) .url_path .projects.announcement.url_path 0}}"
+ENTRYPOINT_FEDERATION="{{.protocol}}://{{entrypoint (netaddr .projects.federation.host .projects.federation.service.nginx.external_https_port) .url_path .projects.federation.url_path 0}}"
 ENTRYPOINT_INTERCOM=""
 ENTRYPOINT_USERBOT="{{.protocol}}://{{entrypoint (netaddr .projects.userbot.host .projects.userbot.service.nginx.external_https_port) .url_path .projects.userbot.url_path 0}}"
 ENTRYPOINT_WWW=""
@@ -61,6 +62,7 @@ ENTRYPOINT_PARTNER=""
 PUBLIC_ENTRYPOINT_START="{{.protocol}}://{{entrypoint .projects.pivot.subdomain_start .domain .url_path .projects.pivot.url_path_start 1}}"
 PUBLIC_ENTRYPOINT_PIVOT="{{.protocol}}://{{entrypoint .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path 1}}"
 PUBLIC_ENTRYPOINT_ANNOUNCEMENT="{{.protocol}}://{{entrypoint .projects.announcement.subdomain .domain .url_path .projects.announcement.url_path 1}}"
+PUBLIC_ENTRYPOINT_FEDERATION="{{.protocol}}://{{entrypoint .projects.federation.subdomain .domain .url_path .projects.federation.url_path 1}}"
 PUBLIC_ENTRYPOINT_USERBOT="{{.protocol}}://{{entrypoint .projects.userbot.subdomain .domain .url_path .projects.userbot.url_path 1}}"
 PUBLIC_ENTRYPOINT_ANALYTIC=""
 PUBLIC_ENTRYPOINT_INTERCOM=""
@@ -101,6 +103,7 @@ SOCKET_KEY_CRM="{{.security_keys.crm.socket_key_crm}}"
 SOCKET_KEY_CONVERSATION="{{.security_keys.domino.socket_key_conversation}}"
 SOCKET_KEY_THREAD="{{.security_keys.domino.socket_key_thread}}"
 SOCKET_KEY_PARTNER=""
+SOCKET_KEY_FEDERATION="{{.security_keys.federation.socket_key_federation}}"
 GLOBAL_USERBOT_PRIVATE_KEY="{{.security_keys.userbot.global_userbot_private_key}}"
 
 ENCRYPT_KEY_DEFAULT={{.encrypt_keys.encrypt_key_default}}

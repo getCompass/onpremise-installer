@@ -1,0 +1,10 @@
+MYSQL_HOST="{{.projects.federation.service.mysql.host}}"
+MYSQL_USER="{{.projects.federation.service.mysql.user}}"
+MYSQL_PASS="{{.projects.federation.service.mysql.password}}"
+
+MYSQL_SYSTEM_HOST="{{.projects.federation.service.mysql.host}}"
+MYSQL_SYSTEM_USER="{{.projects.federation.service.mysql.user}}"
+MYSQL_SYSTEM_PASS="{{.projects.federation.service.mysql.password}}"
+
+MYSQL_ROOT_USER="{{.projects.federation.service.mysql.user}}"
+MYSQL_ROOT_PASSWORD="{{.projects.federation.service.mysql.password}}"

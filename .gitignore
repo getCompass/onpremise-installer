@@ -13,5 +13,8 @@ src/values.production.*.yaml
 src/call.yaml
 src/pivot/config/pivot_captcha.gophp
 src/pivot/config/pivot_sms.gophp
+src/pivot/config/pivot_auth.gophp
+src/pivot/config/pivot_mail.gophp
 configs/
 !yaml_template/configs
+.version

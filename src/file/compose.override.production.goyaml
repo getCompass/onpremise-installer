@@ -1,7 +1,7 @@
 version: '3.8'
 
 # override конфигурация для pivot-части
-# определяет разницу конфига для локального окружения
+# определяет разницу конфига для production окружения
 {{$file_node := index .projects.file .file_node_id}}
 
 services:

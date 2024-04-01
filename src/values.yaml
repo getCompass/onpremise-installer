@@ -74,6 +74,7 @@ projects:
       - "domino"
       - "join_web"
       - "janus"
+      - "federation"
     service:
       mysql:
         root_password: "4321"
@@ -84,7 +85,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v1.7.3"
+        tag: "v1.8.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -209,6 +210,25 @@ projects:
           password_bcrypt: "$2y$06$074l4B0X41Vbw3x0y0.1tujiWyw5mrnb5zrNf6G0UjjqGJpDrDOE6"
       nginx:
         external_https_port: 20102
+  federation:
+    host: "0.0.0.0"
+    label: "federation"
+    subdomain: ""
+    url_path: "federation"
+    network:
+      subnet: "172.20.6.0/24"
+    service:
+      mysql:
+        root_password: "4321"
+        host: "mysql-federation"
+        port: 3306
+        user: "root"
+        password: "4321"
+        external_port: 5000
+      php_federation:
+        tag: "v1.5.0"
+      nginx:
+        external_https_port: 20105
   analytic:
     host: "0.0.0.0"
     label: "analytic"
@@ -301,7 +321,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v1.7.3"
+          tag: "v1.8.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -462,5 +482,5 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v1.7.2"
+        tag: "v1.8.0"
         external_port: 43100

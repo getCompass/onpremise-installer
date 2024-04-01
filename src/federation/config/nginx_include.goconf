@@ -1,0 +1,71 @@
+{{$locprefix := locprefix .url_path .projects.federation.url_path -}}
+{{$domino := index .projects.domino .domino_id}}
+
+set $upstream_federation php-monolith-{{$domino.label}}:9000;
+
+#######################################################
+# php_federation
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+# api on premise web
+location ~* ^{{$locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/federation/onpremiseweb/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_federation;
+}
+
+# api on premise web 3 level
+location ~* ^{{$locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$locprefix}}/api/onpremiseweb/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/federation/onpremiseweb/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_federation;
+}
+
+# backdoor-методы
+location ~* ^{{$locprefix}}/backdoor/federation/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$locprefix}}/backdoor/federation/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/federation/backdoor/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_federation;
+}
+
+# socket-методы
+location {{$locprefix}}/api/socket/federation/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/federation/socket/ break;
+	fastcgi_pass $upstream_federation;
+}
+
+
+# sso auth result
+location ~* ^{{$locprefix}}/sso/auth_result/oidc/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^ /api/federation/sso/auth_result/oidc/ break;
+	fastcgi_pass $upstream_federation;
+}

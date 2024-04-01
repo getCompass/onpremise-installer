@@ -25,7 +25,7 @@ protected_config = {}
 if not config_path.exists():
     print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
     exit(1)
-    
+
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
@@ -39,7 +39,7 @@ if (config.get("root_mount_path") is not None) and Path(config.get("root_mount_p
 if protected_config_path.exists():
     with protected_config_path.open("r") as config_file:
         protected_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
-    
+
     protected_config.update(protected_config_values)
 
 domino_template_subdomain = "c{company_id}-{domino_url}"
@@ -52,6 +52,7 @@ deploy_project_list = [
     "domino",
     "file",
     "announcement",
+    "federation",
     "join_web",
     "janus",
 ]
@@ -71,6 +72,7 @@ project_ports = {
     "domino": 31100,
     "file": 31300,
     "announcement": 31500,
+    "federation": 32400,
     "join_web": 31900,
     "janus": 31800,
     "monolith": 32100,
@@ -212,7 +214,7 @@ def handle_exception(field, message: str):
     if validate_only:
         validation_errors.append(message)
         return
-    
+
     print(message)
     exit(1)
 
@@ -303,9 +305,9 @@ def get_free_subnet(
 def copy(
     project_name: str, label: str, project_values: dict, global_values: dict, keys: str
 ):
-    
+
     keys = keys.split(".", 1)
-    
+
     if keys[0] == "_project":
         return deep_get(project_values, ".".join(keys[1:]))
     else:
@@ -886,7 +888,7 @@ def process_post_value(value, field: dict):
 
         if post_value is not None:
             value = post_value
-    
+
     return value
 
 def process_field(
@@ -935,10 +937,10 @@ def process_field(
             ).from_config()
         except IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            return None, field["name"] 
+            return None, field["name"]
 
     else:
-        
+
         new_value = (
             field["default_value"]
             if field["default_value"] is not None
@@ -969,7 +971,7 @@ def write_to_file(new_values: dict):
 
     with protected_config_path.open("w+t") as f:
         yaml.dump(protected_config, f, sort_keys=False)
-    
+
     # записываем бэкапы в папку маунта на всякий случай
     root_mount_path = new_values["root_mount_path"]
     backup_config_dir = Path(root_mount_path + "/deploy_configs")
@@ -980,10 +982,10 @@ def write_to_file(new_values: dict):
 
     with backup_config_path.open("w+t") as f:
         yaml.dump(config, f, sort_keys=False)
-    
+
     with backup_protected_config_path.open("w+t") as f:
         yaml.dump(protected_config, f, sort_keys=False)
-    
+
     print("Файл с секретами обновлен: " + scriptutils.warning(str(protected_config_path.resolve())))
 
 def start():
@@ -1012,7 +1014,7 @@ def start():
     if not project:
         write_to_file(new_values)
         return
-    
+
     new_values = init_all_projects(new_values)
     if default_values["projects"][project].get("deploy_units") is not None:
         deploy_units = default_values["projects"][project]["deploy_units"] + [project]
@@ -1104,7 +1106,7 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
             except IncorrectValueException as e:
                 handle_exception(e.field, e.message)
                 new_value = None
-            
+
         else:
             new_value = (
                 required_root_field["default_value"]
@@ -1114,7 +1116,7 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
                 )
             )
 
-        
+
             if required_root_field.get("is_protected"):
                 protected_config[required_root_field["name"]] = new_value
         if new_value is not None:
@@ -1351,7 +1353,7 @@ def init_project(
                 except IncorrectValueException as e:
                     handle_exception(e.field, e.message)
                     new_value = None
-                
+
             elif extra_field.get("is_protected"):
                 protected_config[project + "." + extra_field["name"]] = new_value
 
