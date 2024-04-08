@@ -21,8 +21,10 @@ script_resolved_path = str(script_path.resolve())
 parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
+parser.add_argument("--install-integration", required=False, action="store_true")
 args = parser.parse_args()
 use_default_values = args.use_default_values
+install_integration = args.install_integration
 
 # пишем константы
 values_name = "compass"
@@ -64,6 +66,15 @@ subprocess.run(
         "--validate-only",
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации аутентификации")
+
+print("Валидируем конфигурацию ограничений")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_restrictions_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации ограничений")
 
 print("Валидируем конфигурацию приложения")
 command = [
@@ -122,6 +133,11 @@ print("Запускаем скрипт генерации конфигураци
 subprocess.run(
     ["python3", script_resolved_path + "/generate_auth_data_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации аутентификации")
+
+print("Запускаем скрипт генерации конфигурации ограничений")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_restrictions_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
 
 print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name]
@@ -187,9 +203,32 @@ command = [
 ]
 if use_default_values:
     command.append("--use-default-values")
+if install_integration:
+    command.append("--install-integration")
 subprocess.run(command).returncode == 0 or scriptutils.die(
     "Ошибка при разворачивании приложения"
 )
+
+if install_integration:
+    print("Разворачиваем интеграцию")
+    command = [
+        "python3",
+        script_resolved_path + "/deploy.py",
+        "-e",
+        environment,
+        "-v",
+        values_name,
+        "-p",
+        "integration",
+        "--project-name-override",
+        "integration",
+        ]
+    if use_default_values:
+        command.append("--use-default-values")
+    command.append("--install-integration")
+    subprocess.run(command).returncode == 0 or scriptutils.die(
+        "Ошибка при разворачивании интеграции"
+    )
 
 # ждем появления monolith
 timeout = 900

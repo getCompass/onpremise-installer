@@ -12,6 +12,22 @@ upstream upstream_single_nginx_{{.stack_name_prefix}} {
 	server {{.projects.monolith.host}}:{{.projects.monolith.service.nginx.external_https_port}};
 }
 
+{{if eq $locprefix ""}}{{$integration_locprefix := ""}}{{else}}{{$integration_locprefix := "/"}}{{end}}
+{{$integration_enabled := false}}{{$integration_locprefix := ""}}{{range $i,$v := .server_tag_list}}{{if eq $v "integration"}}{{$integration_enabled = true}}{{end}}{{end}}
+{{if $integration_enabled}}{{$temp := locprefix .projects.integration.url_path}}{{$integration_locprefix = (printf "%s%s" $integration_locprefix $temp)}}
+upstream upstream_integration_nginx_{{.stack_name_prefix}} {
+
+        least_conn;
+
+        # количество keepalive соединений с апстримом
+        # важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+        keepalive 30;
+
+        # сервер
+	server {{.projects.integration.host}}:{{.projects.integration.service.nginx.external_https_port}};
+}
+{{end}}
+
 server {
 
         listen 80;
@@ -28,6 +44,24 @@ server {
         error_log       /var/log/nginx/error.log;
 
         proxy_set_header X-Real-IP    $remote_addr;
+
+        {{if $integration_enabled}}
+	location {{$locprefix}}{{$integration_locprefix}}/ {
+
+		proxy_http_version  1.1;
+		proxy_cache_bypass  $http_upgrade;
+
+		proxy_set_header Upgrade           $http_upgrade;
+		proxy_set_header Connection        "upgrade";
+		proxy_set_header Host              $host;
+		proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Forwarded-Host  $host;
+		proxy_set_header X-Forwarded-Port  $server_port;
+
+		proxy_pass  https://upstream_integration_nginx_{{.stack_name_prefix}};
+	}
+        {{end}}
 
         location {{$locprefix}}/ {
 

@@ -44,6 +44,7 @@ ENTRYPOINT_ANNOUNCEMENT="{{.protocol}}://{{entrypoint (netaddr .projects.announc
 ENTRYPOINT_FEDERATION="{{.protocol}}://{{entrypoint (netaddr .projects.federation.host .projects.federation.service.nginx.external_https_port) .url_path .projects.federation.url_path 0}}"
 ENTRYPOINT_INTERCOM=""
 ENTRYPOINT_USERBOT="{{.protocol}}://{{entrypoint (netaddr .projects.userbot.host .projects.userbot.service.nginx.external_https_port) .url_path .projects.userbot.url_path 0}}"
+ENTRYPOINT_INTEGRATION="{{.protocol}}://{{entrypoint (netaddr .projects.integration.host .projects.integration.service.nginx.external_https_port) .url_path .projects.integration.url_path 0}}"
 ENTRYPOINT_WWW=""
 ENTRYPOINT_STAGE=""
 ENTRYPOINT_TEST=""
@@ -105,6 +106,7 @@ SOCKET_KEY_THREAD="{{.security_keys.domino.socket_key_thread}}"
 SOCKET_KEY_PARTNER=""
 SOCKET_KEY_FEDERATION="{{.security_keys.federation.socket_key_federation}}"
 GLOBAL_USERBOT_PRIVATE_KEY="{{.security_keys.userbot.global_userbot_private_key}}"
+SOCKET_KEY_INTEGRATION="{{.security_keys.integration.socket_key_integration}}"
 
 ENCRYPT_KEY_DEFAULT={{.encrypt_keys.encrypt_key_default}}
 ENCRYPT_IV_DEFAULT={{.encrypt_keys.encrypt_iv_default}}
@@ -114,3 +116,6 @@ COMPASS_USERBOT_ENDPOINT=https://userbot.getcompass.com/api/v1/
 
 # глобально отключенные группы событий для логирования
 GLOBAL_DISABLED_ANALYTICS_EVENT_GROUP_LIST=[]
+
+# токен для integration-хендлера
+INTEGRATION_AUTHORIZATION_TOKEN="{{.security_keys.integration.integration_authorization_token}}"

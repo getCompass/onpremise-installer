@@ -55,6 +55,7 @@ deploy_project_list = [
     "federation",
     "join_web",
     "janus",
+    "integration",
 ]
 
 deploy_saas_project_list = [
@@ -78,6 +79,7 @@ project_ports = {
     "monolith": 32100,
     "intercom": 32200,
     "test": 32300,
+    "integration": 32500,
 }
 
 domino_ports = {
@@ -134,6 +136,11 @@ parser.add_argument(
     required=False,
     action='store_true'
 )
+parser.add_argument(
+    "--install-integration",
+    required=False,
+    action='store_true'
+)
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -164,6 +171,7 @@ project = args.project
 environment = args.environment
 use_default_values = args.use_default_values
 validate_only = args.validate_only
+install_integration = args.install_integration
 project_name_override = (
     args.project_name_override if args.project_name_override is not False else ""
 )
@@ -876,6 +884,17 @@ required_specific_project_fields = {
             "ask": False,
         }
     ],
+    "integration": [
+        {
+            "name": "service.nginx.external_https_port",
+            "comment": "Внешний порт для nginx",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": False
+        }
+    ],
 }
 
 found_external_ports = {}
@@ -1008,6 +1027,11 @@ def start():
         "domino_mysql_innodb_flush_log_at_timeout": 1,
         "triggers": {"before": ["triggers/check_security.py"]},
     }
+
+    # если имеется флаг установки интеграции, то добавляем тег integration
+    if install_integration:
+        values_initial_dict["server_tag_list"] += ["integration"]
+
     new_values = init_global(values_initial_dict, values_file_path, environment)
     new_values = init_nginx(new_values)
 

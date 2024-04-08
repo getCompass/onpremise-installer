@@ -5,10 +5,15 @@ import sys
 sys.dont_write_bytecode = True
 
 from pathlib import Path
-from utils import scriptutils
-from loader import Loader
 import collections.abc, shutil
 import re, socket, yaml, argparse, readline, string, random, pwd, os
+
+current_script_path = Path(__file__).parent
+utils_path = current_script_path.parent.parent / 'script'
+sys.path.append(str(utils_path))
+
+from utils import scriptutils
+from loader import Loader
 from utils.interactive import InteractiveValue, IncorrectValueException
 
 scriptutils.assert_root()
@@ -51,7 +56,7 @@ config_replaces_dictionary = {
 }
 
 # папка, где находятся конфиги
-config_path = Path(script_dir + "/../configs")
+config_path = current_script_path.parent.parent / 'configs'
 
 # если отсутствуют файлы-конфиги
 if len(os.listdir(config_path)) == 0:
@@ -65,7 +70,7 @@ if len(os.listdir(config_path)) == 0:
 # скрипт для создания недостающих конфиг-файлов
 try:
     # папка, где находятся шаблоны конфигов
-    config_tpl_path = Path(script_dir + "/../yaml_template/configs")
+    config_tpl_path = current_script_path.parent.parent / "yaml_template/configs"
 
     # список шаблонов с конфигами
     config_tpl_files = config_tpl_path.glob("*.tpl.yaml")

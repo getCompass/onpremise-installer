@@ -54,6 +54,7 @@ x-healthcheck-go-2000: &healthcheck-go-2000
 # единая сеть монолита
 networks:
   monolith-private:
+    name: "{{.stack_name_prefix}}-monolith-private"
     driver: "overlay"
     ipam:
       config:
@@ -132,6 +133,12 @@ configs:
   federation-sso:
     name: "{{.stack_name}}_federation_sso-{{.config_revisions.project.federation.sso.php}}"
     file: ".project.federation.sso.php"
+  pivot-restrictions:
+    name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.pivot.restrictions.php}}"
+    file: ".project.pivot.restrictions.php"
+  company-restrictions:
+    name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
+    file: ".project.domino.company_restrictions.php"
 
   ## КОНФИГУРАЦИИ АНОНСОВ
   # настройки nginx анонсов
@@ -711,6 +718,10 @@ services:
             target: "/app/src/Compass/FileBalancer/api/conf/node.php"
           - source: "domino-hosts"
             target: "/app/src/Compass/Userbot/api/conf/domino.php"
+          - source: "pivot-restrictions"
+            target: "/app/src/Compass/Pivot/api/conf/restrictions.php"
+          - source: "company-restrictions"
+            target: "/app/src/Compass/Company/api/conf/restrictions.php"
 
   # GO_COMPANY_CACHE
   go-company-cache-{{$domino.label}}:
@@ -826,9 +837,3 @@ services:
       interval: "5s"
       timeout: "25s"
       retries: 10
-networks:
-  monolith-private:
-    driver: "overlay"
-    ipam:
-      config:
-        - subnet: "{{.projects.monolith.network.subnet}}"

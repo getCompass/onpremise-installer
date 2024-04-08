@@ -5,11 +5,14 @@ from pathlib import Path
 import yaml
 from utils import scriptutils
 from utils import interactive
+import subprocess
+
 
 # класс для сравнения версии инсталлятора
 class Version(tuple):
     def __new__(cls, text):
         return super().__new__(cls, tuple(int(x) for x in text.split('.')))
+
 
 # пробуем получить файл с версией инсталлятора
 script_dir = str(Path(__file__).parent.resolve())
@@ -51,7 +54,6 @@ for migration_folder in sorted(config_files_path.glob("*")):
             if migration_commands is not None:
 
                 for command in migration_commands:
-
                     # экранируем кавычки в командах для выполнения
                     command = command.replace('"', '\"')
                     exec(command)
@@ -60,18 +62,24 @@ for migration_folder in sorted(config_files_path.glob("*")):
 
             # выполняем скрипт для миграции, если такой указан
             if migration_scripts is not None:
-
                 for script in migration_scripts:
-                    print("Выполняю скрипт миграции {} версии {}".format(script, version))
-                    exec(open(str(migration_files_path.resolve()) + "/" + script).read())
+                    print(f"Выполняю скрипт миграции {script} версии {version}")
+                    script_path = str(migration_files_path.resolve() / script)
 
+                    # Запуск скрипта в отдельном процессе
+                    result = subprocess.run(['python3', script_path], text=True, capture_output=True)
+
+                    # Вывод результата выполнения скрипта
+                    print(result.stdout)
+                    if result.stderr:
+                        print(result.stderr)
 
 # если список версий пуст, значит миграций не было
 if len(version_list) == 0:
     exit(0)
 
 # получаем последнюю версию
-last_version = version_list[len(version_list)-1]
+last_version = version_list[len(version_list) - 1]
 
 # записываем последнюю установленную версию в файл
 f = open(version_path, "w")

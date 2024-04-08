@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+
+    # PHP_INTEGRATION
+    php-integration-{{.projects.integration.label}}:
+      image: "docker.getcompass.ru/svo_aero/php_integration_svo:v1.0.0"

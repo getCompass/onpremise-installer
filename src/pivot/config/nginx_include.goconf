@@ -134,6 +134,21 @@ location {{$pivot_locprefix}}/api/socket/pivot/ {
 	fastcgi_pass $upstream_pivot_php;
 }
 
+# integration
+location {{$pivot_locprefix}}/api/integration/pivot/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/pivot/integration/ break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
 # страничка с капчей
 location {{$global_locprefix}}/captcha/ {
 
@@ -280,6 +295,21 @@ location {{$pivot_locprefix}}/api/socket/files/ {
 	}
 
 	rewrite ^ /api/file_balancer/socket/ break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+# integration
+location {{$pivot_locprefix}}/api/integration/files/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/file_balancer/integration/ break;
 	fastcgi_pass $upstream_file_balancer;
 }
 

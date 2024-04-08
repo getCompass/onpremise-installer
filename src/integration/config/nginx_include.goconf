@@ -1,0 +1,44 @@
+{{$locprefix := locprefix .url_path .projects.integration.url_path -}}
+
+set $upstream_integration php-integration-{{.projects.integration.label}}:9000;
+
+#######################################################
+# php_integration
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$locprefix}}/\. {
+	access_log off;
+	log_not_found off;
+	deny all;
+}
+
+# socket-методы
+location {{$locprefix}}/api/socket/integration/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/integration/socket/ break;
+	fastcgi_pass $upstream_integration;
+}
+
+# integration-методы
+location {{$locprefix}}/api/integration/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/integration/ break;
+	fastcgi_pass $upstream_integration;
+}

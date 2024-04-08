@@ -49,6 +49,7 @@ parser.add_argument(
 )
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
+parser.add_argument("--install-integration", required=False, action="store_true")
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -228,6 +229,7 @@ project = args.project
 project_name_override = args.project_name_override
 is_dry = args.dry
 use_default_values = args.use_default_values
+install_integration = args.install_integration
 temporary_file_list = []
 if not override_data:
     override_data = {}
@@ -259,13 +261,15 @@ elif (
 else:
     specified_values_file_name = str(Path("src/values." + values + ".yaml").resolve())
 
-if environment not in ["local", "tes"] and project != "search":
+if environment not in ["local", "tes"] and project != "search" and project != "integration":
     # инициализируем конфиг
     exec_cmd = [script_dir + "/init.py", "-e", environment, "-v", values, "-p", project]
     if project_name_override is not None:
         exec_cmd = exec_cmd + ["--project-name-override", project_name_override]
     if use_default_values:
         exec_cmd.append("--use-default-values")
+    if install_integration:
+        exec_cmd.append("--install-integration")
     p = Popen(exec_cmd)
     p.wait()
 
@@ -501,7 +505,7 @@ p = Popen(
 p.wait()
 
 # обновляем nginx
-if project != "monolith":
+if project != "monolith" and project != "integration":
     p = Popen(
         [
             "python3",

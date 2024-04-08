@@ -1,0 +1,128 @@
+version: '3.8'
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+# healthcheck по умолчанию для php-сервисов,
+# обычно там проверяется только 9000 порт
+x-healthcheck-php-9000: &healthcheck-php-9000
+  healthcheck:
+    test: "nc -z 127.0.0.1 9000"
+    interval: "15s"
+    timeout: "25s"
+    retries: 60 # php-monolith из-за миграций php-pivot встает дольше чем обычно
+
+# healthcheck по умолчанию для go-сервисов,
+# обычно там проверяется только 2000 порт
+x-healthcheck-go-2000: &healthcheck-go-2000
+  healthcheck:
+    test: "nc -z 127.0.0.1 2000"
+    interval: "5s"
+    timeout: "25s"
+    retries: 10
+
+# --- DEFINES ---
+# единая сеть монолита
+networks:
+  monolith-private:
+    name: "{{.stack_name_prefix}}-monolith-private"
+    driver: "overlay"
+    external: true
+
+# --- DEPLOY ---
+configs:
+
+  # конфигурация веб-сервера
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
+    file: ".global.nginx.conf"
+  nginx-sites-enabled:
+    name: "{{.stack_name}}_nginx_nginx_sites_enabled-{{.config_revisions.project.nginx_sites_enabled.conf}}"
+    file: ".project.nginx_sites_enabled.conf"
+  nginx-include-integration:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
+    file: ".project.nginx_include.conf"
+
+  # конфигурации модуля
+  integration-restrictions:
+    name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.restrictions.php}}"
+    file: ".project.restrictions.php"
+
+# файл композиции монолита
+services:
+
+  # Пока для всех общих сервисов перечисляем их потенциальные имена через алиасы.
+  # Иначе там придется городить огород для отдельных сервисов
+
+  ## COMPASS MONOLITH
+  # SINGLE NGINX
+  nginx-{{.projects.integration.label}}:
+    image: "{{.registry_service_path}}/nginx:master"
+    networks:
+      monolith-private:
+    ports:
+      - "{{.projects.integration.service.nginx.external_https_port}}:443"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    configs:
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "nginx-sites-enabled"
+        target: "/etc/nginx/sites-enabled/default"
+      - source: "nginx-include-integration"
+        target: "/etc/nginx/includes/integration.nginx"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+      - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+    <<: *log-rule-default
+
+  # PHP_INTEGRATION
+  php-integration-{{.projects.integration.label}}:
+    image: ""
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.integration_override.env"
+    environment:
+      GO_EVENT_GLOBAL_EVENT_QUEUE: {{.projects.monolith.service.go_event.rabbit_queue}}
+      GO_EVENT_SERVICE_EVENT_EXCHANGE: {{.projects.monolith.service.go_event.rabbit_service_exchange}}
+    networks:
+      monolith-private:
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+    <<: *default-deploy
+    <<: *log-rule-default
+    <<: *healthcheck-php-9000
+    configs:
+      - source: "integration-restrictions"
+        target: "/app/src/Compass/Integration/api/conf/restrictions.php"

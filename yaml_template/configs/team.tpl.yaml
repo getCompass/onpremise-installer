@@ -26,3 +26,28 @@ root_user.password:
 #
 # Тип данных: строка
 team.init_name: "First Team"
+
+# ----------------------------------------------
+# РЕДАКТИРОВАНИЕ ПРОФИЛЯ
+# ----------------------------------------------
+
+# Разрешено ли пользователям изменять номер телефона в профиле
+profile.phone_change_enabled: true
+
+# Разрешено ли пользователям изменять почтовый адрес в профиле
+profile.mail_change_enabled: true
+
+# Разрешено ли пользователям изменять Имя Фамилия в профиле
+profile.name_change_enabled: true
+
+# Разрешено ли пользователям изменять аватар в профиле
+profile.avatar_change_enabled: true
+
+# Разрешено ли пользователям изменять бейдж в профиле
+profile.badge_change_enabled: true
+
+# Разрешено ли пользователям изменять описание в профиле
+profile.description_change_enabled: true
+
+# Разрешено ли пользователям изменять статус в профиле
+profile.status_change_enabled: true

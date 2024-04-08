@@ -1,0 +1,35 @@
+upstream upstream_integration {
+
+    least_conn;
+    keepalive 30;
+    server php-integration-{{.projects.integration.label}}:9000;
+}
+
+server {
+
+    # Это конфигурационный файл нужен, чтобы на одном nginx можно было разруливать
+    # внутрении запросы к разным серверам. Он слушается как сервер по умолчанию на 443 порте
+    # и сюда будут приходит все запросы, которые прилетают по ip-адресу
+
+    listen 443 http2 ssl default_server;
+
+    client_max_body_size    2048m; # макс размер запроса, присылаемый клиентом
+
+    ssl_certificate     /etc/nginx/ssl/{{.projects.monolith.host}}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{.projects.monolith.host}}.key;
+
+    resolver 127.0.0.11 ipv6=off;
+
+    error_log /var/log/nginx/error.log;
+
+    #######################################################
+    # shared
+    #######################################################
+
+    # запрещаем доступ к скрытым файлам
+    location ~ /\. {
+        return 404;
+    }
+
+    include includes/integration.nginx;
+}

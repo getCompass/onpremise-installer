@@ -183,6 +183,21 @@ location {{$locprefix}}/api/socket/ {
 	fastcgi_pass $upstream_file_node;
 }
 
+# файловая нода — integration методы
+location {{$locprefix}}/api/integration/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/integration/ break;
+	fastcgi_pass $upstream_file_node;
+}
+
 # файловая нода — userbot точка входа
 location ~* ^{{$locprefix}}/api/userbot/[a-zA-Z0-9_\-]+/[a-zA-Z0-9_\-]+/?$ {
 

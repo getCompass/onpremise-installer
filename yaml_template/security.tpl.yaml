@@ -56,6 +56,9 @@ security_keys:
     socket_key_push_sender: ""
   federation:
     socket_key_federation: ""
+  integration:
+    socket_key_integration: ""
+    integration_authorization_token: ""
 salt_keys:
   salt_pack_session_v1: ""
   salt_pack_auth_v1: ""
