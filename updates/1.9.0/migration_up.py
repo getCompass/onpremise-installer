@@ -11,6 +11,7 @@ current_script_path = Path(__file__).parent
 utils_path = current_script_path.parent.parent / 'script'
 sys.path.append(str(utils_path))
 
+from loader import Loader
 from utils import scriptutils
 from python_on_whales import docker, exceptions
 from time import sleep
@@ -51,6 +52,24 @@ with open(team_config_path, "r") as file:
 
 docker_monolith_network_list = docker.network.list(filters={"name": "production-compass-monolith_monolith-private"})
 if len(docker_monolith_network_list) > 0:
+    print(
+        scriptutils.warning(
+            "!!!Во время обновления приложение будет недоступно в течение ~10 минут!!!\n"
+        )
+    )
+
+    try:
+        if input("Выполняем обновление приложения? [y/N]\n") != "y":
+            scriptutils.die("Обновление приложения было отменено")
+    except UnicodeDecodeError as e:
+        print("Не смогли декодировать ответ. Error: ", e)
+        exit(1)
+
+    loader = Loader(
+        "Обновляем приложение...",
+        "Успешно обновили приложение",
+        "Не смогли обновить приложение",
+    ).start()
 
     get_stack_command = ["docker", "stack", "ls"]
     grep_command = ["grep", "production-compass-monolith"]
@@ -80,9 +99,11 @@ if len(docker_monolith_network_list) > 0:
         n = n + 5
         sleep(5)
         if n == timeout:
+            loader.error()
             scriptutils.die("Миграция не выполнена")
 
     sleep(10)
+    loader.success()
 
 # добавляем актуальные параметры в конец конфига
 content += """

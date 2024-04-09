@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
-import os, argparse, json
+import sys, os, argparse, json
 from pathlib import Path
 import yaml
 from utils import scriptutils
 from utils import interactive
-import subprocess
+from subprocess import Popen
 
 
 # класс для сравнения версии инсталлятора
 class Version(tuple):
     def __new__(cls, text):
-        return super().__new__(cls, tuple(int(x) for x in text.split('.')))
+        return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
 
 # пробуем получить файл с версией инсталлятора
@@ -28,16 +28,17 @@ else:
 config_files_path = Path(script_dir + "/../updates")
 
 version_list = []
+break_outer_loop = False  # флаг для прерывания внешнего цикла
 for migration_folder in sorted(config_files_path.glob("*")):
+
+    if break_outer_loop:
+        break
 
     version = migration_folder.name
 
     # если текущая версия больше версии миграции, то пропускаем выполнение
     if current_version != 0 and Version(current_version) >= Version(version):
         continue
-
-    # собираем полученные версии в список
-    version_list.append(version)
 
     # проходимся по каждой директории версии
     if migration_folder.is_dir():
@@ -66,13 +67,18 @@ for migration_folder in sorted(config_files_path.glob("*")):
                     print(f"Выполняю скрипт миграции {script} версии {version}")
                     script_path = str(migration_files_path.resolve() / script)
 
-                    # Запуск скрипта в отдельном процессе
-                    result = subprocess.run(['python3', script_path], text=True, capture_output=True)
+                    # запуск скрипта в отдельном процессе с выводом в реальном времени
+                    process = Popen(["python3", script_path], stdout=sys.stdout, stderr=sys.stderr)
 
-                    # Вывод результата выполнения скрипта
-                    print(result.stdout)
-                    if result.stderr:
-                        print(result.stderr)
+                    # ждем завершения процесса
+                    process.wait()
+
+                    # собираем полученные версии в список
+                    if process.returncode == 0:
+                        version_list.append(version)
+                    else:
+                        break_outer_loop = True
+                        break
 
 # если список версий пуст, значит миграций не было
 if len(version_list) == 0:
