@@ -1,12 +1,14 @@
 {{$pivot_locprefix := locprefix .url_path .projects.pivot.url_path}}
+{{$premise_locprefix := locprefix .url_path .projects.pivot.url_path_premise}}
 {{$global_locprefix := locprefix .url_path}}
 {{$start_locprefix := locprefix .url_path .projects.pivot.url_path_start}}
-
+{{$domino := index .projects.domino .domino_id}}
 set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
 set $upstream_file_balancer php-file-balancer-{{.projects.pivot.label}}:9000;
 set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
 set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
 set $upstream_join_web join_web:80;
+set $upstream_premise_php php-monolith-{{$domino.label}}:9000;
 
 # запрещаем доступ к скрытым файлам для пути pivot
 location ~ {{$pivot_locprefix}}/\. {
@@ -132,6 +134,76 @@ location {{$pivot_locprefix}}/api/socket/pivot/ {
 
 	rewrite ^ /api/pivot/socket/ break;
 	fastcgi_pass $upstream_pivot_php;
+}
+
+# premise server
+location {{$premise_locprefix}}/api/premise/server/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except GET {
+		deny all;
+	}
+
+	rewrite ^ /api/premise/server/ break;
+	fastcgi_pass $upstream_premise_php;
+}
+
+# apiv2 2 level premise
+location ~* ^{{$premise_locprefix}}/api/v2/(premise|premiseuser|premisespace|premiselicense|premiseglobal)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$premise_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/premise/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_premise_php;
+}
+
+# apiv2 3 level premise
+location ~* ^{{$premise_locprefix}}/api/v2/(premiseuser)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$premise_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/premise/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_premise_php;
+}
+
+# socket premise
+location {{$premise_locprefix}}/api/socket/premise/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/premise/socket/ break;
+	fastcgi_pass $upstream_premise_php;
+}
+
+# backdoor premise
+location ~* ^{{$premise_locprefix}}/backdoor/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$premise_locprefix}}/backdoor/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/premise/backdoor/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_premise_php;
 }
 
 # integration

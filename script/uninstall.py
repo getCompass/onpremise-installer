@@ -143,3 +143,7 @@ for item in root_mount_path.glob("*"):
             item.unlink()
         elif item.is_dir():
             shutil.rmtree(item)
+
+# раз удалили данные, то и текущая конфигурация сервера больше не нужна
+values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
+values_file_path.unlink()

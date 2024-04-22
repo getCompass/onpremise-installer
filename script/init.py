@@ -10,6 +10,7 @@ from loader import Loader
 import collections.abc, shutil
 import re, socket, yaml, argparse, readline, string, random, pwd, os
 from utils.interactive import InteractiveValue, IncorrectValueException
+import uuid
 
 scriptutils.assert_root()
 
@@ -179,7 +180,14 @@ project_name_override = (
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
 
 default_values_file_path = Path("%s/../src/values.yaml" % (script_dir))
-current_values = {}
+
+if values_file_path.exists():
+    with values_file_path.open("r") as values_file:
+        current_values = yaml.safe_load(values_file)
+        current_values = {} if current_values is None else current_values
+
+else:
+    current_values = {}
 
 if default_values_file_path.exists():
     with default_values_file_path.open("r") as values_file:
@@ -228,6 +236,10 @@ def handle_exception(field, message: str):
 
 ### VALUE FUNCTIONS ###
 
+def server_uid(
+        project_name: str, label: str, project_values: dict, global_values: dict
+):
+    return str(uuid.uuid4())
 
 def project_port(
     project_name: str, label: str, project_values: dict, global_values: dict
@@ -410,6 +422,7 @@ nginx_fields = [
         "type": "str",
         "ask": True,
     },
+
     {
         "name": "ssl_crt",
         "comment": "Укажите имя сертификата для домена с расширением (example.crt). Сертификат должен быть помещен в папку /etc/nginx/ssl",
@@ -425,6 +438,17 @@ required_root_fields = [
         "comment": "Включены ли поддомены",
         "default_value": 0,
         "type": "int",
+        "ask": False,
+        "post_function": None,
+        "post_args": [],
+    },
+    {
+        "name": "server_uid",
+        "comment": "Уникальный идентификатор сервера",
+        "default_value": None,
+        "value_function": server_uid,
+        "args": [],
+        "type": "str",
         "ask": False,
         "post_function": None,
         "post_args": [],
@@ -1016,12 +1040,12 @@ def start():
         "begin_increment_user_id": 160000,
         "need_company_hibernate": False,
         "is_local": False,
-        "billing_protocol": "",
-        "billing_domain": "",
+        "billing_protocol": "https",
+        "billing_domain": "payment.getcompass.com",
         "dev_server": False,
         "server_type": "production",
         "start_octet": 10,
-        "server_tag_list": ["production", "on-premise"],
+        "server_tag_list": ["production", "on-premise", "monolith"],
         "environment": "production",
         "domino_mysql_innodb_flush_method": "O_DIRECT",
         "domino_mysql_innodb_flush_log_at_timeout": 1,

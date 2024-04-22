@@ -11,6 +11,7 @@ from pathlib import Path
 from python_on_whales import docker, exceptions
 from time import sleep
 from loader import Loader
+from utils.scriptutils import bcolors
 
 scriptutils.assert_root()
 
@@ -31,6 +32,31 @@ values_name = "compass"
 environment = "production"
 stack_name_prefix = environment + "-" + values_name
 domino_id = "d1"
+
+# пользователь должен подтвердить согласие с условиями публичной оферты
+begin_confirm_text = "Пожалуйста, подтвердите согласие с условиями публичной оферты"
+begin_confirm_text += bcolors.OKBLUE + " (getcompass.ru/docs/on-premise/offer.pdf)" + bcolors.ENDC
+begin_confirm_text += " и политики конфиденциальности"
+begin_confirm_text += bcolors.OKBLUE + " (getcompass.ru/docs/privacy.pdf)" + bcolors.ENDC
+begin_confirm_text += ", чтобы начать установку.\n"
+end_confirm_text = "Введите «"
+end_confirm_text += bcolors.OKGREEN + "Y" + bcolors.ENDC
+end_confirm_text += "» для подтверждения согласия или «n» для отмены установки:"
+confirm_text = begin_confirm_text + end_confirm_text
+
+confirm = "n"
+while confirm != "y":
+
+    confirm = input(confirm_text).lower().strip()
+
+    # если пользователь дал некорректный ответ
+    if confirm != "y" and confirm != "n":
+        print(bcolors.FAIL + "Указано некорректное значение" + bcolors.ENDC)
+        confirm_text = end_confirm_text
+
+    # если пользователь не подтвердил согласие - выходим
+    if confirm == "n":
+        exit(1)
 
 # подготовка
 print("Создаем пользователя www-data, от имени которого будет работать приложение")

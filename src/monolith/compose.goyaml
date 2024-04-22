@@ -118,6 +118,9 @@ configs:
   domino-hosts-pivot:
     name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.pivot.domino.php}}"
     file: ".project.pivot.domino.php"
+  domino-hosts-premise:
+    name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.pivot.premise_domino.php}}"
+    file: ".project.pivot.premise_domino.php"
   bot-conf:
     name: "{{.stack_name}}_bot_info_list-{{.config_revisions.project.pivot.bot_info_list.json}}"
     file: ".project.pivot.bot_info_list.json"
@@ -377,6 +380,7 @@ services:
       PER_DELIVERY_LIMIT: {{.projects.monolith.service.go_event.per_delivery_limit}}
       DELIVERY_DELAY: {{.projects.monolith.service.go_event.delivery_delay}}
       COURIER_COUNT: {{.projects.monolith.service.go_event.courier_count}}
+      ENTRYPOINT_PREMISE: "{{.protocol}}://{{entrypoint .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path_premise 1}}"
     env_file:
       - ".global.common.env"
       - ".project.pivot.common.env"
@@ -517,12 +521,15 @@ services:
   go-pusher-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_pusher:{{.projects.pivot.service.go_pusher.tag}}"
     environment:
+      SERVER_ACCOMMODATION: "premise"
       TCP_PORT: 1000
       GRPC_PORT: 2000
       HTTP_PORT: 80
       RABBIT_QUEUE: "{{.projects.pivot.service.go_pusher.rabbit_queue}}"
       RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pusher.rabbit_exchange}}"
       IS_PUSH_MOCK_ENABLE: "{{.projects.pivot.service.go_pusher.is_push_mock_enable}}"
+      ENTRYPOINT_PREMISE: "{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path_premise 0}}"
+      PUSH_MONITORING_COMPANY_ID: -1
     depends_on:
       - "rabbit-{{.projects.pivot.label}}"
     env_file:
@@ -633,10 +640,10 @@ services:
       - "go-userbot-cache-{{.projects.userbot.label}}"
     env_file:
       - ".global.common.env"
-      - ".global.solution.env"
       - ".project.announcement.common.env"
       - ".project.federation.common.env"
       - ".project.pivot.common.env"
+      - ".project.pivot.php_premise.env"
       - ".project.pivot.php_pivot.env"
       - ".project.domino.common.env"
       - ".project.domino.php_world.env"
@@ -659,6 +666,7 @@ services:
           - "php-announcement-{{.projects.announcement.label}}"
           - "php-federation-{{.projects.federation.label}}"
           - "php-company-{{$domino.label}}"
+          - "php-premise-{{.projects.pivot.label}}"
           - "php-speaker-{{$domino.label}}"
           - "php-file-balancer-{{$domino.label}}"
           - "php-world-{{$domino.label}}"
@@ -718,6 +726,8 @@ services:
             target: "/app/src/Compass/FileBalancer/api/conf/node.php"
           - source: "domino-hosts"
             target: "/app/src/Compass/Userbot/api/conf/domino.php"
+          - source: "domino-hosts-premise"
+            target: "/app/src/Compass/Premise/api/conf/domino.php"
           - source: "pivot-restrictions"
             target: "/app/src/Compass/Pivot/api/conf/restrictions.php"
           - source: "company-restrictions"

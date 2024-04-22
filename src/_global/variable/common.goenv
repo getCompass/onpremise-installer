@@ -73,12 +73,15 @@ PUBLIC_ENTRYPOINT_STAGE=""
 PUBLIC_ENTRYPOINT_GO_TEST=""
 PUBLIC_ENTRYPOINT_PARTNER=""
 
+PUBLIC_ENTRYPOINT_PREMISE="{{.protocol}}://{{entrypoint .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path_premise 1}}"
+
 PUBLIC_ENTRYPOINT_CAPTCHA={{.protocol}}://{{.domain}}/captcha
 PUBLIC_ENTRYPOINT_CAPTCHA_ENTERPRISE={{.protocol}}://{{.domain}}/captcha/enterprise
 PUBLIC_ENTRYPOINT_JOIN={{.protocol}}://{{.domain}}/join
 PUBLIC_ENTRYPOINT_INVITE={{.protocol}}://{{.domain}}/invite
 PUBLIC_ENTRYPOINT_SOLUTION="https://solution.getcompass.com"
-PUBLIC_ENTRYPOINT_BILLING=""
+PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.com"
+PUBLIC_ENTRYPOINT_BILLING={{.billing_protocol}}://{{.billing_domain}}
 
 # адреса, которые пользователи могут встречать вне приложения,
 # при этом протокол может отсутствовать, по большей части

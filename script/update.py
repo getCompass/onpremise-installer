@@ -245,6 +245,7 @@ loader = Loader(
 )
 loader.start()
 while n <= timeout:
+
     docker_container_list = docker.container.list(
         filters={
             "name": "%s-monolith_php-monolith" % (stack_name_prefix),
@@ -259,6 +260,7 @@ while n <= timeout:
     if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
         found_monolith_container = healthy_docker_container_list[0]
         break
+
     n = n + 5
     sleep(5)
     if n == timeout:
@@ -274,7 +276,7 @@ except exceptions.DockerException as e:
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
 # ждем поднятия nginx
-timeout = 60
+timeout = 120
 n = 0
 loader = Loader(
     "Ждем готовности nginx",
@@ -284,6 +286,7 @@ loader = Loader(
 loader.start()
 
 while n <= timeout:
+
     docker_container_list = docker.container.list(
         filters={
             "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
@@ -298,6 +301,7 @@ while n <= timeout:
     if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
         found_nginx_container = healthy_docker_container_list[0]
         break
+
     n = n + 5
     sleep(5)
     if n == timeout:

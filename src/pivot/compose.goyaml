@@ -504,6 +504,27 @@ services:
     <<: *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
-
+  ## PHP_PREMISE
+  php-premise-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_onpremise_path}}/php_premise:{{.projects.pivot.service.php_premise.tag}}"
+    depends_on:
+      - "mysql-{{.projects.pivot.label}}"
+      - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-sender-balancer-{{.projects.pivot.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.php_premise.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 9000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
 volumes:
   default-file-{{.projects.pivot.service.default_file.tag}}:
