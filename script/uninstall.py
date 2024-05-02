@@ -10,7 +10,7 @@ from utils import scriptutils
 from pathlib import Path
 from loader import Loader
 from time import sleep
-from python_on_whales import docker, exceptions
+import docker
 
 scriptutils.assert_root()
 
@@ -76,11 +76,13 @@ loader = Loader(
     "Не смогли удалить приложение",
 ).start()
 
+client = docker.from_env()
+
 # ждем, пока все контейнеры удалятся
 timeout = 600
 n = 0
 while n <= timeout:
-    docker_container_list = docker.container.list(filters={"name": stack_name_prefix})
+    docker_container_list = client.containers.list(filters={"name": stack_name_prefix}, sparse=True, ignore_removed=True)
 
     if len(docker_container_list) < 1:
         break
@@ -93,7 +95,7 @@ while n <= timeout:
 timeout = 120
 n = 0
 while n <= timeout:
-    docker_network_list = docker.network.list(filters={"name": stack_name_prefix})
+    docker_network_list = client.networks.list(filters={"name": stack_name_prefix})
 
     if len(docker_network_list) < 1:
         break

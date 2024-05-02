@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-#pip3 install pyyaml pyopenssl python_on_whales mysql_connector_python python-dotenv psutil
+#pip3 install pyyaml pyopenssl docker mysql_connector_python python-dotenv psutil
 
 import sys
 sys.dont_write_bytecode = True
 
 import argparse, yaml, psutil
-from python_on_whales import docker, exceptions, Container
+import docker
 from pathlib import Path
 from utils import scriptutils, interactive
 from loader import Loader
@@ -54,13 +54,15 @@ with values_file_path.open('r') as values_file:
 
 def start():
 
+    client = docker.from_env()
+
     timeout = 10
     n = 0
     name = "%s-monolith_php-monolith" % (stack_name_prefix)
 
     while n <= timeout:
 
-        docker_container_list = docker.container.list(filters={'name': name, 'health': 'healthy'})
+        docker_container_list = client.containers.list(filters={'name': name, 'health': 'healthy'})
 
         if len(docker_container_list) > 0:
 
@@ -72,16 +74,14 @@ def start():
         if n == timeout:
             scriptutils.die('Не был найден необходимый docker контейнер для активации сервера. Проверьте что окружение поднялось корректно')
 
-    try:
+    loader = Loader('Активирую сервер...', 'Сервер активирован', 'Не смог активировать сервер').start()
+    output = found_container.exec_run(user='www-data', cmd=['bash', '-c', 'php src/Compass/Premise/sh/php/server/activate.php'])
 
-        loader = Loader('Активирую сервер...', 'Сервер активирован', 'Не смог активировать сервер').start()
-        output = found_container.execute(user='www-data', command=['bash', '-c', 'php src/Compass/Premise/sh/php/server/activate.php'])
+    if output.exit_code == 0:
         loader.success()
-    except exceptions.DockerException as e:
-
+    else:
         loader.error()
-        print(e.stderr)
-        print(e.stdout)
+        print(output.output.decode("utf-8"))
 
         scriptutils.error('Что то пошло не так. Не смогли активировать сервер')
 

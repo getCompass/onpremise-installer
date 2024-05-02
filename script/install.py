@@ -8,7 +8,7 @@ import subprocess, argparse
 
 from utils import scriptutils
 from pathlib import Path
-from python_on_whales import docker, exceptions
+import docker
 from time import sleep
 from loader import Loader
 from utils.scriptutils import bcolors
@@ -256,6 +256,8 @@ if install_integration:
         "Ошибка при разворачивании интеграции"
     )
 
+client = docker.from_env()
+
 # ждем появления monolith
 timeout = 900
 n = 0
@@ -266,7 +268,7 @@ loader = Loader(
 )
 loader.start()
 while n <= timeout:
-    docker_container_list = docker.container.list(
+    docker_container_list = client.containers.list(
         filters={
             "name": "%s-monolith_php-monolith" % (stack_name_prefix),
             "health": "healthy",
@@ -282,10 +284,11 @@ while n <= timeout:
         scriptutils.die("php_monolith не поднялся")
 
 # проверяем готовность monolith
-try:
-    output = found_monolith_container.execute(["sh", "wait-ready.sh"])
+output = found_monolith_container.exec_run(["sh", "wait-ready.sh"])
+
+if output.exit_code == 0:
     loader.success()
-except exceptions.DockerException as e:
+else:
     loader.error()
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
@@ -301,7 +304,7 @@ loader = Loader(
 loader.start()
 
 while n <= timeout:
-    docker_container_list = docker.container.list(
+    docker_container_list = client.containers.list(
         filters={
             "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
             "health": "healthy",

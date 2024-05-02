@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# pip3 install pyyaml pyopenssl python_on_whales mysql_connector_python python-dotenv psutil
+# pip3 install pyyaml pyopenssl docker mysql_connector_python python-dotenv psutil
 
 import sys
 
 sys.dont_write_bytecode = True
 
 import os, argparse, yaml, pwd, json, psutil
-from python_on_whales import docker, exceptions, Container
+import docker
 from pathlib import Path
 from utils import scriptutils, interactive
 from subprocess import Popen
@@ -115,7 +115,7 @@ def handle_exception(field, message: str):
     exit(1)
     
 def create_domino(
-    pivot_container: Container,
+    pivot_container: docker.models.containers.Container,
     domino_id: str,
     domino_url: str,
     database_host: str,
@@ -125,9 +125,9 @@ def create_domino(
     go_database_controller_port: str,
 ):
 
-    pivot_container.execute(
+    pivot_container.exec_run(
         user="www-data",
-        command=[
+        cmd=[
             "bash",
             "-c",
             "php src/Compass/Pivot/sh/php/domino/create_domino.php --domino-id=%s --tier=1 --database-host=%s --code-host=%s --url=%s --is-company-creating-allowed=1 --go-database-controller-port=%i"
@@ -141,32 +141,31 @@ def create_domino(
         ],
     )
 
-    try:
-        loader = Loader(
-            "Создаю domino...", "Создал domino", "Не смог создать domino"
-        ).start()
+    loader = Loader(
+        "Создаю domino...", "Создал domino", "Не смог создать domino"
+    ).start()
 
-        output = pivot_container.execute(
-            user="www-data",
-            command=[
-                "bash",
-                "-c",
-                "php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id=%s --mysql-user=%s --mysql-pass=%s --start-port=%i --end-port=%i --type=common"
-                % (
-                    domino_id,
-                    database_user,
-                    database_pass,
-                    start_company_port,
-                    end_company_port,
-                ),
-            ],
-        )
+    output = pivot_container.exec_run(
+        user="www-data",
+        cmd=[
+            "bash",
+            "-c",
+            "php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id=%s --mysql-user=%s --mysql-pass=%s --start-port=%i --end-port=%i --type=common"
+            % (
+                domino_id,
+                database_user,
+                database_pass,
+                start_company_port,
+                end_company_port,
+            ),
+       ],
+    )
+
+    if output.exit_code == 0:
         loader.success()
-        print(output)
-    except exceptions.DockerException as e:
+    else:
         loader.error()
-        print(e.stdout)
-        print(e.stderr)
+        print(output.output.decode("utf-8"))
 
 
 # ---СКРИПТ---#
@@ -232,22 +231,19 @@ if validate_only:
         exit(1)
     exit(0)
 
+client = docker.from_env()
 
 # получаем контейнер monolith
 timeout = 10
 n = 0
 while n <= timeout:
-    if environment == "" or values_arg == "":
-        docker_container_list = docker.container.list(
-            filters={"name": "monolith_php-monolith", "health": "healthy"}
-        )
-    else:
-        docker_container_list = docker.container.list(
-            filters={
-                "name": "%s-monolith_php-monolith" % (stack_name_prefix),
-                "health": "healthy",
-            }
-        )
+
+    docker_container_list = client.containers.list(
+        filters={
+            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+            "health": "healthy",
+        }
+    )
 
     if len(docker_container_list) > 0:
         found_pivot_container = docker_container_list[0]
@@ -264,17 +260,18 @@ first_key = list(domino_project)[0]
 first_domino = domino_project[first_key]
 domino_url = first_domino["label"] + "." + current_values["domain"]
 
-try:
-    output = found_pivot_container.execute(
-        user="www-data",
-        command=[
-            "bash",
-            "-c",
-            "php src/Compass/Pivot/sh/php/domino/check_domino_exists.php --domino-id=%s"
-            % first_domino["label"],
-        ],
-    )
-except exceptions.DockerException:
+output = found_pivot_container.exec_run(
+    user="www-data",
+    cmd=[
+        "bash",
+        "-c",
+        "php src/Compass/Pivot/sh/php/domino/check_domino_exists.php --domino-id=%s"
+        % first_domino["label"],
+    ],
+)
+
+if output.exit_code != 0:
+
     create_domino(
         found_pivot_container,
         first_domino["label"],
@@ -286,72 +283,80 @@ except exceptions.DockerException:
         first_domino["go_database_controller_port"],
     )
 
+
 team_name = ""
+
 if init:
-    try:
-        team_name = interactive.InteractiveValue(
-            "team.init_name",
-            "Введите название первой команды",
-            "str",
-            config=config,
-        ).from_config()
-        output = found_pivot_container.execute(
-            user="www-data",
-            command=[
-                "bash",
-                "-c",
-                "php src/Compass/Pivot/sh/php/domino/check_team_exists.php",
-            ],
-            interactive=True,
-            tty=True,
-        )
+
+    team_name = interactive.InteractiveValue(
+        "team.init_name",
+        "Введите название первой команды",
+        "str",
+        config=config,
+    ).from_config()
+    output = found_pivot_container.exec_run(
+        user="www-data",
+        cmd=[
+            "bash",
+            "-c",
+            "php src/Compass/Pivot/sh/php/domino/check_team_exists.php",
+        ]
+    )
+
+    if output.exit_code == 0:
+
         print(
             scriptutils.success(
                 "Первая компания уже была создана. Если хотите создать еще одну команду, запустите скрипт create_team.py"
             )
         )
         exit(0)
-    except exceptions.DockerException:
-        pass
-try:
-    loader = Loader(
-        "Готовлю место под команду...",
-        "Подготовил место под команду",
-        "Не смог подготовить место под команду",
-    ).start()
-    output = found_pivot_container.execute(
-        user="www-data",
-        command=[
-            "bash",
-            "-c",
-            "php src/Compass/Pivot/sh/php/domino/warm_up_company.php",
-        ],
-    )
+
+
+loader = Loader(
+    "Готовлю место под команду...",
+    "Подготовил место под команду",
+    "Не смог подготовить место под команду",
+).start()
+output = found_pivot_container.exec_run(
+    user="www-data",
+    cmd=[
+        "bash",
+        "-c",
+        "php src/Compass/Pivot/sh/php/domino/warm_up_company.php",
+    ],
+)
+
+if output.exit_code == 0:
     loader.success()
     sleep(1)
-
-    command = ["bash", "-c", "php src/Compass/Pivot/sh/php/domino/create_team.php"]
-
-    if team_name != "":
-        command = [
-            "bash",
-            "-c",
-            'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"'
-            % team_name,
-        ]
-    output = found_pivot_container.execute(
-        user="www-data",
-        command=command,
-        interactive=True,
-        tty=True,
+else:
+    loader.error()
+    print(output.output.decode("utf-8"))
+    scriptutils.error(
+        "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно"
     )
 
-    print(output)
+command = ["bash", "-c", "php src/Compass/Pivot/sh/php/domino/create_team.php"]
+
+if team_name != "":
+    command = [
+        "bash",
+        "-c",
+        'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"'
+        % team_name,
+    ]
+output = found_pivot_container.exec_run(
+    user="www-data",
+    cmd=command,
+    tty=True,
+    stdin=True
+)
+
+if output.exit_code == 0:
     print(scriptutils.success("Команда создана"))
-except exceptions.DockerException as e:
+else:
     loader.error()
-    print(e.stderr)
-    print(e.stdout)
     scriptutils.error(
         "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно"
     )

@@ -5,7 +5,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse, yaml, pwd
-from python_on_whales import docker, exceptions
+import docker
 from pathlib import Path
 from utils import scriptutils
 from time import sleep
@@ -218,21 +218,19 @@ if validate_only:
         exit(1)
     exit(0)
 
+client = docker.from_env()
+
 # получаем контейнер monolith
 timeout = 10
 n = 0
 while n <= timeout:
-    if environment == "" or values_arg == "":
-        docker_container_list = docker.container.list(
-            filters={"name": "monolith_php-monolith", "health": "healthy"}
-        )
-    else:
-        docker_container_list = docker.container.list(
-            filters={
-                "name": "%s-monolith_php-monolith" % (stack_name_prefix),
-                "health": "healthy",
-            }
-        )
+
+    docker_container_list = client.containers.list(
+        filters={
+            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+            "health": "healthy",
+        }
+    )
 
     if len(docker_container_list) > 0:
         found_pivot_container = docker_container_list[0]
@@ -244,23 +242,21 @@ while n <= timeout:
             "Не был найден необходимый docker-контейнер для создания пользователя. Убедитесь, что окружение поднялось корректно"
         )
 
-try:
-    output = found_pivot_container.execute(
-        user="www-data",
-        command=[
-            "bash",
-            "-c",
-            "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry=0 --is-root --full-name=\"%s\" --phone-number=\"%s\" --mail=\"%s\" --password=\"%s\""
-            % (full_name, phone_number, mail, password),
-        ],
-        interactive=True,
-        tty=True,
-    )
-    print(output)
-    print(scriptutils.warning("Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s/." % domain))
-except exceptions.DockerException as e:
-    print(e.stdout)
-    print(e.stderr)
+output = found_pivot_container.exec_run(
+    user="www-data",
+    cmd=[
+        "bash",
+        "-c",
+        "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry=0 --is-root --full-name=\"%s\" --phone-number=\"%s\" --mail=\"%s\" --password=\"%s\""
+        % (full_name, phone_number, mail, password),
+    ],
+)
+
+if output.exit_code == 0:
+    print(output.output.decode("utf-8"))
+    print(scriptutils.warning("Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s." % (domain)))
+else:
+    print(output.output.decode("utf-8"))
     scriptutils.error(
-        "Что то пошло не так. Не смогли создать пользователя. Проверьте, что окружение поднялось корректно"
-    )
+    "Что то пошло не так. Не смогли создать пользователя. Проверьте, что окружение поднялось корректно"
+)

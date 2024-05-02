@@ -8,7 +8,7 @@ import subprocess, argparse
 
 from utils import scriptutils
 from pathlib import Path
-from python_on_whales import docker, exceptions
+import docker
 from time import sleep
 from loader import Loader
 
@@ -235,6 +235,8 @@ if install_integration:
         "Ошибка при разворачивании интеграции"
     )
 
+# подключаемся к докеру
+client = docker.from_env()
 # ждем появления monolith
 timeout = 900
 n = 0
@@ -246,18 +248,30 @@ loader = Loader(
 loader.start()
 while n <= timeout:
 
-    docker_container_list = docker.container.list(
-        filters={
+    monolith_service = None
+
+    # ждем, пока у сервиса не будет статуса обновления completed
+    service_list = client.services.list(filters={
             "name": "%s-monolith_php-monolith" % (stack_name_prefix),
-        }
-    )
-    healthy_docker_container_list = docker.container.list(
+        })
+
+    if len(service_list) > 0:
+        monolith_service = service_list[0]
+
+    if monolith_service is None:
+        continue
+
+    if (monolith_service.attrs.get("UpdateStatus") is not None and monolith_service.attrs["UpdateStatus"].get("State") != "completed"):
+        continue
+
+    # проверяем, что контейнер жив
+    healthy_docker_container_list = client.containers.list(
         filters={
             "name": "%s-monolith_php-monolith" % (stack_name_prefix),
             "health": "healthy",
         }
     )
-    if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
+    if len(healthy_docker_container_list) > 0:
         found_monolith_container = healthy_docker_container_list[0]
         break
 
@@ -268,10 +282,12 @@ while n <= timeout:
         scriptutils.die("php_monolith не поднялся")
 
 # проверяем готовность monolith
-try:
-    output = found_monolith_container.execute(["sh", "wait-ready.sh"])
+
+output = found_monolith_container.exec_run(["sh", "wait-ready.sh"])
+
+if output.exit_code == 0:
     loader.success()
-except exceptions.DockerException as e:
+else:
     loader.error()
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
@@ -287,18 +303,29 @@ loader.start()
 
 while n <= timeout:
 
-    docker_container_list = docker.container.list(
-        filters={
+    nginx_service = None
+
+    # ждем, пока у сервиса не будет статуса обновления completed
+    service_list = client.services.list(filters={
             "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
-        }
-    )
-    healthy_docker_container_list = docker.container.list(
+        })
+
+    if len(service_list) > 0:
+        nginx_service = service_list[0]
+
+    if nginx_service is None:
+        continue
+
+    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get("State") != "completed"):
+        continue
+
+    healthy_docker_container_list = client.containers.list(
         filters={
             "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
             "health": "healthy",
         }
     )
-    if len(healthy_docker_container_list) > 0 and len(docker_container_list) < 2:
+    if len(healthy_docker_container_list) > 0:
         found_nginx_container = healthy_docker_container_list[0]
         break
 
