@@ -222,7 +222,12 @@ if init:
     except interactive.IncorrectValueException as e:
         handle_exception(e.field, e.message)
         team_name = ""
-
+else:
+    team_name = interactive.InteractiveValue(
+            "team.init_name",
+            "Введите название команды",
+            "str",
+        ).input()
 if validate_only:
     if len(validation_errors) > 0:
         print("Ошибка в конфигурации")
@@ -283,17 +288,8 @@ if output.exit_code != 0:
         first_domino["go_database_controller_port"],
     )
 
-
-team_name = ""
-
 if init:
 
-    team_name = interactive.InteractiveValue(
-        "team.init_name",
-        "Введите название первой команды",
-        "str",
-        config=config,
-    ).from_config()
     output = found_pivot_container.exec_run(
         user="www-data",
         cmd=[
@@ -311,8 +307,6 @@ if init:
             )
         )
         exit(0)
-
-
 loader = Loader(
     "Готовлю место под команду...",
     "Подготовил место под команду",
@@ -337,24 +331,24 @@ else:
         "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно"
     )
 
-command = ["bash", "-c", "php src/Compass/Pivot/sh/php/domino/create_team.php"]
+loader = Loader(
+    "Создаю команду...",
+    "Команда создана",
+    "Не смог создать команду",
+).start()
 
-if team_name != "":
-    command = [
-        "bash",
-        "-c",
-        'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"'
-        % team_name,
-    ]
 output = found_pivot_container.exec_run(
     user="www-data",
-    cmd=command,
-    tty=True,
-    stdin=True
+    cmd=[
+    "bash",
+    "-c",
+    'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"'
+    % team_name
+    ]
 )
 
 if output.exit_code == 0:
-    print(scriptutils.success("Команда создана"))
+    loader.success()
 else:
     loader.error()
     scriptutils.error(
