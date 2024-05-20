@@ -13,11 +13,14 @@ sys.path.append(str(utils_path))
 
 from loader import Loader
 from utils import scriptutils
-from python_on_whales import docker, exceptions
+import docker
 from time import sleep
 
 scriptutils.assert_root()
 script_dir = str(Path(__file__).parent.resolve())
+
+
+client = docker.from_env()
 
 # папка, где находятся конфиги
 config_path = current_script_path.parent.parent / 'configs'
@@ -50,7 +53,7 @@ with open(team_config_path, "r") as file:
         print(scriptutils.success("Конфиг-файл team.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
-docker_monolith_network_list = docker.network.list(filters={"name": "production-compass-monolith_monolith-private"})
+docker_monolith_network_list = client.networks.list(names=["production-compass-monolith_monolith-private"])
 if len(docker_monolith_network_list) > 0:
     print(
         scriptutils.warning(
@@ -92,7 +95,7 @@ if len(docker_monolith_network_list) > 0:
     timeout = 1200
     n = 0
     while n <= timeout:
-        docker_network_list = docker.network.list(filters={"name": "production-compass-monolith_monolith-private"})
+        docker_network_list = client.networks.list(names=["production-compass-monolith_monolith-private"])
 
         if len(docker_network_list) < 1:
             break

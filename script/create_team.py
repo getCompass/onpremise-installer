@@ -72,7 +72,7 @@ for config_path in config_path_list:
 
 def get_company_ports():
     default_company_start_port = 33150
-    default_company_end_port = 33165
+    default_company_end_port = 33164
 
     try:
         start_company_port = interactive.InteractiveValue(
@@ -308,10 +308,11 @@ if init:
         )
         exit(0)
 loader = Loader(
-    "Готовлю место под команду...",
-    "Подготовил место под команду",
-    "Не смог подготовить место под команду",
+    "Создаю команду...",
+    "Команда создана",
+    "Не смог создать команду",
 ).start()
+
 output = found_pivot_container.exec_run(
     user="www-data",
     cmd=[
@@ -322,20 +323,7 @@ output = found_pivot_container.exec_run(
 )
 
 if output.exit_code == 0:
-    loader.success()
     sleep(1)
-else:
-    loader.error()
-    print(output.output.decode("utf-8"))
-    scriptutils.error(
-        "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно"
-    )
-
-loader = Loader(
-    "Создаю команду...",
-    "Команда создана",
-    "Не смог создать команду",
-).start()
 
 output = found_pivot_container.exec_run(
     user="www-data",

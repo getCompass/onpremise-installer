@@ -135,5 +135,5 @@ company.start_port: 35150
 # Порты заканчивая этим будут выделены под MySQL пространств в приложении.
 #
 # Тип данных: число
-# Пример: company.end_port: 35165
-company.end_port: 35165
+# Пример: company.end_port: 35164
+company.end_port: 35164
