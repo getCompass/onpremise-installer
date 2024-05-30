@@ -605,7 +605,7 @@ services:
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
-    image: "manticoresearch/manticore"
+    image: "{{.registry_service_path}}/manticore:6.3.0"
     environment:
       - EXTRA=0
       - MCL=1

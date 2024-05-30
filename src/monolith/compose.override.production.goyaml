@@ -101,7 +101,7 @@ services:
 
   # Coturn turn-сервер
   coturn:
-    image: "coturn/coturn"
+    image: "{{.registry_service_path}}/coturn:latest"
     networks:
       - "monolith-private"
     ports:
