@@ -232,6 +232,14 @@ configs:
     name: "{{.stack_name}}_turn_server_list-{{index .config_revisions "project" "domino" "turn_server_list" "php"}}"
     file: ".project.domino.turn_server_list.php"
 
+  # конфиги сайта
+  join-web-nginx-sites:
+    name: "{{.stack_name}}_join_web_nginx_sites-{{.config_revisions.project.join_web.nginx_sites.conf}}"
+    file: ".project.join_web.nginx_sites.conf"
+  join-web-nginx-conf:
+    name: "{{.stack_name}}_join_web_nginx_conf-{{.config_revisions.project.join_web.nginx.conf}}"
+    file: ".project.join_web.nginx.conf"
+
 # файл композиции монолита
 services:
 
@@ -474,8 +482,19 @@ services:
     image: "{{.registry_compass_path}}/onpremise_join_web:{{.projects.join_web.service.join_web.tag}}"
     env_file:
       - ".project.join_web.common.env"
+      - ".project.join_web.join_web.env"
     networks:
       - "monolith-private"
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "10s"
+      timeout: "1s"
+      retries: 30
+    configs:
+      - source: "join-web-nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "join-web-nginx-sites"
+        target: "/etc/nginx/sites-enabled/onpremise_join_web"
     <<: *default-deploy
 
   ## PIVOT PROJECT

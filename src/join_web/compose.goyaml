@@ -1,6 +1,15 @@
 version: '3.8'
 
 # файл композиции для лендинга на онпремайзе .../join/...
+# --- DEPLOY ---
+configs:
+
+  nginx-sites:
+    name: "{{.stack_name}}_nginx_sites-{{.config_revisions.project.nginx_sites.conf}}"
+    file: ".project.nginx_sites.conf"
+  nginx-conf:
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.project.nginx.conf}}"
+    file: ".project.nginx.conf"
 
 services:
 
@@ -11,8 +20,14 @@ services:
       - "{{.projects.join_web.service.join_web.external_port}}:80"
     env_file:
       - ".project.common.env"
+      - ".project.join_web.env"
     networks:
       - "join_web-private"
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "10s"
+      timeout: "1s"
+      retries: 30
     deploy:
       replicas: 1
       restart_policy:
@@ -25,7 +40,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-
+    configs:
+      - source: "nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "nginx-sites"
+        target: "/etc/nginx/sites-enabled/onpremise_join_web"
 networks:
   join_web-private:
     driver: "overlay"

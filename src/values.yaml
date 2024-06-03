@@ -86,7 +86,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v2.0.3"
+        tag: "v2.0.7"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -484,7 +484,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v1.9.0"
+        tag: "v2.0.7"
         external_port: 43100
 
   integration:
