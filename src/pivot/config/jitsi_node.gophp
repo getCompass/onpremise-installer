@@ -1,0 +1,17 @@
+<?php
+
+namespace Compass\Jitsi;
+
+$CONFIG["JITSI_NODE_LIST"] = [
+	[
+		"domain"                => "{{.projects.jitsi.domain}}",
+		"subdir"                => "{{.projects.jitsi.subdir}}",
+		"jwt_secret"            => "{{.projects.jitsi.jwt.app_secret}}",
+		"jwt_issuer"            => "{{.projects.jitsi.jwt.app_issuer}}",
+		"jwt_audience"          => "{{.projects.jitsi.jwt.app_audience}}",
+		"event_auth_token"      => "{{.projects.jitsi.secrets.event_plugin_token}}",
+		"rest_api_auth_token"   => "{{.projects.jitsi.secrets.rest_api_token}}",
+	],
+];
+
+return $CONFIG;

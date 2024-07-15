@@ -9,6 +9,7 @@ set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
 set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
 set $upstream_join_web join_web:80;
 set $upstream_premise_php php-monolith-{{$domino.label}}:9000;
+set $upstream_jitsi php-monolith-{{$domino.label}}:9000;
 
 # запрещаем доступ к скрытым файлам для пути pivot
 location ~ {{$pivot_locprefix}}/\. {
@@ -52,7 +53,7 @@ location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|premium|invitelink|
 }
 
 # api www
-location ~* ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+location ~* ^{{$pivot_locprefix}}/api/www/(invitelink|analytics)/([a-zA-Z0-9_\-]+)/?$ {
 
 	root /app/www/;
 	index index.php;
@@ -97,7 +98,7 @@ location ~* ^{{$pivot_locprefix}}/api/v1/(pivot)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\
 }
 
 # apiv2 3 level
-location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user|security)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
 
 	root /app/www/;
 	index index.php;
@@ -108,16 +109,6 @@ location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|jo
 	}
 
 	rewrite ^{{$pivot_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/v2/index.php?$args&api_method=$1.$2.$3? break;
-	fastcgi_pass $upstream_pivot_php;
-}
-
-# api www
-location ~* ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
-
-	root /app/www/;
-	index index.php;
-
-	rewrite ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/pivot/www/index.php?$args&api_method=$1.$2? break;
 	fastcgi_pass $upstream_pivot_php;
 }
 
@@ -383,6 +374,75 @@ location {{$pivot_locprefix}}/api/integration/files/ {
 
 	rewrite ^ /api/file_balancer/integration/ break;
 	fastcgi_pass $upstream_file_balancer;
+}
+
+#######################################################
+# php_jitsi
+#######################################################
+
+# apiv2 2 level
+location ~* ^{{$pivot_locprefix}}/api/v2/(jitsi)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/jitsi/v2/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_jitsi;
+}
+
+# apiv2 3 level
+location ~* ^{{$pivot_locprefix}}/api/v2/(jitsi)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$pivot_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/jitsi/v2/index.php?$args&api_method=$1.$2.$3? break;
+	fastcgi_pass $upstream_jitsi;
+}
+
+# api www
+location ~* ^{{$pivot_locprefix}}/api/www/(jitsi)/([a-zA-Z0-9_\-]+)/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/www/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/jitsi/www/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_jitsi;
+}
+
+# api www
+location ~* ^{{$pivot_locprefix}}/api/jitsi/conference/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^{{$pivot_locprefix}}/api/jitsi/conference/?$ /api/jitsi/conference/index.php break;
+	fastcgi_pass $upstream_jitsi;
+}
+
+# socket
+location ~* ^{{$pivot_locprefix}}/api/socket/jitsi/ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^ /api/jitsi/socket/ break;
+	fastcgi_pass $upstream_jitsi;
 }
 
 #######################################################

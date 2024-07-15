@@ -8,4 +8,4 @@ APNS_PUSH_VERSION={{.projects.pivot.service.go_pusher.apns_push_version}}
 
 PUSHER_MAX_DB_CONNECTIONS=100
 
-PUSH_SENDER_URL="https://push-onpremise.getcompass.com/"
+PUSH_SENDER_URL="https://push-onpremise.getcompass.ru/"

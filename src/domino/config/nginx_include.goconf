@@ -329,13 +329,3 @@ location {{$domino_locprefix}}/api/socket/speaker/ {
 	rewrite ^ /api/speaker/socket/ break;
 	fastcgi_pass $upstream_speaker;
 }
-
-# janus
-location ~* ^{{$space_locprefix}}/janus/?$ {
-
-	root /app/www/;
-	index index.php;
-
-	rewrite ^{{$space_locprefix}}/janus/?$ /api/speaker/janus/index.php break;
-	fastcgi_pass $upstream_speaker;
-}

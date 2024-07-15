@@ -88,7 +88,7 @@ if not values_file_path.exists() and (not validate_only):
             "Не найден файл со сгенерированными значениями. Убедитесь, что приложение развернуто"
         )
     )
-    
+
 current_values = {}
 if not validate_only:
     with values_file_path.open("r") as values_file:
@@ -107,7 +107,7 @@ def handle_exception(field, message: str):
     if validate_only:
         validation_errors.append(message)
         return
-    
+
     print(message)
     exit(1)
 
@@ -204,9 +204,23 @@ except IncorrectValueException as e:
     handle_exception(e.field, e.message)
     password = ""
 
-if (len(phone_number) == 0 and len(mail) == 0):
+# получаем значение логина для аутентификации через SSO
+try:
+    sso_login = InteractiveValue(
+        "root_user.sso_login",
+        "Введите логин используемый для аутентификации через SSO (почтовый адрес или номер телефона в международном формате)",
+        "str",
+        config=config,
+        is_required=("sso" in available_method_list), # если среди доступных методов указан "sso"
+        default_value=""
+    ).from_config()
+except IncorrectValueException as e:
+    handle_exception(e.field, e.message)
+    sso_login = ""
+
+if (len(phone_number) == 0 and len(mail) == 0 and len(sso_login) == 0):
    scriptutils.die(
-       "Необходимо заполнить в конфигурации номер телефона или почту пользователя"
+       "Необходимо заполнить в конфигурации номер телефона или почту, или логин от sso пользователя"
    )
 
 if validate_only:
@@ -221,7 +235,7 @@ if validate_only:
 client = docker.from_env()
 
 # получаем контейнер monolith
-timeout = 10
+timeout = 30
 n = 0
 while n <= timeout:
 
@@ -247,14 +261,14 @@ output = found_pivot_container.exec_run(
     cmd=[
         "bash",
         "-c",
-        "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry=0 --is-root --full-name=\"%s\" --phone-number=\"%s\" --mail=\"%s\" --password=\"%s\""
-        % (full_name, phone_number, mail, password),
+        "php src/Compass/Pivot/sh/php/domino/create_root_user.php --dry=0 --is-root --full-name=\"%s\" --phone-number=\"%s\" --mail=\"%s\" --password=\"%s\" --sso_login=\"%s\""
+        % (full_name, phone_number, mail, password, sso_login),
     ],
 )
 
 if output.exit_code == 0:
     print(output.output.decode("utf-8"))
-    print(scriptutils.warning("Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s." % (domain)))
+    print(scriptutils.warning("Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s" % (domain)))
 else:
     print(output.output.decode("utf-8"))
     scriptutils.error(

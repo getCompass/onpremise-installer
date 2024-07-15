@@ -55,8 +55,9 @@ deploy_project_list = [
     "announcement",
     "federation",
     "join_web",
-    "janus",
     "integration",
+    "jitsi_web",
+    "jitsi",
 ]
 
 deploy_saas_project_list = [
@@ -76,11 +77,11 @@ project_ports = {
     "announcement": 31500,
     "federation": 32400,
     "join_web": 31900,
-    "janus": 31800,
     "monolith": 32100,
     "intercom": 32200,
     "test": 32300,
     "integration": 32500,
+    "jitsi_web": 32600,
 }
 
 domino_ports = {
@@ -88,16 +89,11 @@ domino_ports = {
     "service.manticore.external_port": 31102,
 }
 
-janus_ports = {
-    "service.janus.port": 31801,
-    "service.janus.admin_port": 31802,
-    "service.janus.rtp_port_from": 33000,
-    "service.janus.rtp_port_to": 33999,
-    "service.janus.port": 31801,
-    "service.coturn.external_port": 3478,
-    "service.coturn.external_tls_port": 5349,
-    "service.coturn.exchange_port_from": 34000,
-    "service.coturn.exchange_port_to": 34999,
+jitsi_ports = {
+    "service.web.https_port": 35000,
+    "service.jvb.media_port": 10000,
+    "service.jicofo.port": 35001,
+    "service.prosody.serve_port": 35002,
 }
 
 # ---АГРУМЕНТЫ СКРИПТА---#
@@ -397,10 +393,13 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
 
     return str(path.resolve())
 
-
 def convert_idn(value: str):
     return value.strip().encode("idna").decode()
 
+def onpremise_domain(
+        project_name: str, label: str, project_values: dict, global_values: dict
+):
+    return global_values.get("domain")
 
 ### END POST FUNCTIONS ###
 ### SKIP FUNCTIONS ###
@@ -559,7 +558,7 @@ common_project_fields = [
         "args": ["_global.monolith_nginx_port"],
         "type": "int",
         "ask": False,
-        "except": ["join_web", "janus"],
+        "except": ["join_web", "jitsi", "jitsi_web"],
     },
     {
         "name": "label",
@@ -597,6 +596,17 @@ common_specific_project_fields = {
             "type": "int",
             "ask": True,
         }
+    ],
+    "jitsi_web": [
+        {
+            "name": "service.jitsi_web.external_port",
+            "comment": "Порт для сайта",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True,
+        }
     ]
 }
 
@@ -609,7 +619,7 @@ required_project_fields = [
         "args": ["_global.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "janus"],
+        "except": ["join_web", "jitsi", "jitsi_web"],
     },
     {
         "name": "service.mysql.password",
@@ -619,7 +629,7 @@ required_project_fields = [
         "args": ["_project.service.mysql.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "janus"],
+        "except": ["join_web", "jitsi", "jitsi_web"],
     },
     {
         "name": "service.mysql.user",
@@ -627,7 +637,7 @@ required_project_fields = [
         "default_value": "root",
         "type": "str",
         "ask": False,
-        "except": ["join_web", "janus"],
+        "except": ["join_web", "jitsi", "jitsi_web"],
     },
     {
         "name": "network.subnet",
@@ -802,111 +812,137 @@ required_specific_project_fields = {
             "post_args": ["www-data", 0o777],
         },
     ],
-    "janus": [
+    "jitsi": [
         {
-            "name": "service.janus.api_secret",
-            "comment": "Введите пароль для доступа к API звонков",
+            "name": "domain",
+            "comment": "Домен, на котором будет разворачиваться jitsi нода",
             "default_value": None,
-            "value_function": random_string,
-            "args": [32],
-            "type": "password",
-            "is_protected": True,
-            "ask": False,
-        },
-        {
-            "name": "service.nginx.external_https_port",
-            "comment": "Внешний порт для nginx",
-            "default_value": None,
-            "value_function": project_port,
-            "args": [],
-            "type": "int",
-            "ask": True
-        },
-        {
-            "name": "service.janus.admin_secret",
-            "comment": "Введите пароль для доступа к админке звонков",
-            "default_value": None,
-            "value_function": random_string,
-            "args": [32],
-            "type": "password",
-            "is_protected": True,
-            "ask": False,
-        },
-        {
-            "name": "service.janus.user_token_secret",
-            "comment": "Введите токен доступа пользователя",
-            "default_value": None,
-            "value_function": random_string,
-            "args": [32],
-            "type": "password",
-            "is_protected": True,
-            "ask": False,
-        },
-        {
-            "name": "service.janus.port",
-            "comment": "Укажите внешний порт для доступа к серверу звонков",
-            "default_value": janus_ports["service.janus.port"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.janus.admin_port",
-            "comment": "Укажите внешний порт для доступа к админке звонков",
-            "default_value": janus_ports["service.janus.admin_port"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.janus.rtp_port_from",
-            "comment": "Укажите начальный порт для приема RTP соединений (звонков)",
-            "default_value": janus_ports["service.janus.rtp_port_from"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.janus.rtp_port_to",
-            "comment": "Укажите конечный порт для приема RTP соединений (звонков)",
-            "default_value": janus_ports["service.janus.rtp_port_to"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.coturn.external_port",
-            "comment": "Укажите внешний порт для подключения к TURN серверу",
-            "default_value": janus_ports["service.coturn.external_port"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.coturn.external_tls_port",
-            "comment": "Укажите внешний порт для защищенного подключения к TURN серверу",
-            "default_value": janus_ports["service.coturn.external_tls_port"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.coturn.exchange_port_from",
-            "comment": "Укажите начальный порт для клиентских соединений к TURN серверу",
-            "default_value": janus_ports["service.coturn.exchange_port_from"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.coturn.exchange_port_to",
-            "comment": "Укажите конечный порт для клиентских соединений к TURN серверу",
-            "default_value": janus_ports["service.coturn.exchange_port_to"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.coturn.secret_key",
-            "comment": "Укажите секретный ключ для TURN сервера",
-            "default_value": None,
-            "value_function": random_string,
-            "args": [32],
             "type": "str",
             "ask": False,
-        }
+            "validation": "idna",
+            "value_function": onpremise_domain,
+            "args": [],
+        },
+        {
+            "name": "jwt.app_secret",
+            "comment": "Введите секретный ключ для подписи JWT токена",
+            "default_value": None,
+            "value_function": random_string,
+            "args": [32],
+            "type": "password",
+            "is_protected": True,
+            "ask": False,
+        },
+        {
+            "name": "secrets.jicofo_auth_password",
+            "comment": "Введите пароль для авторизации компонента jicofo",
+            "default_value": None,
+            "value_function": random_string,
+            "args": [32],
+            "type": "password",
+            "is_protected": True,
+            "ask": False,
+        },
+        {
+            "name": "secrets.jvb_auth_password",
+            "comment": "Введите пароль для авторизации компонента jvb",
+            "default_value": None,
+            "value_function": random_string,
+            "args": [32],
+            "type": "password",
+            "is_protected": True,
+            "ask": False,
+        },
+        {
+            "name": "secrets.event_plugin_token",
+            "comment": "Введите секретный ключ для подписи событий отправляемых от Jitsi ноды",
+            "default_value": None,
+            "value_function": random_string,
+            "args": [32],
+            "type": "password",
+            "is_protected": True,
+            "ask": False,
+        },
+        {
+            "name": "secrets.rest_api_token",
+            "comment": "Введите токен для запросов к rest api Jitsi ноды",
+            "default_value": None,
+            "value_function": random_string,
+            "args": [32],
+            "type": "password",
+            "is_protected": True,
+            "ask": False,
+        },
+        {
+            "name": "service.web.https_port",
+            "comment": "Укажите порт для https запросов к веб-интерфейсу jitsi",
+            "default_value": jitsi_ports["service.web.https_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.jvb.media_port",
+            "comment": "Укажите порт, на который участники конференции будут отправлять медиа-трафик",
+            "default_value": jitsi_ports["service.jvb.media_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.jicofo.port",
+            "comment": "Укажите порт для компонента jicofo",
+            "default_value": jitsi_ports["service.jicofo.port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.prosody.serve_port",
+            "comment": "Укажите порт для компонента prosody",
+            "default_value": jitsi_ports["service.prosody.serve_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.host",
+            "comment": "Укажите адрес TURN сервера, который будет использоваться для соединения в ВКС",
+            "default_value": None,
+            "type": "str",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.port",
+            "comment": "Укажите порт TURN сервера, который принимает входящие UDP/TCP соединения клиентов",
+            "default_value": None,
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.tls_port",
+            "comment": "Укажите порт TURN сервера, который принимает входящие соединения клиентов, использующие протокол TLS",
+            "default_value": None,
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.secret",
+            "comment": "Укажите секретный ключ TURN сервера",
+            "default_value": None,
+            "type": "str",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.use_protocols",
+            "comment": "Укажите список используемых протоколов для соединения клиентов с TURN сервером",
+            "default_value": None,
+            "type": "arr_join",
+            "ask": True,
+        },
+        {
+            "name": "service.turn.force_relay",
+            "comment": "Укажите использовать ли принудительно TURN сервер для соединения в видеоконференция",
+            "default_value": None,
+            "type": "bool",
+            "ask": True,
+        },
     ],
     "integration": [
         {
@@ -1073,10 +1109,6 @@ def start():
         new_values = init_project(
             new_values, values_file_path, environment, du, project_name_override
         )
-
-        # для домино генерируем janus
-        if (du == "domino") and ("janus" not in deploy_units):
-            new_values = init_project(new_values, values_file_path, environment, "janus")
 
     write_to_file(new_values)
 

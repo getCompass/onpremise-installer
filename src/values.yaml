@@ -73,9 +73,10 @@ projects:
       - "file"
       - "domino"
       - "join_web"
-      - "janus"
       - "federation"
       - "integration"
+      - "jitsi"
+      - "jitsi_web"
     service:
       mysql:
         root_password: "4321"
@@ -86,7 +87,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v2.0.7"
+        tag: "v3.0.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -100,15 +101,15 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v2.0.0"
+        tag: "v3.0.0"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
-        tag: "v1.6.0"
+        tag: "v3.0.0"
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v1.6.0"
+        tag: "v3.0.0"
 
   pivot:
     host: "0.0.0.0"
@@ -139,7 +140,7 @@ projects:
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
       go_pusher:
-        tag: "v2.0.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_pusher_queue"
         rabbit_exchange: "go_pusher_exchange"
         is_push_mock_enable: 0
@@ -149,11 +150,11 @@ projects:
         huawei_voip_push_version: 1
         apns_push_version: 2
       go_sender_balancer:
-        tag: "v1.6.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v1.6.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -161,7 +162,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v2.0.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -198,11 +199,11 @@ projects:
       php_announcement:
         tag: "v1.5.0"
       go_sender_balancer:
-        tag: "v1.6.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v1.6.0"
+        tag: "v3.0.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -323,7 +324,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v2.0.3"
+          tag: "v3.0.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -333,7 +334,7 @@ projects:
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v1.5.0"
+          tag: "v3.0.0"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
@@ -341,7 +342,7 @@ projects:
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v2.0.0"
+          tag: "v3.0.0"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -453,30 +454,30 @@ projects:
   janus:
     host: "0.0.0.0"
     label: "janus"
-    domain: "janus.example.com"
+    domain: ""
     subdomain: ""
     url_path: "janus"
     network:
-      subnet: "172.20.18.0/24"
+      subnet: ""
     service:
       nginx:
-        external_https_port: 43000
-        external_http_port: 43008
+        external_https_port: 0
+        external_http_port: 0
       janus:
-        tag: "1.0.0"
-        api_secret: "tmp"
-        admin_secret: "admin_secret"
-        user_token_secret: "user_token"
-        is_enabled: 1
-        available_for_new: 1
-        port: 43001
-        admin_port: 43002
-        rtp_port_from: 43010
-        rtp_port_to: 43019
-        stun_server_domain: stun.l.google.com
-        stun_port: 19302
+        tag: ""
+        api_secret: ""
+        admin_secret: ""
+        user_token_secret: ""
+        is_enabled: 0
+        available_for_new: 0
+        port: 0
+        admin_port: 0
+        rtp_port_from: 0
+        rtp_port_to: 0
+        stun_server_domain: ""
+        stun_port: 0
       php_janus:
-        tag: "v1.5.0"
+        tag: ""
 
   join_web:
     label: "join_web"
@@ -484,7 +485,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v2.0.7"
+        tag: "v3.0.0"
         external_port: 43100
 
   integration:
@@ -504,3 +505,49 @@ projects:
         external_port: 5000
       nginx:
         external_https_port: 20107
+
+  jitsi:
+    host: "0.0.0.0"
+    label: "jitsi"
+    domain: "example.com"
+    static_updated_at: 0
+    subdomain: ""
+    subdir: "/-/c"
+    tag: "v3.0.0"
+    jwt:
+      app_id: "compass"
+      app_secret: ""
+      app_issuer: "compass_server"
+      app_audience: "compass_client"
+    secrets:
+      jicofo_auth_password: ""
+      jvb_auth_password: ""
+      event_plugin_token: ""
+      rest_api_token: ""
+    network:
+      subnet: "172.20.10.0/24"
+    service:
+      web:
+        https_port: 20109
+      jvb:
+        media_port: 10000
+      jicofo:
+        port: 20111
+      prosody:
+        serve_port: 20112
+      turn:
+        host: ""
+        port: 3478
+        tls_port: 5349
+        secret: ""
+        use_protocols: ["tcp", "udp"]
+        force_relay: true
+
+  jitsi_web:
+    label: "jitsi_web"
+    network:
+      subnet: "172.20.11.0/24"
+    service:
+      jitsi_web:
+        tag: "v3.0.0"
+        external_port: 20113

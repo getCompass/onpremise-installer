@@ -2,18 +2,6 @@
 
 namespace Compass\Speaker;
 
-$CONFIG["TURN_SERVER_LIST"] = [
-	[
-		"turn_id"         => 1,
-		"host"            => "{{.projects.janus.host}}",
-		"port"            => {{.projects.janus.service.coturn.external_port}},
-		"tls_port"        => {{.projects.janus.service.coturn.external_tls_port}},
-		"is_protocol_tcp" => 1,
-		"is_protocol_udp" => 1,
-		"is_protocol_tls" => 1,
-		"secret_key"      => "{{.projects.janus.service.coturn.secret_key}}",
-		"is_enabled"      => 1
-	],
-];
+$CONFIG["TURN_SERVER_LIST"] = [];
 
 return $CONFIG;

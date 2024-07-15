@@ -40,6 +40,13 @@ root_mount_path:
 # Пример: join_web.service.join_web.external_port: 31900
 join_web.service.join_web.external_port: 31900
 
+# Внешний порт для контейнера с сайтом вкс страницы, перед присоединением к конференции.
+# Внутренний трафик сайта будет пересылаться на этот порт.
+#
+# Тип данных: число
+# Пример: jitsi_web.service.jitsi_web.external_port: 31901
+jitsi_web.service.jitsi_web.external_port: 31901
+
 # Внешний порт для контейнера с nginx. Внутренний трафик приложения
 # будет пересылаться на этот порт.
 #
@@ -61,68 +68,77 @@ domino.go_database_controller_port: 31101
 # Пример: domino.service.manticore.external_port: 31102
 domino.service.manticore.external_port: 31102
 
-# Внешний порт для доступа к сервису звонков.
-# Запросы к janus будут пересылаться на этот порт.
+# Порт для https запросов к веб-интерфейсу Jitsi.
+# Запросы к веб-интерфейсу будут пересылаться на этот порт.
 #
 # Тип данных: число
-# Пример: janus.service.janus.port: 31801
-janus.service.janus.port: 31801
+# Пример: jitsi.service.web.https_port: 35000
+jitsi.service.web.https_port: 35000
 
-# Внешний порт для доступа к админ-панели звонков.
-# Запросы к админ-панели звонков будут пересылаться на этот порт.
+# Порт для передачи мультимедиа-данных конференции в приложении.
+# Порт будет выделен под RTP соединения участников в конференции.
 #
 # Тип данных: число
-# Пример: janus.service.janus.admin_port: 31802
-janus.service.janus.admin_port: 31802
+# Пример: jitsi.service.jvb.media_port: 10000
+jitsi.service.jvb.media_port: 10000
 
-# Начальный порт для передачи мультимедиа-данных звонков в приложении.
-# Порты начиная с этого будут выделены под RTP соединения звонков.
+# Порт для компонента jicofo, модуля для ВКС
+# Запросы к компоненту будут отправлять на этот порт.
 #
 # Тип данных: число
-# Пример: janus.service.janus.rtp_port_from: 33000
-janus.service.janus.rtp_port_from: 33000
+# Пример: jitsi.service.jicofo.port: 35001
+jitsi.service.jicofo.port: 35001
 
-# Конечный порт для передачи мультимедиа-данных звонков в приложении.
-# Порты заканчивая этим будут выделены под RTP соединения звонков.
+# Порт для компонента prosody, модуля для ВКС
+# Запросы к компоненту будут отправлять на этот порт.
 #
 # Тип данных: число
-# Пример: janus.service.janus.rtp_port_to: 33999
-janus.service.janus.rtp_port_to: 33999
+# Пример: jitsi.service.prosody.port: 35002
+jitsi.service.prosody.serve_port: 35002
 
-# Внешний порт для подключения к TURN серверу звонков.
-# Внешние запросы к TURN серверу звонков будут пересылаться на этот порт.
+# Адрес TURN сервера, который будет использоваться для соединения в ВКС
+# По умолчанию указан публичный TURN сервер Compass
 #
-# Тип данных: число
-# Пример: janus.service.coturn.external_port: 3478
-janus.service.coturn.external_port: 3478
+# Тип данных: строка
+# Пример: jitsi.service.turn.host: "onpremise-turn.getcompass.ru"
+jitsi.service.turn.host: "onpremise-turn.getcompass.ru"
 
-# Внешний порт для защищенного подключения к TURN серверу звонков.
-# Внешние запросы к TURN серверу звонков будут пересылаться на этот порт.
+# Порт TURN сервера, который принимает входящие UDP/TCP соединения клиентов
+# По умолчанию указан порт от публичного TURN сервера Compass
 #
 # Тип данных: число
-# Пример: janus.service.coturn.external_tls_port: 5349
-janus.service.coturn.external_tls_port: 5349
+# Пример: jitsi.service.turn.port: 80
+jitsi.service.turn.port: 80
 
-# Начальный порт для клиентских соединений звонков в приложении.
-# Порты начиная с этого будут выделены под клиентские соединения к TURN серверу звонков.
+# Порт TURN сервера, который принимает входящие соединения клиентов, использующие протокол TLS
+# По умолчанию указан порт от публичного TURN сервера Compass
 #
 # Тип данных: число
-# Пример: janus.service.coturn.exchange_port_from: 34000
-janus.service.coturn.exchange_port_from: 34000
+# Пример: jitsi.service.turn.tls_port: 443
+jitsi.service.turn.tls_port: 443
 
-# Конечный порт для клиентских соединений звонков в приложении.
-# Порты заканчивая этим будут выделены под клиентские соединения к TURN серверу звонков.
+# Секретный ключ TURN сервера
+# По умолчанию указан секретный ключ публичного TURN сервера Compass
 #
-# Тип данных: число
-# Пример: janus.service.coturn.exchange_port_to: 34999
-janus.service.coturn.exchange_port_to: 34999
+# Тип данных: строка
+# Пример: jitsi.service.turn.secret: "secret-key"
+jitsi.service.turn.secret: "XKwpb9C2bMkhNCsWxxg2CxzGDrl3wZG6"
 
-# Внешний порт для контейнера с nginx звонков. Внутренний трафик звонков
-# будет пересылаться на этот порт.
+# Список используемых протоколов для соединения клиентов с TURN сервером
+# По умолчанию используется только UDP протокол для повышения качества
+# видеоконференций в нестабильных сетях
 #
-# Тип данных: число
-# Пример: janus.service.nginx.external_https_port: 31800
-janus.service.nginx.external_https_port: 31800
+# Тип данных: массив строк, пример:
+# ["udp"] – используется только UDP протокол
+# ["tcp"] – используется только TCP протокол
+# ["udp", "tcp"] – используются оба протокола
+jitsi.service.turn.use_protocols: ["udp"]
+
+# Использовать ли принудительно TURN сервер для соединения в видеоконференция
+# По умолчанию флаг включен для повышения гарантии установления соединения
+#
+# Тип данных: булево значение, true\false
+jitsi.service.turn.force_relay: true
 
 # Начальный порт для MySQL созданных пространств в приложении.
 # Порты начиная с этого будут выделены под MySQL пространств в приложении.

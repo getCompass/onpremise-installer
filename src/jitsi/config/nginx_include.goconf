@@ -1,0 +1,66 @@
+set $upstream_jitsi_landing_react jitsi_web:80;
+set $upstream_jitsi_web web-{{.projects.jitsi.label}}:443;
+set $upstream_jitsi_prosody prosody-{{.projects.jitsi.label}}:5280;
+
+location /http-bind {
+
+	proxy_pass https://$upstream_jitsi_web;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "upgrade";
+}
+
+location /api/room {
+
+	proxy_set_header Host "muc.meet.jitsi";
+	proxy_pass  http://$upstream_jitsi_prosody;
+}
+
+# conference assets
+location ~* ^/jitsiweb/assets/ {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_set_header X-Request-Id      $request_id;
+
+	proxy_pass http://$upstream_jitsi_landing_react;
+}
+
+# talk
+location ~* ^/(c)/[a-zA-Z0-9_\-]+ {
+
+	proxy_http_version  1.1;
+	proxy_cache_bypass  $http_upgrade;
+
+	proxy_set_header Upgrade           $http_upgrade;
+	proxy_set_header Connection        "upgrade";
+	proxy_set_header Host              $host;
+	proxy_set_header X-Real-IP         $remote_addr;
+	proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host  $host;
+	proxy_set_header X-Forwarded-Port  $server_port;
+	proxy_set_header X-Request-Id      $request_id;
+
+	proxy_pass http://$upstream_jitsi_landing_react;
+}
+
+# location для статики jitsi web компонента
+location ~ ^/(libs|css|static|images|fonts|lang|sounds|connection_optimization|.well-known)/(.*)$ {
+
+	proxy_pass https://$upstream_jitsi_web;
+}
+
+# location для jitsi web компонента
+location {{.projects.jitsi.subdir}} {
+
+        proxy_pass https://$upstream_jitsi_web;
+}

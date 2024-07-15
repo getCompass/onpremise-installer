@@ -20,7 +20,7 @@ x-default-deploy: &default-deploy
       window: "10s"
     update_config:
       order: "start-first"
-      failure_action: "rollback"
+      failure_action: "continue"
       delay: "10s"
     rollback_config:
       parallelism: 0
@@ -34,6 +34,9 @@ x-log-rule-default: &log-rule-default
     options:
       max-size: "15m"
       max-file: "3"
+
+volumes:
+  jitsi-custom-web-{{.projects.jitsi.tag}}:
 
 services:
 
@@ -51,93 +54,124 @@ services:
         DOMINO_TIER_2 => DOMINO_TIER_2_MIN_ACTIVITY_USER_COUNT,
         DOMINO_TIER_3 => DOMINO_TIER_3_MIN_ACTIVITY_USER_COUNT
 
-  ## JANUS PROJECT
-  ## Nginx
-  nginx-{{.projects.janus.label}}:
-    image: "{{.registry_service_path}}/nginx:master"
-    networks:
-      - "monolith-private"
-    ports:
-      - "{{.projects.janus.service.nginx.external_https_port}}:80"
-    <<: *default-deploy
-    <<: *log-rule-default
-    configs:
-      - source: "nginx-janus-sites"
-        target: "/etc/nginx/sites-enabled/default"
-      - source: "nginx-janus-conf"
-        target: "/etc/nginx/nginx.conf"
-      - source: "nginx-include-janus"
-        target: "/etc/nginx/includes/janus.nginx"
+  # кастомизация jitsi
+  jitsi-custom-{{.projects.jitsi.label}}:
+    image: "{{.registry_compass_path}}/jitsi_custom:{{.projects.jitsi.tag}}"
     volumes:
-      - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
+     - "jitsi-custom-web-{{.projects.jitsi.tag}}:/jitsi-meet-dist/jitsi-meet/"
+    deploy:
+     replicas: 1
+     restart_policy:
+       condition: "none"
 
-  ## Janus
-  janus-{{.projects.janus.label}}:
-    image: "{{.registry_service_path}}/janus:{{.projects.janus.service.janus.tag}}"
-    depends_on:
-      - "nginx-{{.projects.janus.label}}"
-    networks:
-      - "monolith-private"
+  # Frontend
+  web-{{.projects.jitsi.label}}:
+    image: "{{.registry_service_path}}/web:web-1.0.7968-1"
     ports:
-      - "{{.projects.janus.service.janus.port}}:8088"
-      - "{{.projects.janus.service.janus.admin_port}}:7088"
-      {{range $port := loop .projects.janus.service.janus.rtp_port_from .projects.janus.service.janus.rtp_port_to -}}
-      - target: {{$port}}
-        published: {{$port}}
-        mode: "host"
-        protocol: "udp"
-      {{end}}
-    <<: *default-deploy
-    <<: *log-rule-default
-    configs:
-      - source: "janus"
-        target: "/etc/janus/janus.jcfg"
-      - source: "janus-transport-http"
-        target: "/etc/janus/janus.transport.http.jcfg"
-      - source: "janus-eventhandler-sampleevh"
-        target: "/etc/janus/janus.eventhandler.sampleevh.jcfg"
-      - source: "janus-plugin-videoroom"
-        target: "/etc/janus/janus.plugin.videoroom.jcfg"
-
-  # Coturn turn-сервер
-  coturn:
-    image: "{{.registry_service_path}}/coturn:latest"
-    networks:
-      - "monolith-private"
-    ports:
-      - "{{.projects.janus.service.coturn.external_port}}:3478"
-      - "{{.projects.janus.service.coturn.external_port}}:3478/udp"
-      - "{{.projects.janus.service.coturn.external_tls_port}}:5349"
-      - "{{.projects.janus.service.coturn.external_tls_port}}:5349/udp"
-      {{range $port := loop .projects.janus.service.coturn.exchange_port_from .projects.janus.service.coturn.exchange_port_to -}}
-      - target: {{$port}}
-        published: {{$port}}
-        mode: "host"
-        protocol: "udp"
-      {{end}}
-    volumes:
-      - "{{.root_mount_path}}/nginx/ssl:/etc/turnserver/cert"
-    configs:
-      - source: "coturn"
-        target: "/etc/turnserver/turnserver.conf"
-
-  ## php_janus
-  php-janus-{{.projects.janus.label}}:
-    image: "{{.registry_compass_path}}/php_janus:{{.projects.janus.service.php_janus.tag}}"
-    depends_on:
-      - "janus-{{.projects.janus.label}}"
-      - "nginx-{{.projects.janus.label}}"
-    networks:
-      - "monolith-private"
-    volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - '{{.projects.jitsi.service.web.https_port}}:443'
     env_file:
-      - ".global.common.env"
-      - ".project.janus.php_janus.env"
-    <<: *default-deploy
-    <<: *log-rule-default
+      - ".project.jitsi.common.env"
+    configs:
+      - source: "web-config-js"
+        target: "/config/config.js"
+      - source: "web-interface-config-js"
+        target: "/config/interface_config.js"
+      - source: "web-nginx-meet-conf"
+        target: "/config/nginx/meet.conf"
+    volumes:
+      - type: "volume"
+        source: "jitsi-custom-web-{{.projects.jitsi.tag}}"
+        target: "/usr/share/jitsi-meet-custom"
+        read_only: true
+      - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.key:/config/keys/cert.key"
+      - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.crt:/config/keys/cert.crt"
+    networks:
+      - "monolith-private"
+    depends_on:
+      - jvb-{{.projects.jitsi.label}}
+      - jitsi-custom-{{.projects.jitsi.label}}
+
+  # Video bridge
+  jvb-{{.projects.jitsi.label}}:
+    image: "{{.registry_service_path}}/jvb:stable-9364-1"
+    ports:
+      - target: {{.projects.jitsi.service.jvb.media_port}}
+        published: {{.projects.jitsi.service.jvb.media_port}}
+        mode: "host"
+        protocol: "udp"
+    env_file:
+      - ".project.jitsi.common.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}
+    networks:
+      monolith-private:
+
+  # XMPP server
+  prosody-{{.projects.jitsi.label}}:
+    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.tag}}"
+    expose:
+      - '5222'
+      - '5269'
+      - '5347'
+      - '5280'
+    ports:
+      - '{{.projects.jitsi.service.prosody.serve_port}}:5280'
+    configs:
+      - source: "prosody-main-cfg"
+        target: "/config/conf.d/jitsi-meet.cfg.lua"
+      - source: "prosody-esync-plugin-cfg"
+        target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
+      - source: "prosody-rest-api-plugin-cfg"
+        target: "/config/conf.d/rest-api.jitsi-meet.cfg.lua"
+      - source: "prosody-persistent-lobby-cfg"
+        target: "/config/conf.d/persistent-lobby.jitsi-meet.cfg.lua"
+    env_file:
+      - ".project.jitsi.common.env"
+    networks:
+      monolith-private:
+        aliases:
+           - xmpp.meet.jitsi
+
+  # Focus component
+  jicofo-{{.projects.jitsi.label}}:
+    image: "{{.registry_service_path}}/jicofo:stable-9364-1"
+    ports:
+      - '{{.projects.jitsi.service.jicofo.port}}:8888'
+    env_file:
+      - ".project.jitsi.common.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}
+    networks:
+        monolith-private:
+
+  # jitsi_web
+  jitsi_web:
+    image: "{{.registry_compass_path}}/jitsi_web:{{.projects.jitsi_web.service.jitsi_web.tag}}"
+    ports:
+      - "{{.projects.jitsi_web.service.jitsi_web.external_port}}:80"
+    env_file:
+      - ".project.jitsi_web.common.env"
+    networks:
+      - "monolith-private"
     healthcheck:
-      test: "nc -z 127.0.0.1 9000"
+      test: "nc -z 127.0.0.1 80"
       interval: "10s"
-      timeout: "120s"
-      retries: 10
+      timeout: "1s"
+      retries: 30
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    configs:
+      - source: "jitsi-web-nginx-conf"
+        target: "/etc/nginx/nginx.conf"
+      - source: "jitsi-web-nginx-sites"
+        target: "/etc/nginx/sites-enabled/jitsi_web"

@@ -1,0 +1,3 @@
+Component "muc.meet.jitsi" "muc"
+    main_muc = "muc.meet.jitsi"
+    lobby_muc = "muc.meet.jitsi"

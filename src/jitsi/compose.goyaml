@@ -1,0 +1,133 @@
+version: '3.8'
+
+# файл композиции для jitsi
+
+configs:
+
+  # конфиг плагина отправки событий с jitsi ноды на backend
+  prosody-esync-plugin-cfg:
+    name: "{{.stack_name}}_prosody-esync-plugin-{{.config_revisions.project.prosody_esync_plugin.cfg.lua}}"
+    file: ".project.prosody_esync_plugin.cfg.lua"
+
+  # конфиг плагина rest api
+  prosody-rest-api-plugin-cfg:
+    name: "{{.stack_name}}_prosody-rest-api-plugin-{{.config_revisions.project.prosody_rest_api_plugin.cfg.lua}}"
+    file: ".project.prosody_rest_api_plugin.cfg.lua"
+
+  # конфиг плагина persistent lobby
+  prosody-persistent-lobby-cfg:
+    name: "{{.stack_name}}_prosody-persistent-lobby-{{.config_revisions.project.prosody_persistent_lobby.cfg.lua}}"
+    file: ".project.prosody_persistent_lobby.cfg.lua"
+
+  # config.js с web контейнера
+  web-config-js:
+    name: "{{.stack_name}}_web-config-js-{{.config_revisions.project.web_config.js}}"
+    file: ".project.web_config.js"
+  # interface_config.js с web контейнера
+  web-interface-config-js:
+    name: "{{.stack_name}}_web-interface-config-js-{{.config_revisions.project.web_interface_config.js}}"
+    file: ".project.web_interface_config.js"
+
+services:
+
+  # кастомизация jitsi
+  jitsi-custom-{{.projects.jitsi.label}}:
+    image: "{{.registry_compass_path}}/jitsi_custom:{{.projects.jitsi.tag}}"
+    volumes:
+     - "jitsi-custom-web-{{.projects.jitsi.tag}}:/jitsi-meet-dist/jitsi-meet/"
+     - "jitsi-custom-prosody-{{.projects.jitsi.tag}}:/prosody/prosody-plugins-custom/"
+    deploy:
+     replicas: 1
+     restart_policy:
+       condition: "none"
+
+  # Frontend
+  web-{{.projects.jitsi.label}}:
+    image: jitsi/web:web-1.0.7968-1
+    ports:
+      - '{{.projects.jitsi.service.web.https_port}}:443'
+    env_file:
+      - ".project.common.env"
+    configs:
+      - source: "web-config-js"
+        target: "/config/config.js"
+      - source: "web-interface-config-js"
+        target: "/config/interface_config.js"
+    volumes:
+      - type: "volume"
+        source: "jitsi-custom-web-{{.projects.jitsi.tag}}"
+        target: "/usr/share/jitsi-meet"
+        read_only: false
+      - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.key:/config/keys/cert.key"
+      - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.crt:/config/keys/cert.crt"
+    networks:
+      - "meet-jitsi"
+    depends_on:
+      - jvb-{{.projects.jitsi.label}}
+
+  # Video bridge
+  jvb-{{.projects.jitsi.label}}:
+    image: jitsi/jvb:stable-9364-1
+    ports:
+      - target: {{.projects.jitsi.service.jvb.media_port}}
+        published: {{.projects.jitsi.service.jvb.media_port}}
+        mode: "host"
+        protocol: "udp"
+    env_file:
+      - ".project.common.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}
+    networks:
+      meet-jitsi:
+
+  # XMPP server
+  prosody-{{.projects.jitsi.label}}:
+    image: jitsi/prosody:stable-9364-1
+    expose:
+      - '5222'
+      - '5269'
+      - '5347'
+      - '5280'
+    ports:
+      - '{{.projects.jitsi.service.prosody.serve_port}}:5280'
+    configs:
+      - source: "prosody-esync-plugin-cfg"
+        target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
+      - source: "prosody-rest-api-plugin-cfg"
+        target: "/config/conf.d/rest-api.jitsi-meet.cfg.lua"
+      - source: "prosody-persistent-lobby-cfg"
+        target: "/config/conf.d/persistent-lobby.jitsi-meet.cfg.lua"
+    volumes:
+      - type: "volume"
+        source: "jitsi-custom-prosody-{{.projects.jitsi.tag}}"
+        target: "/prosody-plugins-custom"
+        read_only: false
+    env_file:
+      - ".project.common.env"
+    networks:
+      meet-jitsi:
+        aliases:
+           - xmpp.meet.jitsi
+
+  # Focus component
+  jicofo-{{.projects.jitsi.label}}:
+    image: jitsi/jicofo:stable-9364-1
+    ports:
+      - '{{.projects.jitsi.service.jicofo.port}}:8888'
+    env_file:
+      - ".project.common.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}
+    networks:
+        meet-jitsi:
+
+volumes:
+  jitsi-custom-web-{{.projects.jitsi.tag}}:
+  jitsi-custom-prosody-{{.projects.jitsi.tag}}:
+
+networks:
+  meet-jitsi:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.jitsi.network.subnet}}"

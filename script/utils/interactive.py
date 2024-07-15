@@ -65,7 +65,7 @@ class InteractiveValue:
 
         if (value is None or (value == "")) and self.is_required:
             raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации отсутствует значение для поля %s " % self.name + bcolors.ENDC)
-        
+
         if ((value is None) or (value == "")) and not self.is_required:
 
             if self.default_value is None:
@@ -103,6 +103,9 @@ class InteractiveValue:
 
         if self.type == "arr":
             value = self.prepare_arr(value)
+
+        if self.type == "arr_join":
+            value = ",".join(value)
 
         # если запрашивается значение или значение не пустое
         if self.is_required or (value != ""):
@@ -237,11 +240,11 @@ def validate(value: str, validation: Union[str, None]) -> str:
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
-    
+
     match = re.match(phone_number_pattern, phone)
     if match is None:
         return "Неверный номер телефона"
-    
+
     return ""
 
 def validate_mail(mail: str) -> str:
@@ -253,14 +256,14 @@ def validate_mail(mail: str) -> str:
     return ""
 
 def validate_phone_prefix(phone_prefix: str) -> str:
-    
+
     if len(phone_prefix) > 14:
         return "Префикс больше 14 символов"
 
     for i, c in enumerate(phone_prefix):
         if not c.isnumeric() and not (c == "+" and i == 0):
             return "Недопустимые знаки в телефонном префиксе"
-    
+
     return ""
 def validate_ip(value: str) -> str:
     try:
@@ -281,7 +284,7 @@ def validate_idna(value: str) -> str:
     match = re.match(protocol_pattern, value)
     if match is not None:
         return "Передан протокол в домене"
-    
+
     try:
         value.encode("idna").decode()
         return ""

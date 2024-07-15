@@ -1,0 +1,8 @@
+{{$pivot_locprefix := locprefix .url_path .projects.pivot.url_path}}
+Component "esync.meet.jitsi" "event_sync_component"
+    muc_component = "muc.meet.jitsi"
+    api_prefix = "{{.protocol}}://{{.domain}}{{$pivot_locprefix}}/api/jitsi/conference/"
+    api_headers = {
+        ["authorization"] = "{{.projects.jitsi.secrets.event_plugin_token}}";
+        ["jitsi-domain"] = "{{.projects.jitsi.domain}}";
+    }

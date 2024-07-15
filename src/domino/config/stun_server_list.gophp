@@ -2,13 +2,6 @@
 
 namespace Compass\Speaker;
 
-$CONFIG["STUN_SERVER_LIST"] = [
-	[
-		"stun_id"    => 1,
-		"host"       => "{{.projects.janus.service.janus.stun_server_domain}}",
-		"port"       => {{.projects.janus.service.janus.stun_port}},
-		"is_enabled" => 1
-	],
-];
+$CONFIG["STUN_SERVER_LIST"] = [];
 
 return $CONFIG;

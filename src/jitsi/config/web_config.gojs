@@ -1,0 +1,314 @@
+// Jitsi Meet configuration.
+var config = {};
+
+config.hosts = {};
+
+config.hosts.domain = 'meet.jitsi';
+config.focusUserJid = '';
+
+var subdir = '{{.projects.jitsi.subdir}}/';
+var subdomain = '<!--# echo var="subdomain" default="" -->';
+if (subdir.startsWith('<!--')) {
+	subdir = '';
+}
+if (subdomain) {
+	subdomain = subdomain.substring(0, subdomain.length - 1).split('.').join('_').toLowerCase() + '.';
+}
+config.hosts.muc = 'muc.' + subdomain + 'meet.jitsi';
+config.bosh = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'http-bind';
+
+// Video configuration.
+//
+
+config.resolution = 720;
+config.constraints = {
+	video: {
+		height: {ideal: 720, max: 720, min: 180},
+		width: {ideal: 1280, max: 1280, min: 320},
+	}
+};
+
+config.startVideoMuted = 10;
+config.startWithVideoMuted = false;
+
+// Desktop sharing
+config.desktopSharingFrameRate = {
+	min: 15,
+	max: 20,
+};
+
+config.flags = {
+	sourceNameSignaling: true,
+	sendMultipleVideoStreams: true,
+	receiveMultipleVideoStreams: true
+};
+
+// ScreenShare Configuration.
+//
+
+// Audio configuration.
+//
+
+config.enableNoAudioDetection = true;
+config.enableTalkWhileMuted = false;
+config.disableAP = false;
+
+config.audioQuality = {
+	stereo: false,
+	opusMaxAverageBitrate: 128000, // Value to fit the 6000 to 510000 range.
+	enableOpusDtx: false,
+};
+
+config.startAudioOnly = false;
+config.startAudioMuted = 10;
+config.startWithAudioMuted = false;
+config.startSilent = false;
+config.enableOpusRed = false;
+config.disableAudioLevels = false;
+config.enableNoisyMicDetection = true;
+
+// Peer-to-Peer options.
+//
+
+config.p2p = {
+	enabled: false
+};
+
+config.defaultLogoUrl = '';
+
+// Breakout Rooms
+//
+
+config.hideAddRoomButton = true;
+config.breakoutRooms = {
+	hideAddRoomButton: true,
+	hideAutoAssignButton: true,
+	hideJoinRoomButton: true,
+};
+
+// Etherpad
+//
+
+// Recording.
+//
+
+// Local recording configuration.
+config.localRecording = {
+	disable: false,
+	notifyAllParticipants: false,
+	disableSelfRecording: false
+};
+
+// Analytics.
+//
+
+config.analytics = {};
+
+// Array<string> of disabled sounds.
+config.disabledSounds = [
+	'REACTION_SOUND'
+];
+
+// Dial in/out services.
+//
+
+// Calendar service integration.
+//
+
+config.enableCalendarIntegration = false;
+
+// Invitation service.
+//
+
+// Miscellaneous.
+//
+
+// Prejoin page.
+config.prejoinConfig = {
+	enabled: true,
+
+	// Hides the participant name editing field in the prejoin screen.
+	hideDisplayName: false
+};
+
+// List of buttons to hide from the extra join options dropdown on prejoin screen.
+// Welcome page.
+config.welcomePage = {
+	disabled: false
+};
+
+// Close page.
+config.enableClosePage = false;
+
+// Default language.
+// Require users to always specify a display name.
+config.requireDisplayName = false;
+
+// Chrome extension banner.
+// Disables profile and the edit of all fields from the profile settings (display name and email)
+config.disableProfile = false;
+
+// Room password (false for anything, number for max digits)
+config.roomPasswordNumberOfDigits = false;
+// Advanced.
+//
+
+config.preferredTranscribeLanguage = 'ru-RU';
+config.defaultLanguage = 'ru';
+
+// Transcriptions (subtitles and buttons can be configured in interface_config)
+config.transcription = {
+	enabled: true,
+	translationLanguages: ['ru'],
+	translationLanguagesHead: ['ru'],
+	useAppLanguage: true,
+	preferredLanguage: 'ru-RU',
+	disableStartForAll: false,
+	autoCaptionOnRecord: false,
+};
+
+config.securityUi = {
+	disableLobbyPassword: true,
+};
+
+// Dynamic branding
+// Deployment information.
+//
+
+config.deploymentInfo = {};
+
+// Deep Linking
+config.disableDeepLinking = false;
+
+// Video quality settings.
+config.videoQuality = {
+
+	// Provides a way to set the codec preference on desktop based endpoints.
+	codecPreferenceOrder: ['AV1', 'H264', 'VP9'],
+
+	// Codec specific settings for scalability modes and max bitrates.
+	av1: {
+		maxBitratesVideo: {
+			low: 300000,
+			standard: 600000,
+			high: 1500000,
+			ssHigh: 3000000
+		},
+		scalabilityModeEnabled: true,
+		useSimulcast: true,
+		useKSVC: true
+	},
+	h264: {
+		maxBitratesVideo: {
+			low: 300000,
+			standard: 600000,
+			high: 1500000,
+			ssHigh: 3000000
+		},
+		scalabilityModeEnabled: true,
+	},
+	vp8: {
+		maxBitratesVideo: {
+			low: 300000,
+			standard: 600000,
+			high: 1500000,
+			ssHigh: 3000000
+		},
+		scalabilityModeEnabled: true,
+	},
+	vp9: {
+		maxBitratesVideo: {
+			low: 300000,
+			standard: 600000,
+			high: 1500000,
+			ssHigh: 3000000
+		},
+		scalabilityModeEnabled: true,
+		useSimulcast: true,
+		useKSVC: true
+	},
+
+	// The options can be used to override default thresholds of video thumbnail heights corresponding to
+	// the video quality levels used in the application. At the time of this writing the allowed levels are:
+	//     'low' - for the low quality level (180p at the time of this writing)
+	//     'standard' - for the medium quality level (360p)
+	//     'high' - for the high quality level (720p)
+	// The keys should be positive numbers which represent the minimal thumbnail height for the quality level.
+	//
+	// With the default config value below the application will use 'low' quality until the thumbnails are
+	// at least 360 pixels tall. If the thumbnail height reaches 720 pixels then the application will switch to
+	// the high quality.
+	minHeightForQualityLvl: {
+		1: 'low',
+		320: 'standard',
+		400: 'high',
+	},
+
+	// Provides a way to set the codec preference on mobile devices, both on RN and mobile browser based endpoint
+	mobileCodecPreferenceOrder: ['AV1', 'VP9', 'H264'],
+};
+
+// Reactions
+config.disableReactions = false;
+
+// Polls
+config.disablePolls = false;
+
+// Self-view
+config.disableSelfView = false;
+config.disableSelfViewSettings = true;
+
+// Configure toolbar buttons
+// Hides the buttons at pre-join screen
+// Configure remote participant video menu
+config.remoteVideoMenu = {
+	disabled: false,
+	disableKick: false,
+	disableGrantModerator: false,
+	disablePrivateChat: false
+};
+
+// Configure e2eping
+config.e2eping = {
+	enabled: false
+};
+
+config.disabledNotifications = [
+	'notify.passwordSetRemotely',
+	'notify.passwordRemovedRemotely',
+	'dialog.kickTitle',
+	'lobby.joinRejectedMessage',
+	'lobby.notificationTitle',
+	'notify.connectedOneMember',
+	'notify.connectedThreePlusMembers',
+	'notify.connectedTwoMembers',
+	'notify.invitedOneMember',
+	'notify.invitedThreePlusMembers',
+	'notify.invitedTwoMembers',
+	'notify.kickParticipant',
+	'notify.leftOneMember',
+	'notify.leftThreePlusMembers',
+	'notify.leftTwoMembers',
+	'notify.linkToSalesforce',
+	'notify.moderator',
+	'notify.mutedTitle',
+	'notify.startSilentTitle',
+	'toolbar.noisyAudioInputTitle'
+];
+
+// Settings for the Excalidraw whiteboard integration.
+config.whiteboard = {
+	enabled: false,
+	collabServerBaseUrl: ''
+};
+
+// Testing
+config.testing = {
+	enableAv1Support: true
+};
+
+// пустить ли весь трафик через TURN сервер
+config.forceTurnRelay = {{.projects.jitsi.service.turn.force_relay}};
+
+// использовать ли udp протокол при соединении через TURN сервер
+config.useTurnUdp = {{if contains .projects.jitsi.service.turn.use_protocols "udp" }}true{{else}}false{{end}};

@@ -1,0 +1,6 @@
+CLIENTS_DEEPLINK_URL_SCHEME=compassstage://
+API_PATH="{{.projects.pivot.url_path}}"
+
+ELECTRON_DEEPLINK_URL_SCHEME=getcompassonpremise://
+IOS_DEEPLINK_URL_SCHEME=getcompassonpremise://
+ANDROID_DEEPLINK_URL_SCHEME=getcompassonpremise://

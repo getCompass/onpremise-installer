@@ -67,6 +67,12 @@ server {
 		expires 3d;
 	}
 
+	# сюда необходимо прописать все существующие пути из навигатора
+	location ~ ^/(install)$ {
+
+		try_files $uri /index.html;
+	}
+
 	# Запрещаем доступ к скрытым файлам
 	location ~ /\. {
 		access_log off;

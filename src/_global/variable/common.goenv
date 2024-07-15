@@ -80,8 +80,9 @@ PUBLIC_ENTRYPOINT_CAPTCHA_ENTERPRISE={{.protocol}}://{{.domain}}/captcha/enterpr
 PUBLIC_ENTRYPOINT_JOIN={{.protocol}}://{{.domain}}/join
 PUBLIC_ENTRYPOINT_INVITE={{.protocol}}://{{.domain}}/invite
 PUBLIC_ENTRYPOINT_SOLUTION="https://solution.getcompass.com"
-PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.com"
+PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.ru"
 PUBLIC_ENTRYPOINT_BILLING={{.billing_protocol}}://{{.billing_domain}}
+PUBLIC_ENTRYPOINT_VIDEO_CONFERENCE={{.protocol}}://{{.projects.jitsi.domain}}/c
 
 # адреса, которые пользователи могут встречать вне приложения,
 # при этом протокол может отсутствовать, по большей части
@@ -108,6 +109,7 @@ SOCKET_KEY_CONVERSATION="{{.security_keys.domino.socket_key_conversation}}"
 SOCKET_KEY_THREAD="{{.security_keys.domino.socket_key_thread}}"
 SOCKET_KEY_PARTNER=""
 SOCKET_KEY_FEDERATION="{{.security_keys.federation.socket_key_federation}}"
+SOCKET_KEY_JITSI="{{.security_keys.jitsi.socket_key_jitsi}}"
 GLOBAL_USERBOT_PRIVATE_KEY="{{.security_keys.userbot.global_userbot_private_key}}"
 SOCKET_KEY_INTEGRATION="{{.security_keys.integration.socket_key_integration}}"
 

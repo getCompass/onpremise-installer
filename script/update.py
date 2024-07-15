@@ -292,7 +292,7 @@ else:
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
 # ждем поднятия nginx
-timeout = 120
+timeout = 160
 n = 0
 loader = Loader(
     "Ждем готовности nginx",
@@ -314,9 +314,31 @@ while n <= timeout:
         nginx_service = service_list[0]
 
     if nginx_service is None:
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            loader.error()
+            scriptutils.die("nginx не поднялся")
+        continue
+
+    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get("State") == "paused"):
+        n = n + 40
+        if n == timeout:
+            loader.error()
+            scriptutils.die("nginx не поднялся")
+
+        # обновляем nginx
+        sleep(20)
+        nginx_service.update()
+        sleep(20)
         continue
 
     if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get("State") != "completed"):
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            loader.error()
+            scriptutils.die("nginx не поднялся")
         continue
 
     healthy_docker_container_list = client.containers.list(

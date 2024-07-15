@@ -48,24 +48,6 @@ $CONFIG["JANUS_CODEC_LIST"] = [
 	],
 ];
 
-$CONFIG["JANUS_NODE_LIST"] = [
-	[
-		"node_id"		=> 1,
-		"host"			=> "{{entrypoint .projects.janus.subdomain .domain 1}}",
-                "port"			=> 443,
-                "internal_ip"		=> "{{.projects.janus.host}}",
-                "janus_path"		=> "{{concatne "/" .url_path .projects.janus.url_path "janus"}}",
-                "janus_admin_path"	=> "{{concatne "/" .url_path .projects.janus.url_path "admin"}}",
-                "is_ssl"		=> 1,
-		"api_secret"		=> "{{.projects.janus.service.janus.api_secret}}",
-		"admin_secret"		=> "{{.projects.janus.service.janus.admin_secret}}",
-		"turn_rest_api_key"	=> "",
-		"turn_list"		=> [],
-		"load_index"		=> 1,
-		"is_grouping"		=> 1,
-		"is_enabled"		=> {{.projects.janus.service.janus.is_enabled}},
-		"available_for_new"	=> {{.projects.janus.service.janus.available_for_new}}
-	],
-];
+$CONFIG["JANUS_NODE_LIST"] = [];
 
 return $CONFIG;

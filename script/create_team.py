@@ -239,7 +239,7 @@ if validate_only:
 client = docker.from_env()
 
 # получаем контейнер monolith
-timeout = 10
+timeout = 30
 n = 0
 while n <= timeout:
 

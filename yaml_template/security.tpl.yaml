@@ -56,6 +56,8 @@ security_keys:
     socket_key_push_sender: ""
   federation:
     socket_key_federation: ""
+  jitsi:
+    socket_key_jitsi: ""
   integration:
     socket_key_integration: ""
     integration_authorization_token: ""

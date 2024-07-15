@@ -133,5 +133,5 @@ server {
     include includes/file.nginx;
     include includes/domino.nginx;
     include includes/userbot.nginx;
-    include includes/janus.nginx;
+    include includes/jitsi.nginx;
 }

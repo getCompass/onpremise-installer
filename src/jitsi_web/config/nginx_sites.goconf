@@ -1,0 +1,82 @@
+# формируем формат лога
+log_format limit_req_logging_format_admin '$request_time $upstream_response_time "$host" "$server_name"  $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$gzip_ratio"';
+
+server {
+
+	# reuseport должен быть один на весь Nginx
+	listen 80;
+
+	client_max_body_size    256m; # макс размер запроса, присылаемый клиентом
+	client_body_buffer_size 25m; # размер буфера для запроса присланного клиентом
+
+	root            /app/web/dist/;
+	index           index.html;
+	error_log       /app/logs/nginx/nginx_error404.log;
+
+	#######################################################
+
+	# fastcgi
+	aio             threads;
+	sendfile        on;
+	tcp_nodelay     on;
+	tcp_nopush      on;
+
+	# Запрещаем доступ к скрытым файлам
+	location ~ /\. {
+		access_log off;
+		log_not_found off;
+		deny all;
+	}
+
+	# статика
+	location ~* ^/jitsiweb/assets/  {
+
+		root /app/web/dist/;
+		access_log off;
+
+		# кэшируем файлы
+		open_file_cache max=200000 inactive=20s; # максимальное количество файлов
+		open_file_cache_valid 30s; # сколько хранить файл в кэше
+		open_file_cache_min_uses 2; # количество обращений к файлу, чтобы он закэшировался
+		open_file_cache_errors on; # кэшировать отсутствующие файлы
+
+		# оптимизируем чтение файлов
+		sendfile on;
+		aio threads; # асихнронный ввод-вывод
+		directio 10m; # альтернативный sendfile метод для больших файлов
+
+		# просим браузер кэшировать файлы
+		add_header Cache-Control public;
+		expires 3d;
+
+		try_files $uri =404;
+	}
+
+	# фавиконка
+	location /favicon.ico  {
+
+	    	alias /app/web/src/favicon.ico;
+	    	access_log off;
+
+	    	# кэшируем файлы
+	    	open_file_cache max=200000 inactive=20s; # максимальное количество файлов
+	    	open_file_cache_valid 30s; # сколько хранить файл в кэше
+	    	open_file_cache_min_uses 2; # количество обращений к файлу, чтобы он закэшировался
+	    	open_file_cache_errors on; # кэшировать отсутствующие файлы
+
+	    	# оптимизируем чтение файлов
+	    	sendfile on;
+	    	aio threads; # асинхронный ввод-вывод
+	    	directio 10m; # альтернативный sendfile метод для больших файлов
+
+	    	# просим браузер кэшировать файлы
+	    	add_header Cache-Control public;
+	    	expires 3d;
+	}
+
+	# сюда необходимо прописать все существующие пути из навигатора
+	location ~ ^/(c\/[a-zA-Z0-9_\-]+|requestMediaPermissions)$ {
+
+		try_files $uri /index.html;
+	}
+}

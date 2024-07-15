@@ -47,7 +47,7 @@ for user in required_user_list:
 client = docker.from_env()
 
 # получаем контейнер php-монолита
-timeout = 10
+timeout = 30
 n = 0
 while n <= timeout:
 

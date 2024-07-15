@@ -105,6 +105,17 @@ while n <= timeout:
         scriptutils.die("Приложение не было удалено")
 
 sleep(10)
+
+# удаляем volumes jitsi
+jitsi_volume_list = client.volumes.list(filters={"name": "production-compass-monolith_jitsi-custom-"})
+for volume in jitsi_volume_list:
+    try:
+        volume.remove()
+    except docker.errors.NotFound:
+        continue
+    except docker.errors.APIError as e:
+        print("Не удалось удалить один из jitsi volume: ", e)
+
 loader.success()
 
 root_mount_path = config.get("root_mount_path")

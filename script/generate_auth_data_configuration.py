@@ -194,8 +194,10 @@ class AuthSsoConfig:
     def init(
             self,
             sso_web_auth_button_text: str,
+            authorization_alternative_enabled: int,
     ):
         self.sso_web_auth_button_text = sso_web_auth_button_text
+        self.authorization_alternative_enabled = authorization_alternative_enabled
 
     def input(self):
 
@@ -217,11 +219,23 @@ class AuthSsoConfig:
             handle_exception(e.field, e.message)
             sso_web_auth_button_text = ""
 
-        return self.init(sso_web_auth_button_text)
+        try:
+            authorization_alternative_enabled = interactive.InteractiveValue(
+                "sso.authorization_alternative_enabled", "Включена ли опция альтернативных способов аутентификации при аутентификации через SSO", "bool", config=config, is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            authorization_alternative_enabled = ""
+
+        return self.init(sso_web_auth_button_text, authorization_alternative_enabled)
 
     # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
     def make_output(self):
-        return """"start_button_text" => "{}",""".format(self.sso_web_auth_button_text)
+        sso_web_auth_button_text_output = """"start_button_text" => "{}",""".format(self.sso_web_auth_button_text)
+        sso_authorization_alternative_enabled_output = '"authorization_alternative_enabled" => %s' % (str(self.authorization_alternative_enabled).lower())
+
+        output = "\n%s\n %s\n" % (sso_web_auth_button_text_output, sso_authorization_alternative_enabled_output)
+        return output.encode().decode()
 
 class MailSmtpConfig:
     def __init__(self) -> None:

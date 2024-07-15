@@ -1,0 +1,2 @@
+Component "muc.meet.jitsi" "muc"
+    auth_token = "{{.projects.jitsi.secrets.rest_api_token}}"

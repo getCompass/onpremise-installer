@@ -17,7 +17,7 @@ x-default-deploy: &default-deploy
       window: "10s"
     update_config:
       order: "start-first"
-      failure_action: "rollback"
+      failure_action: "continue"
       delay: "10s"
     rollback_config:
       parallelism: 0
@@ -139,6 +139,9 @@ configs:
   pivot-restrictions:
     name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.pivot.restrictions.php}}"
     file: ".project.pivot.restrictions.php"
+  pivot-jitsi-node:
+    name: "{{.stack_name}}_jitsi_node-{{.config_revisions.project.pivot.jitsi_node.php}}"
+    file: ".project.pivot.jitsi_node.php"
   company-restrictions:
     name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
     file: ".project.domino.company_restrictions.php"
@@ -161,12 +164,6 @@ configs:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.userbot.nginx_include.conf}}"
     file: ".project.userbot.nginx_include.conf"
 
-  ## КОНФИГУРАЦИИ JANUS
-  # настройки nginx janus
-  nginx-include-janus:
-    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.janus.nginx_include.conf}}"
-    file: ".project.janus.nginx_include.conf"
-
   # настройки для php/go
   domino-hosts:
     name: "{{.stack_name}}_domino_hosts-{{.config_revisions.project.userbot.domino.php}}"
@@ -182,29 +179,6 @@ configs:
   nginx-include-{{$domino.label}}:
     name: "{{.stack_name}}_nginx_include-{{index .config_revisions "project" "domino" "nginx_include" "conf"}}"
     file: ".project.domino.nginx_include.conf"
-
-  ## КОНФИГУРАЦИЯ JANUS
-  nginx-janus-sites:
-    name: "{{.stack_name}}_nginx_janus_sites-{{.config_revisions.project.janus.nginx_sites.conf}}"
-    file: ".project.janus.nginx_sites.conf"
-  nginx-janus-conf:
-    name: "{{.stack_name}}_nginx_janus_conf-{{.config_revisions.project.janus.nginx.conf}}"
-    file: ".project.janus.nginx.conf"
-  coturn:
-    name: "{{.stack_name}}_coturn-{{.config_revisions.project.janus.turnserver.conf}}"
-    file: ".project.janus.turnserver.conf"
-  janus:
-    name: "{{.stack_name}}_janus-{{.config_revisions.project.janus.janus.jcfg}}"
-    file: ".project.janus.janus.jcfg"
-  janus-transport-http:
-    name: "{{.stack_name}}_janus-transport-http-{{.config_revisions.project.janus.janus_transport_http.jcfg}}"
-    file: ".project.janus.janus_transport_http.jcfg"
-  janus-eventhandler-sampleevh:
-    name: "{{.stack_name}}_janus-eventhandler-sampleevh-{{.config_revisions.project.janus.janus_eventhandler_sampleevh.jcfg}}"
-    file: ".project.janus.janus_eventhandler_sampleevh.jcfg"
-  janus-plugin-videoroom:
-    name: "{{.stack_name}}_janus-plugin-videoroom-{{.config_revisions.project.janus.janus_plugin_videoroom.jcfg}}"
-    file: ".project.janus.janus_plugin_videoroom.jcfg"
 
   # настройки для php/go
   tariff-conf-conversation-{{$domino.label}}:
@@ -239,6 +213,52 @@ configs:
   join-web-nginx-conf:
     name: "{{.stack_name}}_join_web_nginx_conf-{{.config_revisions.project.join_web.nginx.conf}}"
     file: ".project.join_web.nginx.conf"
+
+  # настройки nginx jitsi
+  nginx-include-jitsi:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.jitsi.nginx_include.conf}}"
+    file: ".project.jitsi.nginx_include.conf"
+
+  # основной конфиг prosody компонента
+  prosody-main-cfg:
+    name: "{{.stack_name}}_prosody-main-{{.config_revisions.project.jitsi.prosody_main.cfg.lua}}"
+    file: ".project.jitsi.prosody_main.cfg.lua"
+
+  # конфиг плагина отправки событий с jitsi ноды на backend
+  prosody-esync-plugin-cfg:
+    name: "{{.stack_name}}_prosody-esync-plugin-{{.config_revisions.project.jitsi.prosody_esync_plugin.cfg.lua}}"
+    file: ".project.jitsi.prosody_esync_plugin.cfg.lua"
+
+  # конфиг плагина rest api
+  prosody-rest-api-plugin-cfg:
+    name: "{{.stack_name}}_prosody-rest-api-plugin-{{.config_revisions.project.jitsi.prosody_rest_api_plugin.cfg.lua}}"
+    file: ".project.jitsi.prosody_rest_api_plugin.cfg.lua"
+
+  # конфиг плагина persistent lobby
+  prosody-persistent-lobby-cfg:
+    name: "{{.stack_name}}_prosody-persistent-lobby-{{.config_revisions.project.jitsi.prosody_persistent_lobby.cfg.lua}}"
+    file: ".project.jitsi.prosody_persistent_lobby.cfg.lua"
+
+  # config.js с web контейнера
+  web-config-js:
+    name: "{{.stack_name}}_web-config-js-{{.config_revisions.project.jitsi.web_config.js}}"
+    file: ".project.jitsi.web_config.js"
+  # interface_config.js с web контейнера
+  web-interface-config-js:
+    name: "{{.stack_name}}_web-interface-config-js-{{.config_revisions.project.jitsi.web_interface_config.js}}"
+    file: ".project.jitsi.web_interface_config.js"
+  # nginx конфиг для jitsi-meet
+  web-nginx-meet-conf:
+    name: "{{.stack_name}}_web-nginx-meet-conf-{{.config_revisions.project.jitsi.web_nginx_meet.conf}}"
+    file: ".project.jitsi.web_nginx_meet.conf"
+
+  # конфигурация nginx ВКС
+  jitsi-web-nginx-sites:
+    name: "{{.stack_name}}_jitsi_web_nginx_sites-{{.config_revisions.project.jitsi_web.nginx_sites.conf}}"
+    file: ".project.jitsi_web.nginx_sites.conf"
+  jitsi-web-nginx-conf:
+    name: "{{.stack_name}}_jitsi_web_nginx_conf-{{.config_revisions.project.jitsi_web.nginx.conf}}"
+    file: ".project.jitsi_web.nginx.conf"
 
 # файл композиции монолита
 services:
@@ -287,8 +307,8 @@ services:
         target: "/etc/nginx/includes/pivot.nginx"
       - source: "nginx-include-userbot"
         target: "/etc/nginx/includes/userbot.nginx"
-      - source: "nginx-include-janus"
-        target: "/etc/nginx/includes/janus.nginx"
+      - source: "nginx-include-jitsi"
+        target: "/etc/nginx/includes/jitsi.nginx"
     volumes:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
       - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
@@ -426,18 +446,7 @@ services:
         aliases:
           - "go-sender-balancer-{{.projects.pivot.label}}"
           - "go-sender-balancer-{{.projects.announcement.label}}"
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: "any"
-        window: "10s"
-      update_config:
-        order: "start-first"
-        failure_action: "rollback"
-        delay: "10s"
-      rollback_config:
-        parallelism: 0
-        order: "stop-first"
+    <<: *default-deploy
     <<: *healthcheck-go-2000
     <<: *log-rule-default
     volumes:
@@ -664,6 +673,7 @@ services:
       - ".project.pivot.common.env"
       - ".project.pivot.php_premise.env"
       - ".project.pivot.php_pivot.env"
+      - ".project.pivot.php_jitsi.env"
       - ".project.domino.common.env"
       - ".project.domino.php_world.env"
       - ".project.domino.php_company.env"
@@ -690,6 +700,7 @@ services:
           - "php-file-balancer-{{$domino.label}}"
           - "php-world-{{$domino.label}}"
           - "php-userbot-{{.projects.userbot.label}}"
+          - "php-jitsi-{{.projects.pivot.label}}"
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "{{.company_config_mount_path}}:/pivot_config"
@@ -751,6 +762,8 @@ services:
             target: "/app/src/Compass/Pivot/api/conf/restrictions.php"
           - source: "company-restrictions"
             target: "/app/src/Compass/Company/api/conf/restrictions.php"
+          - source: "pivot-jitsi-node"
+            target: "/app/src/Compass/Jitsi/api/conf/jitsi.php"
 
   # GO_COMPANY_CACHE
   go-company-cache-{{$domino.label}}:
