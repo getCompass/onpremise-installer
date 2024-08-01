@@ -111,7 +111,7 @@ except IncorrectValueException as e:
 try:
     sso_login = InteractiveValue(
         "root_user.sso_login",
-        "Заполните поле root_user.sso_login в configs/team.yaml, в котором нужно указать логин, используемый для аутентификации через SSO (почтовый адрес или номер телефона в международном формате)",
+        "Заполните поле root_user.sso_login в configs/team.yaml, в котором нужно указать логин, используемый для аутентификации через SSO (uid, username, почтовый адрес или номер телефона в международном формате)",
         "str",
         config=config,
         is_required=("sso" in available_method_list), # если среди доступных методов указан "sso"

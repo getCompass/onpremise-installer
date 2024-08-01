@@ -87,7 +87,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v3.0.1"
+        tag: "v3.1.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -101,7 +101,7 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v3.0.0"
+        tag: "v3.1.0"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
@@ -162,7 +162,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v3.0.0"
+        tag: "v3.1.0"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -324,7 +324,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v3.0.1"
+          tag: "v3.1.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -342,7 +342,7 @@ projects:
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v3.0.0"
+          tag: "v3.1.0"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -485,7 +485,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v3.0.0"
+        tag: "v3.1.0"
         external_port: 43100
 
   integration:

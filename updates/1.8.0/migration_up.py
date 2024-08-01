@@ -43,7 +43,7 @@ with open(auth_config_path, "r") as file:
     content = file.read()
 
     # если в содержимом уже имеются новые поля, то ничего не делаем
-    if "sso.client_id" in content:
+    if "sso.client_id" in content or "oidc.client_id" in content:
         print(scriptutils.success("Конфиг-файл auth.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
