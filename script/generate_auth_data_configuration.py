@@ -403,8 +403,8 @@ class SsoConfig:
         ).from_config()
 
         # проверяем, что указано корректное значение
-        if sso_protocol not in ["oidc", "ldap"]:
-            handle_exception("sso.protocol", bcolors.WARNING + "Некорректное значения для параметра sso.protocol в конфиг-файле auth.yaml" + bcolors.ENDC)
+        if "sso" in available_methods and sso_protocol not in ["oidc", "ldap"]:
+            handle_exception("sso.protocol", bcolors.WARNING + "Некорректное значение для параметра sso.protocol в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         # если указан sso в качестве доступного метода авторизации и протокол OIDC, то данные должны быть заполнены
         is_required = False
@@ -620,7 +620,7 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and ldap_on_account_removing not in ["light", "hard"]:
-            handle_exception("ldap.on_account_removing", bcolors.WARNING + "Некорректное значения для параметра ldap.on_account_removing в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.on_account_removing", bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_removing в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
             ldap_on_account_disabling = interactive.InteractiveValue(
@@ -632,7 +632,7 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and ldap_on_account_disabling not in ["light", "hard"]:
-            handle_exception("ldap.on_account_disabling", bcolors.WARNING + "Некорректное значения для параметра ldap.on_account_disabling в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.on_account_disabling", bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_disabling в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
             ldap_user_search_account_dn = interactive.InteractiveValue(
@@ -660,7 +660,7 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and bool(re.match(r'^\d+[smh]$',ldap_account_disabling_monitoring_interval)) == False:
-            handle_exception("ldap.account_disabling_monitoring_interval", bcolors.WARNING + "Некорректное значения для параметра ldap.account_disabling_monitoring_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.account_disabling_monitoring_interval", bcolors.WARNING + "Некорректное значение для параметра ldap.account_disabling_monitoring_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval)
 
