@@ -319,6 +319,12 @@ sso.web_auth_button_text: "Войти через корп. портал (SSO LDA
 # Тип данных: булево значение, true\false
 sso.authorization_alternative_enabled: false
 
+# Включена ли опция актуализации Имени Фамилии пользователей в Compass каждый раз, когда они успешно авторизуются
+# в приложении через SSO.
+#
+# Тип данных: булево значение, true\false
+sso.full_name_actualization_enabled: true
+
 # ----------------------------------------------
 # SSO АВТОРИЗАЦИЯ ПО ПРОТОКОЛУ OIDC (OPENID CONNECT)
 # ----------------------------------------------

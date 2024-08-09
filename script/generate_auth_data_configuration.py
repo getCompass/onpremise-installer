@@ -205,11 +205,13 @@ class AuthSsoConfig:
             self,
             sso_protocol: str,
             sso_web_auth_button_text: str,
-            authorization_alternative_enabled: int,
+            authorization_alternative_enabled: bool,
+            full_name_actualization_enabled: bool,
     ):
         self.sso_protocol = sso_protocol
         self.sso_web_auth_button_text = sso_web_auth_button_text
         self.authorization_alternative_enabled = authorization_alternative_enabled
+        self.full_name_actualization_enabled = full_name_actualization_enabled
 
     def input(self):
 
@@ -247,16 +249,24 @@ class AuthSsoConfig:
             handle_exception(e.field, e.message)
             authorization_alternative_enabled = ""
 
-        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled)
+        try:
+            full_name_actualization_enabled = interactive.InteractiveValue(
+                "sso.full_name_actualization_enabled", "Включена ли опция актуализации Имени Фамилии пользователей в Compass каждый раз, когда они успешно авторизуются в приложении через SSO", "bool", config=config, is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            full_name_actualization_enabled = ""
+
+        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled, full_name_actualization_enabled)
 
     # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
     def make_output(self):
-        sso_protocol_output = """"protocol" => "{}",""".format(self.sso_protocol)
-        sso_web_auth_button_text_output = """"start_button_text" => "{}",""".format(self.sso_web_auth_button_text)
-        sso_authorization_alternative_enabled_output = '"authorization_alternative_enabled" => %s' % (str(self.authorization_alternative_enabled).lower())
-
-        output = "\n%s\n%s\n %s\n" % (sso_protocol_output, sso_web_auth_button_text_output, sso_authorization_alternative_enabled_output)
-        return output.encode().decode()
+        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"full_name_actualization_enabled" => {},""".format(
+            self.sso_protocol,
+            self.sso_web_auth_button_text,
+            self.authorization_alternative_enabled,
+            self.full_name_actualization_enabled,
+        )
 
 class MailSmtpConfig:
     def __init__(self) -> None:
