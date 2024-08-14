@@ -18,6 +18,7 @@ script_dir = str(Path(__file__).parent.resolve())
 
 # загружаем конфиги
 config_path = Path(script_dir + "/../configs/auth.yaml")
+captcha_config_path = Path(script_dir + "/../configs/captcha.yaml")
 
 config = {}
 
@@ -26,10 +27,18 @@ if not config_path.exists():
         "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
             config_path.resolve())))
     exit(1)
+if not captcha_config_path.exists():
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            captcha_config_path.resolve())))
+    exit(1)
 
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+config.update(config_values)
 
+with captcha_config_path.open("r") as config_file:
+    config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 config.update(config_values)
 
 root_path = str(Path(script_dir + "/../").resolve())
@@ -94,18 +103,33 @@ class AuthMainConfig:
 
     def init(
             self,
+            captcha_enabled: int,
             require_after: int,
             available_method_list: str,
     ):
+        self.captcha_enabled = captcha_enabled
         self.require_after = require_after
         self.available_method_list = available_method_list
 
     def input(self):
 
+        # получаем настройку включения проверки капчи
+        try:
+            captcha_enabled = interactive.InteractiveValue(
+                "captcha.enabled", "Включена ли опция проверки капчи при достижении лимита попыток аутентификации.", "bool", config=config,
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+
         # получаем значение количества попыток из конфига
         try:
             require_after = interactive.InteractiveValue(
-                "captcha.require_after", "Кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.", "int", config=config,
+                "captcha.require_after",
+                "Кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.",
+                "int",
+                config=config,
+                is_required=(captcha_enabled == True),
+                default_value=0,
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -118,14 +142,15 @@ class AuthMainConfig:
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
-        return self.init(require_after, available_method_list)
+        return self.init(captcha_enabled, require_after, available_method_list)
 
     # заполняем содержимым
     def make_output(self):
         available_method_list_output = '"available_method_list" => %s' % (self.available_method_list)
+        captcha_enabled_output = '"captcha_enabled" => %s' % (str(self.captcha_enabled).lower())
         captcha_require_after_output = '"captcha_require_after" => %d' % (self.require_after)
 
-        output = "\n%s,\n %s\n" % (available_method_list_output, captcha_require_after_output)
+        output = "\n%s,\n %s,\n %s\n" % (available_method_list_output, captcha_enabled_output, captcha_require_after_output)
         return output.encode().decode()
 
 class AuthMailConfig:
@@ -541,6 +566,7 @@ class LdapConfig:
             user_search_account_dn: str,
             user_search_account_password: str,
             account_disabling_monitoring_interval: str,
+            user_search_page_size: int,
 
     ):
         self.server_host = server_host
@@ -554,6 +580,7 @@ class LdapConfig:
         self.user_search_account_dn = user_search_account_dn
         self.user_search_account_password = user_search_account_password
         self.account_disabling_monitoring_interval = account_disabling_monitoring_interval
+        self.user_search_page_size = user_search_page_size
 
     def input(self):
 
@@ -672,14 +699,27 @@ class LdapConfig:
         if ldap_account_disabling_monitoring_enabled and bool(re.match(r'^\d+[smh]$',ldap_account_disabling_monitoring_interval)) == False:
             handle_exception("ldap.account_disabling_monitoring_interval", bcolors.WARNING + "Некорректное значение для параметра ldap.account_disabling_monitoring_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
 
-        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval)
+        try:
+            ldap_user_search_page_size = interactive.InteractiveValue(
+                "ldap.user_search_page_size", "Количество подгружаемых учетных записей из LDAP за один запрос в механизме мониторинга удаления / блокировки учетной записи LDAP", "int", config=config, default_value=0, is_required=ldap_account_disabling_monitoring_enabled
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_search_page_size = 0
+
+        # проверяем, что указано корректное значение
+        if ldap_account_disabling_monitoring_enabled and ldap_user_search_page_size < 1:
+            handle_exception("ldap.user_search_page_size", bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
+
+        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval, ldap_user_search_page_size)
 
     # подготавливаем содержимое для $CONFIG["SSO_OIDC_CONNECTION"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"account_disabling_monitoring_dn" => "{}",\n\t"account_disabling_monitoring_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"account_disabling_monitoring_dn" => "{}",\n\t"account_disabling_monitoring_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.user_search_base,
+            self.user_search_page_size,
             self.user_unique_attribute,
             self.limit_of_incorrect_auth_attempts,
             self.account_disabling_monitoring_enabled,

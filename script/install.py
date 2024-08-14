@@ -68,7 +68,7 @@ print("Валидируем конфигурацию капчи")
 subprocess.run(
     [
         "python3",
-        script_resolved_path + "/generate_google_recaptcha_configuration.py",
+        script_resolved_path + "/generate_captcha_configuration.py",
         "--validate-only",
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации капчи")
@@ -147,7 +147,7 @@ subprocess.run(
 
 print("Запускаем скрипт генерации конфигурации капчи")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_google_recaptcha_configuration.py"]
+    ["python3", script_resolved_path + "/generate_captcha_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации капчи")
 
 print("Запускаем скрипт генерации конфигурации sms провайдеров")

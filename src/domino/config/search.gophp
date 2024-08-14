@@ -70,10 +70,10 @@ $CONFIG["SEARCH"] = [
 	// правила для задач
 	"task"                     => [
 		"per_message_task_execution_complexity_limit" => 5000,
-		"per_file_task_execution_complexity_limit"    => 25,
+		"per_file_task_execution_complexity_limit"    => 350,
 		"per_preview_task_execution_complexity_limit" => 5000,
 		"max_message_task_complexity"                 => 5000,
-		"max_file_task_complexity"                    => 25,
+		"max_file_task_complexity"                    => 350,
 		"max_preview_task_complexity"                 => 5000,
 	]
 ];

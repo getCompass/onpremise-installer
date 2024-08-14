@@ -77,12 +77,17 @@ PUBLIC_ENTRYPOINT_PREMISE="{{.protocol}}://{{entrypoint .projects.pivot.subdomai
 
 PUBLIC_ENTRYPOINT_CAPTCHA={{.protocol}}://{{.domain}}/captcha
 PUBLIC_ENTRYPOINT_CAPTCHA_ENTERPRISE={{.protocol}}://{{.domain}}/captcha/enterprise
-PUBLIC_ENTRYPOINT_JOIN={{.protocol}}://{{.domain}}/join
+PUBLIC_ENTRYPOINT_YANDEX_CAPTCHA={{.protocol}}://{{.domain}}/captcha/yandex
 PUBLIC_ENTRYPOINT_INVITE={{.protocol}}://{{.domain}}/invite
 PUBLIC_ENTRYPOINT_SOLUTION="https://solution.getcompass.com"
 PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.ru"
 PUBLIC_ENTRYPOINT_BILLING={{.billing_protocol}}://{{.billing_domain}}
 PUBLIC_ENTRYPOINT_VIDEO_CONFERENCE={{.protocol}}://{{.projects.jitsi.domain}}/c
+
+# точки входа для ссылок приглашений, основная будет использоваться для генерации
+# ссылок, набор вариаций для валидации (т.е. основная всегда должна быть в наборе вариаций)
+PUBLIC_ENTRYPOINT_JOIN={{if ne "" .join_domain}}"{{.protocol}}://{{entrypoint .join_domain .join_path 0}}"{{else}}{{.protocol}}://{{.domain}}/join{{end}}
+PUBLIC_ENTRYPOINT_JOIN_VARIETY=[{{if ne "" .join_domain}}"{{.protocol}}://{{entrypoint .join_domain .join_path 0}}", {{end}}"{{.protocol}}://{{.domain}}/join"]
 
 # адреса, которые пользователи могут встречать вне приложения,
 # при этом протокол может отсутствовать, по большей части

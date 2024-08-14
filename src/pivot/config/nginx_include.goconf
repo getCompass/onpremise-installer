@@ -232,6 +232,16 @@ location {{$global_locprefix}}/captcha/enterprise/ {
 	fastcgi_pass $upstream_pivot_php;
 }
 
+# страничка с yandex-капчей
+location {{$global_locprefix}}/captcha/yandex/ {
+
+	root /app/www/;
+	index index.php;
+
+	rewrite ^/captcha/yandex /captcha/yandex/index.php break;
+	fastcgi_pass $upstream_pivot_php;
+}
+
 # mbti html
 location ~* ^{{$pivot_locprefix}}/html/mbti/?$ {
 

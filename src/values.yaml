@@ -10,6 +10,8 @@ domino_controller_port: 10000
 host: "example.com"
 billing_protocol: "https"
 billing_domain: "billing.example.com"
+join_domain: ""
+join_path: ""
 monit_mount_path: "/home/monit"
 backup_user: "backup_user"
 backup_user_password: "backup_user_password"
@@ -87,7 +89,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v3.1.2"
+        tag: "v4.0.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -270,7 +272,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v3.0.1"
+          tag: "v4.0.0"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -302,6 +304,7 @@ projects:
       go_database_controller_port: 31019
       go_database_controller_profiler_port: 20200
       template_public_company_url: ""
+      template_redirect_company_url: ""
       network:
         subnet: "172.20.7.0/24"
       service:
@@ -324,7 +327,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v3.1.2"
+          tag: "v4.0.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -485,7 +488,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v3.1.2"
+        tag: "v4.0.0"
         external_port: 43100
 
   integration:
@@ -510,10 +513,10 @@ projects:
     host: "0.0.0.0"
     label: "jitsi"
     domain: "example.com"
-    static_updated_at: 0
+    static_updated_at: 1723105578
     subdomain: ""
     subdir: "/-/c"
-    tag: "v3.0.0"
+    tag: "v4.0.0"
     jwt:
       app_id: "compass"
       app_secret: ""
