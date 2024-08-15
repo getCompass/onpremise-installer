@@ -488,7 +488,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.0.0"
+        tag: "v4.0.1"
         external_port: 43100
 
   integration:

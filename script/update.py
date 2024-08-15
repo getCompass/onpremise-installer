@@ -47,13 +47,17 @@ subprocess.run(
 ).returncode == 0 or scriptutils.die("Ошибка при создании пользователя www-data")
 
 print("Валидируем конфигурацию капчи")
-subprocess.run(
+sb = subprocess.run(
     [
         "python3",
         script_resolved_path + "/generate_captcha_configuration.py",
         "--validate-only",
     ]
-).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации капчи")
+)
+if sb.returncode == 1:
+    exit(1)
+
+sb.returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации капчи")
 
 print("Валидируем конфигурацию sms провайдеров")
 subprocess.run(

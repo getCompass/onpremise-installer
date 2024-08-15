@@ -71,6 +71,7 @@ conf_path = args.output_path
 conf_path = Path(conf_path)
 validation_errors = []
 captcha_already_skipped = False
+require_after_already_done = False
 
 class AppBlock:
     def __init__(self, provider: str) -> None:
@@ -119,14 +120,18 @@ class AppBlock:
             if skip_captcha == "y":
                 return self.init("", "", "", "", "", {})
             else:
-                exit(0)
+                exit(1)
 
-        try:
-            interactive.InteractiveValue(
-                "captcha.require_after", "Введите кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.", "int", config=config
-            ).from_config()
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+        global require_after_already_done
+        if require_after_already_done == False:
+
+            require_after_already_done = True
+            try:
+                interactive.InteractiveValue(
+                    "captcha.require_after", "Введите кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.", "int", config=config
+                ).from_config()
+            except interactive.IncorrectValueException as e:
+                handle_exception(e.field, e.message)
 
         default_client_key = interactive.InteractiveValue(
             "google_captcha.default_client_key", "Введите клиентский ключ для платформы", "str", config=config, is_required=False,

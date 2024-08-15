@@ -104,7 +104,7 @@ for item in config_files:
 
         # получаем значение из старого конфига и добавляем его в текст нового конфига
         old_value = old_config.get(config_replaces_dictionary[key])
-        current_value = new_config.get(config_replaces_dictionary[key])
+        current_value = new_config.get(key)
         if old_value is not None:
 
             if current_value is None:
@@ -112,7 +112,8 @@ for item in config_files:
                 new_config_text = new_config_text.replace(key + ":", key + ": " + str(old_value))
                 continue
 
-            new_config_text = new_config_text.replace(key + ": %s" % current_value, key + ": " + str(old_value))
+            if key == "captcha.require_after" or key == "captcha.enabled":
+                new_config_text = new_config_text.replace(key + ": %s" % current_value, key + ": " + str(old_value))
 
     # записываем всё в файл
     new_config_file = open(str(config_path) + "/" + new_config_file_name, "w")

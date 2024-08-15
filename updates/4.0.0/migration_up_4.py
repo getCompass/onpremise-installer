@@ -32,7 +32,7 @@ captcha_config_path = str(config_path) + "/captcha.yaml"
 if False == os.path.exists(captcha_config_path):
     print(
         scriptutils.warning(
-            "Отсутствует конфиг-файл auth.yaml в директории configs/.. - миграция не требуется. Запустите скрипт create_configs.py для создания конфиг-файлов и заполните поля"
+            "Отсутствует конфиг-файл captcha.yaml в директории configs/.. - миграция не требуется. Запустите скрипт create_configs.py для создания конфиг-файлов и заполните поля"
         )
     )
     exit(0)
@@ -44,7 +44,7 @@ with open(captcha_config_path, "r") as file:
 
     # если в содержимом уже имеются новые поля, то ничего не делаем
     if "yandex_captcha.default_client_key" in content:
-        print(scriptutils.success("Конфиг-файл auth.yaml выглядит актуальным, миграция не требуется."))
+        print(scriptutils.success("Конфиг-файл captcha.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
 # заменяем комментарии
