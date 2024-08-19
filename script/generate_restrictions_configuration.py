@@ -11,19 +11,29 @@ from utils import interactive
 script_dir = Path(__file__).parent.resolve()
 
 # загружаем конфиги
-config_path = script_dir.parent / "configs" / "team.yaml"
+auth_config_path = script_dir.parent / "configs" / "auth.yaml"
+team_config_path = script_dir.parent / "configs" / "team.yaml"
 
 config = {}
 
-if not config_path.exists():
+if not auth_config_path.exists():
     print(scriptutils.error(
-        f"Отсутствует файл конфигурации {config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
+        f"Отсутствует файл конфигурации {auth_config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
     exit(1)
 
-with config_path.open("r") as config_file:
-    config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+if not team_config_path.exists():
+    print(scriptutils.error(
+        f"Отсутствует файл конфигурации {team_config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
+    exit(1)
 
-config.update(config_values)
+with auth_config_path.open("r") as config_file:
+    auth_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+
+with team_config_path.open("r") as config_file:
+    team_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+
+config.update(auth_config_values)
+config.update(team_config_values)
 
 root_path = script_dir.parent.resolve()
 
@@ -65,6 +75,7 @@ domino_restrictions_conf_path = Path(domino_restrictions_conf_path)
 integration_restrictions_conf_path = args.integration_restrictions_output_path
 integration_restrictions_conf_path = Path(integration_restrictions_conf_path)
 validation_errors = []
+validation_error_config_path = ""
 
 
 class RestrictionsMainConfig:
@@ -73,6 +84,9 @@ class RestrictionsMainConfig:
 
     def init(
             self,
+            is_desktop_prohibited: int,
+            is_ios_prohibited: int,
+            is_android_prohibited: int,
             phone_change_enabled: int,
             mail_change_enabled: int,
             name_change_enabled: int,
@@ -81,6 +95,9 @@ class RestrictionsMainConfig:
             description_change_enabled: int,
             status_change_enabled: int,
     ):
+        self.is_desktop_prohibited = is_desktop_prohibited
+        self.is_ios_prohibited = is_ios_prohibited
+        self.is_android_prohibited = is_android_prohibited
         self.phone_change_enabled = phone_change_enabled
         self.mail_change_enabled = mail_change_enabled
         self.name_change_enabled = name_change_enabled
@@ -92,12 +109,40 @@ class RestrictionsMainConfig:
     def input(self):
 
         try:
+            is_desktop_prohibited = interactive.InteractiveValue(
+                "auth.is_desktop_prohibited",
+                "Запрещено ли пользователям с ПК работать в приложении", "bool", config=config
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message, auth_config_path)
+            is_desktop_prohibited = ""
+
+        try:
+            is_ios_prohibited = interactive.InteractiveValue(
+                "auth.is_ios_prohibited",
+                "Запрещено ли пользователям с ios работать в приложении", "bool", config=config
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message, auth_config_path)
+            is_ios_prohibited = ""
+
+        try:
+            is_android_prohibited = interactive.InteractiveValue(
+                "auth.is_android_prohibited",
+                "Запрещено ли пользователям с android работать в приложении", "bool", config=config
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message, auth_config_path)
+            is_android_prohibited = ""
+
+        try:
             phone_change_enabled = interactive.InteractiveValue(
                 "profile.phone_change_enabled",
                 "Разрешено ли пользователям изменять номер телефона в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            phone_change_enabled = ""
 
         try:
             mail_change_enabled = interactive.InteractiveValue(
@@ -105,7 +150,8 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять почтовый адрес в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            mail_change_enabled = ""
 
         try:
             name_change_enabled = interactive.InteractiveValue(
@@ -113,7 +159,8 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять Имя Фамилия в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            name_change_enabled = ""
 
         try:
             avatar_change_enabled = interactive.InteractiveValue(
@@ -121,7 +168,8 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять аватар в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            avatar_change_enabled = ""
 
         try:
             badge_change_enabled = interactive.InteractiveValue(
@@ -129,7 +177,8 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять бейдж в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            badge_change_enabled = ""
 
         try:
             description_change_enabled = interactive.InteractiveValue(
@@ -137,7 +186,8 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять описание в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            description_change_enabled = ""
 
         try:
             status_change_enabled = interactive.InteractiveValue(
@@ -145,13 +195,15 @@ class RestrictionsMainConfig:
                 "Разрешено ли пользователям изменять статус в профиле", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, team_config_path)
+            status_change_enabled = ""
 
-        return self.init(phone_change_enabled, mail_change_enabled, name_change_enabled, avatar_change_enabled,
-                         badge_change_enabled, description_change_enabled, status_change_enabled)
+        return self.init(is_desktop_prohibited, is_ios_prohibited, is_android_prohibited, phone_change_enabled,
+                         mail_change_enabled, name_change_enabled, avatar_change_enabled, badge_change_enabled,
+                         description_change_enabled, status_change_enabled)
 
     # заполняем содержимым
-    def make_output(self):
+    def make_profile_output(self):
         phone_change_enabled_output = '"phone_change_enabled" => %s' % (
             str(self.phone_change_enabled).lower())
         mail_change_enabled_output = '"mail_change_enabled" => %s' % (
@@ -173,14 +225,29 @@ class RestrictionsMainConfig:
             status_change_enabled_output)
         return output.encode().decode()
 
+    # заполняем содержимым
+    def make_platform_output(self):
+        is_desktop_prohibited_output = '"is_desktop_prohibited" => %s' % (
+            str(self.is_desktop_prohibited).lower())
+        is_ios_prohibited_output = '"is_ios_prohibited" => %s' % (
+            str(self.is_ios_prohibited).lower())
+        is_android_prohibited_output = '"is_android_prohibited" => %s' % (
+            str(self.is_android_prohibited).lower())
+
+        output = "%s,\n %s,\n %s" % (
+            is_desktop_prohibited_output, is_ios_prohibited_output, is_android_prohibited_output
+        )
+        return output.encode().decode()
+
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
 # ---ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ---#
 
-def handle_exception(field, message: str):
+def handle_exception(field, message: str, config_path):
     if validate_only:
         validation_errors.append(message)
+        validation_error_config_path = str(config_path.resolve())
         return
 
     print(message)
@@ -199,7 +266,7 @@ def start():
 def write_file(output: str, conf_path: Path):
     if validate_only:
         if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+            print("Ошибка в конфигурации %s" % validation_error_config_path)
             for error in validation_errors:
                 print(error)
             exit(1)
@@ -217,7 +284,6 @@ def write_file(output: str, conf_path: Path):
 
 # генерируем конфиг
 def generate_config(restrictions_conf_path: Path, module_namespace: str):
-
     # генерируем данные
     config = RestrictionsMainConfig()
     output = make_output(config, module_namespace)
@@ -226,7 +292,7 @@ def generate_config(restrictions_conf_path: Path, module_namespace: str):
     if validate_only:
 
         if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+            print("Ошибка в конфигурации %s" % validation_error_config_path)
             for error in validation_errors:
                 print(error)
             exit(1)
@@ -255,7 +321,15 @@ $CONFIG["RESTRICTIONS_PROFILE"] = [
     {}
 ];
 
-return $CONFIG;""".format(module_namespace, config.make_output())
+/**
+ * все ограничения в приложении связанные с платформой
+ */
+$CONFIG["RESTRICTIONS_PLATFORM"] = [
+    {}
+];
+
+return $CONFIG;""".format(module_namespace, config.make_profile_output(), config.make_platform_output())
+
 
 # ---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#
 

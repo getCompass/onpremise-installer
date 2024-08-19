@@ -232,11 +232,13 @@ class AuthSsoConfig:
             sso_web_auth_button_text: str,
             authorization_alternative_enabled: bool,
             full_name_actualization_enabled: bool,
+            auto_join_to_team: str,
     ):
         self.sso_protocol = sso_protocol
         self.sso_web_auth_button_text = sso_web_auth_button_text
         self.authorization_alternative_enabled = authorization_alternative_enabled
         self.full_name_actualization_enabled = full_name_actualization_enabled
+        self.auto_join_to_team = auto_join_to_team
 
     def input(self):
 
@@ -282,15 +284,24 @@ class AuthSsoConfig:
             handle_exception(e.field, e.message)
             full_name_actualization_enabled = ""
 
-        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled, full_name_actualization_enabled)
+        try:
+            auto_join_to_team = interactive.InteractiveValue(
+                "sso.auto_join_to_team", "Автоматическое вступление пользователей после регистрации через SSO/LDAP в первую команду на сервере", "str", config=config, is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            auto_join_to_team = ""
+
+        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled, full_name_actualization_enabled, auto_join_to_team)
 
     # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
     def make_output(self):
-        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"full_name_actualization_enabled" => {},""".format(
+        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"full_name_actualization_enabled" => {},\n\t"auto_join_to_team" => "{}",""".format(
             self.sso_protocol,
             self.sso_web_auth_button_text,
             self.authorization_alternative_enabled,
             self.full_name_actualization_enabled,
+            self.auto_join_to_team,
         )
 
 class MailSmtpConfig:
@@ -609,7 +620,7 @@ class LdapConfig:
 
         try:
             ldap_server_port = interactive.InteractiveValue(
-                "ldap.server_port", "Порт сервера LDAP", "int", config=config, default_value="", is_required=is_required
+                "ldap.server_port", "Порт сервера LDAP", "int", config=config, default_value=0, is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -715,7 +726,7 @@ class LdapConfig:
 
     # подготавливаем содержимое для $CONFIG["SSO_OIDC_CONNECTION"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"account_disabling_monitoring_dn" => "{}",\n\t"account_disabling_monitoring_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.user_search_base,

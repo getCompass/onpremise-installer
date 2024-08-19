@@ -30,7 +30,6 @@ upstream upstream_integration_nginx_{{.stack_name_prefix}} {
 
 server {
 
-        listen 80;
         listen 443 http2 ssl;
 
         server_name     {{.domain}} *.{{.domain}};
@@ -78,4 +77,13 @@ server {
 
           	proxy_pass  https://upstream_single_nginx_{{.stack_name_prefix}};
         }
+}
+
+# редиректим с http на https
+server {
+
+        listen 80;
+        server_name {{.domain}} *.{{.domain}};
+
+        return 301 https://$host$request_uri;
 }
