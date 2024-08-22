@@ -3,7 +3,7 @@ PUBLIC_URL="{{.protocol}}://{{.projects.jitsi.domain}}"
 TZ=UTC
 JVB_ADVERTISE_IPS={{.projects.jitsi.host}}
 DOCKER_HOST_ADDRESS={{.projects.jitsi.host}}
-JVB_STUN_SERVERS="stun.l.google.com:19302"
+JVB_STUN_SERVERS="onpremise-turn.getcompass.ru:443"
 
 XMPP_MUC_MODULES=token_moderation,rest_api,persistent_lobby,token_lobby_bypass
 
