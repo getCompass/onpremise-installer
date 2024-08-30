@@ -34,6 +34,7 @@ parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument(
     "-e",
     "--environment",
+    default="production",
     required=False,
     type=str,
     help="среда, для которой производим развертывание",
@@ -42,9 +43,17 @@ parser.add_argument(
 parser.add_argument(
     "-v",
     "--values",
+    default="compass",
     required=False,
     type=str,
     help="название файла со значениями для развертывания",
+)
+
+parser.add_argument(
+    "--force",
+    required=False,
+    action='store_true',
+    help="форсированная регенерация сертификатов",
 )
 
 parser.add_argument(
@@ -60,6 +69,7 @@ host = None
 values_name = args.values
 environment = args.environment
 validate_only = args.validate_only
+force = args.force
 
 script_dir = str(Path(__file__).parent.resolve())
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
@@ -83,11 +93,15 @@ def start():
         exit(0)
     try:
         ca_pubkey_path, ca_privkey_path = get_root_certificate_path()
+
+        if force:
+            ca_pubkey_path, ca_privkey_path = create_root_certificate()
     except FileNotFoundError:
         ca_pubkey_path, ca_privkey_path = create_root_certificate()
+
     create_host_certificate(config.get("host_ip"), ca_pubkey_path, ca_privkey_path)
 
-def get_root_certificate_path() -> (Path, Path):
+def get_root_certificate_path() -> tuple[Path, Path]:
     CN = "compassRootCA"
 
     pubkey = "%s.crt" % CN
@@ -103,7 +117,7 @@ def get_root_certificate_path() -> (Path, Path):
     raise FileNotFoundError
 
 
-def create_root_certificate() -> (Path, Path):
+def create_root_certificate() -> tuple[Path, Path]:
     CN = "compassRootCA"
 
     pubkey = "%s.crt" % CN
@@ -114,7 +128,7 @@ def create_root_certificate() -> (Path, Path):
     privkey_path = Path(str(cert_path.resolve()) + "/" + privkey)
     srl_path = Path(str(cert_path.resolve()) + "/" + srl)
 
-    if pubkey_path.exists() and privkey_path.exists():
+    if pubkey_path.exists() and privkey_path.exists() and not force:
         return pubkey_path, privkey_path
 
     loader = Loader(
@@ -126,7 +140,9 @@ def create_root_certificate() -> (Path, Path):
     k.generate_key(crypto.TYPE_RSA, 2048)
     serialnumber = random.getrandbits(64)
 
+
     cert = crypto.X509()
+    cert.set_version(0x2)
     cert.get_subject().C = "CA"
     cert.get_subject().ST = "Compass"
     cert.get_subject().L = "Compass"
@@ -138,6 +154,11 @@ def create_root_certificate() -> (Path, Path):
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
     cert.set_issuer(cert.get_subject())
     cert.set_pubkey(k)
+
+    extensions = []
+    extensions.append(crypto.X509Extension(b"basicConstraints", True, b"CA:TRUE"))
+    cert.add_extensions(extensions)
+    
     cert.sign(k, "sha256")
 
     pub = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
@@ -192,7 +213,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     pubkey_path = Path(str(cert_path.resolve()) + "/" + pubkey)
     privkey_path = Path(str(cert_path.resolve()) + "/" + privkey)
 
-    if pubkey_path.exists() and privkey_path.exists():
+    if pubkey_path.exists() and privkey_path.exists() and not force:
         return pubkey_path, privkey_path
 
     ca_cert = crypto.load_certificate(crypto.FILETYPE_PEM, ca_pubkey_path.open().read())
@@ -234,6 +255,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     cert_req.sign(ca_key, "sha256")
 
     cert = crypto.X509()
+    cert.set_version(0x2)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
     cert.set_issuer(ca_cert.get_subject())

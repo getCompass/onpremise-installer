@@ -11,6 +11,7 @@ import collections.abc, shutil
 import re, socket, yaml, argparse, readline, string, random, pwd, os
 from utils.interactive import InteractiveValue, IncorrectValueException
 import uuid
+from base64 import b64encode
 
 scriptutils.assert_root()
 
@@ -328,6 +329,12 @@ def copy(
         return deep_get(project_values, ".".join(keys[1:]))
     else:
         return deep_get(global_values, ".".join(keys[1:]))
+
+def secret_key(
+    project_name: str, label: str, project_values: dict, global_values: dict, size: int
+):
+
+    return b64encode(os.urandom(size)).decode('utf-8')
 
 
 def copy_with_postfix(
@@ -673,6 +680,16 @@ required_specific_project_fields = {
             "ask": False,
         },
         {
+            "name": "domino_secret_key",
+            "comment": "Введите секретный ключ домино",
+            "default_value": None,
+            "value_function": secret_key,
+            "args": [32],
+            "type": "str",
+            "ask": False,
+            "is_protected": True,
+        },
+        {
             "name": "mysql_host",
             "comment": "Введите IP-адрес, на котором будет располагаться базы данных компаний",
             "default_value": None,
@@ -879,6 +896,14 @@ required_specific_project_fields = {
             "default_value": jitsi_ports["service.web.https_port"],
             "type": "int",
             "ask": True,
+        },
+        {
+            "name": "service.jvb.media_advertise_ips",
+            "comment": "Укажите IP-адрес или список IP-адресов (через запятую), по которым клиенты будут подключаться к медиа-серверу",
+            "default_value": None,
+            "type": "string",
+            "ask": True,
+            "is_required": False,
         },
         {
             "name": "service.jvb.media_port",
@@ -1420,6 +1445,11 @@ def init_project(
                         project, label, project_values, new_values, *extra_field["args"]
                     )
 
+                # обязательный ли к заполнению параметр
+                is_required = True
+                if extra_field.get("is_required") is not None:
+                    is_required = extra_field.get("is_required")
+
                 try:
                     new_value = InteractiveValue(
                         project + "." + extra_field["name"],
@@ -1429,6 +1459,7 @@ def init_project(
                         validation=extra_field.get("validation"),
                         force_default=use_default_values,
                         config=config,
+                        is_required=is_required,
                     ).from_config()
                 except IncorrectValueException as e:
                     handle_exception(e.field, e.message)

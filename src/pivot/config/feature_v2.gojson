@@ -2224,5 +2224,47 @@
 				"supported_version_list": [0, 1]
 			}
 		}
+	},
+	"conversation_invite": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
 	}
 }

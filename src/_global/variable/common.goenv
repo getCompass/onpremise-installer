@@ -4,7 +4,7 @@
 # серверные переменные
 
 SERVER_TYPE="{{.server_type}}"
-SERVER_TAG_LIST=[{{range .server_tag_list}}"{{.}}",{{end}}]
+SERVER_TAG_LIST={{make_list .server_tag_list}}
 DEV_SERVER={{.dev_server}}
 IS_LOCAL={{.is_local}}
 IS_ANALYTICS_ENABLED=1
@@ -83,6 +83,8 @@ PUBLIC_ENTRYPOINT_SOLUTION="https://solution.getcompass.com"
 PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.ru"
 PUBLIC_ENTRYPOINT_BILLING={{.billing_protocol}}://{{.billing_domain}}
 PUBLIC_ENTRYPOINT_VIDEO_CONFERENCE={{.protocol}}://{{.projects.jitsi.domain}}/c
+PUBLIC_ENTRYPOINT_ELECTRON_UPDATE=https://update-onpremise.getcompass.ru
+PUBLIC_CONNECT_CHECK_URL=https://ya.ru
 
 # точки входа для ссылок приглашений, основная будет использоваться для генерации
 # ссылок, набор вариаций для валидации (т.е. основная всегда должна быть в наборе вариаций)
@@ -129,3 +131,7 @@ GLOBAL_DISABLED_ANALYTICS_EVENT_GROUP_LIST=[]
 
 # токен для integration-хендлера
 INTEGRATION_AUTHORIZATION_TOKEN="{{.security_keys.integration.integration_authorization_token}}"
+
+CA_CERTIFICATE="{{ read_file (concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA.crt") }}"
+
+FORCE_COMPANY_CONFIG_UPDATE_INTERVAL_SEC=180

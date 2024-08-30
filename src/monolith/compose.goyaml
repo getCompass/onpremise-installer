@@ -50,16 +50,17 @@ x-healthcheck-go-2000: &healthcheck-go-2000
     timeout: "25s"
     retries: 10
 
+{{$network := concatne  "-" .stack_name_prefix "monolith-private" }}
 # --- DEFINES ---
 # единая сеть монолита
 networks:
   monolith-private:
-    name: "{{.stack_name_prefix}}-monolith-private"
+    name: "{{$network}}"
     driver: "overlay"
+    attachable: true
     ipam:
       config:
         - subnet: "{{.projects.monolith.network.subnet}}"
-
 # логика файлов по умолчанию
 volumes:
   default-file-{{.projects.pivot.service.default_file.tag}}:
@@ -850,11 +851,13 @@ services:
       - "mysql-{{$domino.label}}"
     environment:
       LOGGING_LEVEL: 2
+      DOMINO_NETWORK: {{$network}}
       GRPC_PORT: {{$domino.go_database_controller_port}}
       PROFILER_PORT: {{$domino.go_database_controller_profiler_port}}
       MYSQL_COMPANY_HOST: {{$domino.mysql_host}}
       COMPANY_DB_PATH: "{{.company_db_path}}"
       DOMINO_ID: {{$domino.label}}
+      SOCKET_DIRECTORY: {{.company_db_path}}/{{$domino.label}}/socket
       REGISTRY_SERVICE_PATH: {{.registry_service_path}}
       DOMINO_TIER: {{$domino.tier}}
       STACK_NAME_PREFIX: "{{.stack_name_prefix}}"
@@ -869,6 +872,7 @@ services:
       - ".project.domino.common.env"
       - ".project.domino.php_pivot.env"
       - ".project.override.env"
+      - ".project.domino.go_database_controller.env"
     ports:
       - "{{$domino.go_database_controller_port}}:{{$domino.go_database_controller_port}}"
     networks:

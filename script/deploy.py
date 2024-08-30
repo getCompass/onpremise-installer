@@ -287,7 +287,7 @@ if environment not in ["local", "tes"] and project != "search":
     # копируем сертификаты
     cert_path = Path(str(script_path.resolve()) + "/../certs/")
     cert_create_script_path = Path(
-        str(script_path.resolve()) + "/create_nginx_certs.py"
+        str(script_path.resolve()) + "/generate_ssl_certificates.py"
     )
     if not cert_path.exists():
         print(

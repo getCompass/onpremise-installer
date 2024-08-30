@@ -62,7 +62,7 @@ if len(docker_monolith_network_list) > 0:
     )
 
     try:
-        if input("Выполняем обновление приложения? [y/N]\n") != "y":
+        if input("Выполняем обновление приложения? [Y/n]\n").lower() != "y":
             scriptutils.die("Обновление приложения было отменено")
     except UnicodeDecodeError as e:
         print("Не смогли декодировать ответ. Error: ", e)

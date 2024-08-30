@@ -13,7 +13,6 @@ class Version(tuple):
     def __new__(cls, text):
         return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
-
 # пробуем получить файл с версией инсталлятора
 script_dir = str(Path(__file__).parent.resolve())
 version_path = Path(script_dir + "/../.version")
@@ -77,8 +76,7 @@ for migration_folder in sorted(config_files_path.glob("*")):
                     if process.returncode == 0:
                         version_list.append(version)
                     else:
-                        break_outer_loop = True
-                        break
+                        exit(1)
 
 # если список версий пуст, значит миграций не было
 if len(version_list) == 0:

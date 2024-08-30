@@ -184,7 +184,7 @@ config.disableDeepLinking = false;
 config.videoQuality = {
 
 	// Provides a way to set the codec preference on desktop based endpoints.
-	codecPreferenceOrder: ['AV1', 'H264', 'VP9'],
+	codecPreferenceOrder: ['H264', 'VP9'],
 
 	// Codec specific settings for scalability modes and max bitrates.
 	av1: {
@@ -248,6 +248,10 @@ config.videoQuality = {
 	mobileCodecPreferenceOrder: ['AV1', 'VP9', 'H264'],
 };
 
+if (typeof navigator !== 'undefined' && typeof navigator.userAgent !== 'undefined' && navigator.userAgent.indexOf('YaBrowser') !== -1) {
+	config.videoQuality.h264.scalabilityModeEnabled = false;
+}
+
 // Reactions
 config.disableReactions = false;
 
@@ -304,7 +308,7 @@ config.whiteboard = {
 
 // Testing
 config.testing = {
-	enableAv1Support: true
+	enableAv1Support: false
 };
 
 // пустить ли весь трафик через TURN сервер

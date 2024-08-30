@@ -1,0 +1,5 @@
+{{$domino := index .projects.domino .domino_id}}
+DOMINO_SECRET_KEY={{$domino.domino_secret_key}}
+
+MYSQL_HOST_CERTIFICATE="{{ read_file (concatne "." (concatne "/" .root_mount_path "nginx" "ssl" $domino.mysql_host) "crt") }}"
+MYSQL_HOST_PRIVATE_KEY="{{ read_file (concatne "." (concatne "/" .root_mount_path "nginx" "ssl" $domino.mysql_host) "key") }}"

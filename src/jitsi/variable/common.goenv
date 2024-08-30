@@ -1,8 +1,8 @@
 ENABLE_HTTP_REDIRECT=1
 PUBLIC_URL="{{.protocol}}://{{.projects.jitsi.domain}}"
 TZ=UTC
-JVB_ADVERTISE_IPS={{.projects.jitsi.host}}
-DOCKER_HOST_ADDRESS={{.projects.jitsi.host}}
+JVB_ADVERTISE_IPS={{if eq .projects.jitsi.service.jvb.media_advertise_ips ""}}{{.projects.jitsi.host}}{{else}}{{.projects.jitsi.service.jvb.media_advertise_ips}}{{end}}
+DOCKER_HOST_ADDRESS={{if eq .projects.jitsi.service.jvb.media_advertise_ips ""}}{{.projects.jitsi.host}}{{else}}{{.projects.jitsi.service.jvb.media_advertise_ips}}{{end}}
 JVB_STUN_SERVERS="onpremise-turn.getcompass.ru:443"
 
 XMPP_MUC_MODULES=token_moderation,rest_api,persistent_lobby,token_lobby_bypass

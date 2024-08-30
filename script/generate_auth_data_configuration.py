@@ -578,6 +578,7 @@ class LdapConfig:
             user_search_account_password: str,
             account_disabling_monitoring_interval: str,
             user_search_page_size: int,
+            user_search_filter: str,
 
     ):
         self.server_host = server_host
@@ -592,6 +593,7 @@ class LdapConfig:
         self.user_search_account_password = user_search_account_password
         self.account_disabling_monitoring_interval = account_disabling_monitoring_interval
         self.user_search_page_size = user_search_page_size
+        self.user_search_filter = user_search_filter
 
     def input(self):
 
@@ -643,6 +645,30 @@ class LdapConfig:
             ldap_user_unique_attribute = ""
 
         try:
+            ldap_user_search_filter = interactive.InteractiveValue(
+                "ldap.user_search_filter", "Фильтр для поиска учетной записи LDAP в момент авторизации пользователя в приложении", "str", config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_search_filter = ""
+
+        try:
+            ldap_user_search_account_dn = interactive.InteractiveValue(
+                "ldap.user_search_account_dn", "Полный DN (Distinguished Name) учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_search_account_dn = ""
+
+        try:
+            ldap_user_search_account_password = interactive.InteractiveValue(
+                "ldap.user_search_account_password", "Пароль учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_search_account_password = ""
+
+        try:
             ldap_limit_of_incorrect_auth_attempts = interactive.InteractiveValue(
                 "ldap.limit_of_incorrect_auth_attempts", "Лимит неудачных попыток аутентификации, по достижению которых IP адрес пользователя получает блокировку на 15 минут", "int", config=config, default_value=7, is_required=is_required
             ).from_config()
@@ -683,22 +709,6 @@ class LdapConfig:
             handle_exception("ldap.on_account_disabling", bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_disabling в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
-            ldap_user_search_account_dn = interactive.InteractiveValue(
-                "ldap.user_search_account_dn", "Полный DN (Distinguished Name) учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
-            ).from_config()
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
-            ldap_user_search_account_dn = ""
-
-        try:
-            ldap_user_search_account_password = interactive.InteractiveValue(
-                "ldap.user_search_account_password", "Пароль учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
-            ).from_config()
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
-            ldap_user_search_account_password = ""
-
-        try:
             ldap_account_disabling_monitoring_interval = interactive.InteractiveValue(
                 "ldap.account_disabling_monitoring_interval", "Временной интервал между проверками мониторинга блокировки пользователя LDAP", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
             ).from_config()
@@ -722,15 +732,16 @@ class LdapConfig:
         if ldap_account_disabling_monitoring_enabled and ldap_user_search_page_size < 1:
             handle_exception("ldap.user_search_page_size", bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
 
-        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval, ldap_user_search_page_size)
+        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval, ldap_user_search_page_size, ldap_user_search_filter)
 
-    # подготавливаем содержимое для $CONFIG["SSO_OIDC_CONNECTION"]
+    # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.user_search_base,
             self.user_search_page_size,
+            self.user_search_filter,
             self.user_unique_attribute,
             self.limit_of_incorrect_auth_attempts,
             self.account_disabling_monitoring_enabled,

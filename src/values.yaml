@@ -89,7 +89,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.0.3"
+        tag: "v4.1.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -103,7 +103,7 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v3.1.0"
+        tag: "v4.1.0"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
@@ -111,7 +111,7 @@ projects:
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v3.0.0"
+        tag: "v4.1.0"
 
   pivot:
     host: "0.0.0.0"
@@ -142,7 +142,7 @@ projects:
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
       go_pusher:
-        tag: "v3.0.0"
+        tag: "v4.1.0"
         rabbit_queue: "go_pusher_queue"
         rabbit_exchange: "go_pusher_exchange"
         is_push_mock_enable: 0
@@ -156,7 +156,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v3.0.0"
+        tag: "v4.1.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -164,7 +164,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v3.1.0"
+        tag: "v4.1.0"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -205,7 +205,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v3.0.0"
+        tag: "v4.1.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -327,25 +327,25 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.0.3"
+          tag: "v4.1.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v1.6.0"
+          tag: "v4.1.0"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v3.0.0"
+          tag: "v4.1.0"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
-          tag: "v1.6.0"
+          tag: "v4.1.0"
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v3.1.0"
+          tag: "v4.1.0"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -364,11 +364,11 @@ projects:
           rabbit_queue: "go_partner_agent_queue"
           rabbit_exchange: "go_partner_agent_exchange"
         go_rating:
-          tag: "v1.6.0"
+          tag: "v4.1.0"
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v1.6.0"
+          tag: "v4.1.0"
         nginx:
           external_https_port: 20106
   userbot:
@@ -488,7 +488,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.0.2"
+        tag: "v4.1.0"
         external_port: 43100
 
   integration:
@@ -534,6 +534,7 @@ projects:
         https_port: 20109
       jvb:
         media_port: 10000
+        media_advertise_ips: ""
       jicofo:
         port: 20111
       prosody:

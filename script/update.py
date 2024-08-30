@@ -27,12 +27,16 @@ use_default_values = args.use_default_values
 install_integration = args.install_integration
 
 # сначала актуализируем инсталлятор
-subprocess.run(
+sb = subprocess.run(
     [
         "python3",
         script_resolved_path + "/installer_migrations_up.py",
     ]
-).returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
+)
+if sb.returncode == 1:
+    exit(1)
+
+sb.returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
 
 # пишем константы
 values_name = "compass"
