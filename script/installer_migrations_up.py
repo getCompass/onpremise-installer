@@ -13,6 +13,7 @@ class Version(tuple):
     def __new__(cls, text):
         return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
+
 # пробуем получить файл с версией инсталлятора
 script_dir = str(Path(__file__).parent.resolve())
 version_path = Path(script_dir + "/../.version")
@@ -29,6 +30,10 @@ config_files_path = Path(script_dir + "/../updates")
 version_list = []
 break_outer_loop = False  # флаг для прерывания внешнего цикла
 for migration_folder in sorted(config_files_path.glob("*")):
+
+    # скипаем скрытые папки, такие как .DS_Store
+    if migration_folder.name.startswith('.'):
+        continue
 
     if break_outer_loop:
         break

@@ -5,6 +5,7 @@ import sys
 import docker.models
 import docker.models.containers
 import docker.models.networks
+from typing import List
 
 sys.dont_write_bytecode = True
 
@@ -26,7 +27,7 @@ script_dir = str(Path(__file__).parent.resolve())
 need_update = False
 client = docker.from_env()
 
-container_list : list[docker.models.containers.Container] = client.containers.list(filters={"name": "company_mysql"})
+container_list : List[docker.models.containers.Container] = client.containers.list(filters={"name": "company_mysql"})
 
 # проверяем, есть ли мускулы на хостовой сети. Если есть - сервер надо апдейтить
 for container in container_list:

@@ -9,6 +9,7 @@ from pathlib import Path
 import random, shutil, subprocess, ipaddress, argparse, yaml
 from utils import scriptutils, interactive
 from loader import Loader
+from typing import Tuple
 
 scriptutils.assert_root()
 script_path = Path(__file__).parent.resolve()
@@ -101,7 +102,7 @@ def start():
 
     create_host_certificate(config.get("host_ip"), ca_pubkey_path, ca_privkey_path)
 
-def get_root_certificate_path() -> tuple[Path, Path]:
+def get_root_certificate_path() -> Tuple[Path, Path]:
     CN = "compassRootCA"
 
     pubkey = "%s.crt" % CN
@@ -117,7 +118,7 @@ def get_root_certificate_path() -> tuple[Path, Path]:
     raise FileNotFoundError
 
 
-def create_root_certificate() -> tuple[Path, Path]:
+def create_root_certificate() -> Tuple[Path, Path]:
     CN = "compassRootCA"
 
     pubkey = "%s.crt" % CN
