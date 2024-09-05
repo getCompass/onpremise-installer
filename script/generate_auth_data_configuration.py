@@ -67,7 +67,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--ldap-output-path",
+    "--sso-oidc-output-path",
+    required=False,
+    default=root_path + "/src/federation/config/oidc.gophp",
+    help="Путь до выходного файла конфига для SSO",
+)
+
+parser.add_argument(
+    "--sso-ldap-output-path",
     required=False,
     default=root_path + "/src/federation/config/ldap.gophp",
     help="Путь до выходного файла конфига для LDAP",
@@ -89,11 +96,13 @@ validate_only = args.validate_only
 auth_conf_path = args.auth_output_path
 smtp_conf_path = args.smtp_output_path
 sso_conf_path = args.sso_output_path
-ldap_conf_path = args.ldap_output_path
+sso_oidc_conf_path = args.sso_oidc_output_path
+sso_ldap_conf_path = args.sso_ldap_output_path
+sso_conf_path = Path(sso_conf_path)
 auth_conf_path = Path(auth_conf_path)
 smtp_conf_path = Path(smtp_conf_path)
-sso_conf_path = Path(sso_conf_path)
-ldap_conf_path = Path(ldap_conf_path)
+sso_oidc_conf_path = Path(sso_oidc_conf_path)
+sso_ldap_conf_path = Path(sso_ldap_conf_path)
 validation_errors = []
 
 
@@ -116,7 +125,8 @@ class AuthMainConfig:
         # получаем настройку включения проверки капчи
         try:
             captcha_enabled = interactive.InteractiveValue(
-                "captcha.enabled", "Включена ли опция проверки капчи при достижении лимита попыток аутентификации.", "bool", config=config,
+                "captcha.enabled", "Включена ли опция проверки капчи при достижении лимита попыток аутентификации.",
+                "bool", config=config,
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -150,8 +160,10 @@ class AuthMainConfig:
         captcha_enabled_output = '"captcha_enabled" => %s' % (str(self.captcha_enabled).lower())
         captcha_require_after_output = '"captcha_require_after" => %d' % (self.require_after)
 
-        output = "\n%s,\n %s,\n %s\n" % (available_method_list_output, captcha_enabled_output, captcha_require_after_output)
+        output = "\n%s,\n %s,\n %s\n" % (
+            available_method_list_output, captcha_enabled_output, captcha_require_after_output)
         return output.encode().decode()
+
 
 class AuthMailConfig:
     def __init__(self) -> None:
@@ -182,7 +194,7 @@ class AuthMailConfig:
         # проверяем количество доменов почтовых адресов
         if len(allowed_domain_list.split(",")) > 3:
             scriptutils.die(
-               "Превышено количество доступных доментов почтовых адресов: не более 3"
+                "Превышено количество доступных доментов почтовых адресов: не более 3"
             )
 
         # проверяем, что список содержит только ENG домены
@@ -193,20 +205,22 @@ class AuthMailConfig:
             domain = domain.replace(']', "")
             if re.search(r'[^a-z\W\d]', domain.lower()) is not None:
                 scriptutils.die(
-                   "Разрешены только ENG домены"
+                    "Разрешены только ENG домены"
                 )
 
         # получаем значение опции подтверждения почты
         try:
             registration_2fa_enabled = interactive.InteractiveValue(
-                "mail.registration_2fa_enabled", "Включена ли опция подтверждения почты при регистрации через проверочный код", "bool", config=config
+                "mail.registration_2fa_enabled",
+                "Включена ли опция подтверждения почты при регистрации через проверочный код", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
         try:
             authorization_2fa_enabled = interactive.InteractiveValue(
-                "mail.authorization_2fa_enabled", "Включена ли опция подтверждения почты при авторизации через проверочный код", "bool", config=config
+                "mail.authorization_2fa_enabled",
+                "Включена ли опция подтверждения почты при авторизации через проверочный код", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -216,11 +230,15 @@ class AuthMailConfig:
     # заполняем содержимым
     def make_output(self):
         allowed_domain_list_output = '"allowed_domain_list" => %s' % (self.allowed_domain_list)
-        mail_registration_2fa_enabled_output = '"registration_2fa_enabled" => %s' % (str(self.registration_2fa_enabled).lower())
-        mail_authorization_2fa_enabled_output = '"authorization_2fa_enabled" => %s' % (str(self.authorization_2fa_enabled).lower())
+        mail_registration_2fa_enabled_output = '"registration_2fa_enabled" => %s' % (
+            str(self.registration_2fa_enabled).lower())
+        mail_authorization_2fa_enabled_output = '"authorization_2fa_enabled" => %s' % (
+            str(self.authorization_2fa_enabled).lower())
 
-        output = "\n%s,\n %s,\n %s\n" % (allowed_domain_list_output, mail_registration_2fa_enabled_output, mail_authorization_2fa_enabled_output)
+        output = "\n%s,\n %s,\n %s\n" % (
+            allowed_domain_list_output, mail_registration_2fa_enabled_output, mail_authorization_2fa_enabled_output)
         return output.encode().decode()
+
 
 class AuthSsoConfig:
     def __init__(self) -> None:
@@ -231,20 +249,21 @@ class AuthSsoConfig:
             sso_protocol: str,
             sso_web_auth_button_text: str,
             authorization_alternative_enabled: bool,
-            full_name_actualization_enabled: bool,
+            profile_data_actualization_enabled: bool,
             auto_join_to_team: str,
     ):
         self.sso_protocol = sso_protocol
         self.sso_web_auth_button_text = sso_web_auth_button_text
         self.authorization_alternative_enabled = authorization_alternative_enabled
-        self.full_name_actualization_enabled = full_name_actualization_enabled
+        self.profile_data_actualization_enabled = profile_data_actualization_enabled
         self.auto_join_to_team = auto_join_to_team
 
     def input(self):
 
         # получаем значение доступных методов для авторизации
         available_methods = interactive.InteractiveValue(
-            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config,
+            is_required=False
         ).from_config()
 
         # если указан sso в качестве доступного метода авторизации, то данные должны быть заполнены
@@ -254,7 +273,8 @@ class AuthSsoConfig:
 
         try:
             sso_protocol = interactive.InteractiveValue(
-                "sso.protocol", "Укажите протокол, который будет использоваться для аутентификации", "str", config=config, default_value="", is_required=is_required
+                "sso.protocol", "Укажите протокол, который будет использоваться для аутентификации", "str",
+                config=config, default_value="", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -262,7 +282,10 @@ class AuthSsoConfig:
 
         try:
             sso_web_auth_button_text = interactive.InteractiveValue(
-                "sso.web_auth_button_text", "Кастомный текст кнопки для запуска аутентификации через SSO на веб-сайте On-Premise решения", "str", config=config, default_value="Войти через корп. портал (AD SSO)", is_required=is_required
+                "sso.web_auth_button_text",
+                "Кастомный текст кнопки для запуска аутентификации через SSO на веб-сайте On-Premise решения", "str",
+                config=config,
+                default_value="Войти через корп. портал (AD SSO)", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -270,39 +293,50 @@ class AuthSsoConfig:
 
         try:
             authorization_alternative_enabled = interactive.InteractiveValue(
-                "sso.authorization_alternative_enabled", "Включена ли опция альтернативных способов аутентификации при аутентификации через SSO", "bool", config=config, is_required=is_required
+                "sso.authorization_alternative_enabled",
+                "Включена ли опция альтернативных способов аутентификации при аутентификации через SSO", "bool",
+                config=config,
+                is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             authorization_alternative_enabled = ""
 
         try:
-            full_name_actualization_enabled = interactive.InteractiveValue(
-                "sso.full_name_actualization_enabled", "Включена ли опция актуализации Имени Фамилии пользователей в Compass каждый раз, когда они успешно авторизуются в приложении через SSO", "bool", config=config, is_required=is_required
+            profile_data_actualization_enabled = interactive.InteractiveValue(
+                "sso.profile_data_actualization_enabled",
+                "Включена ли опция актуализации Имени Фамилии пользователей в Compass каждый раз, когда они успешно авторизуются в приложении через SSO",
+                "bool",
+                config=config, is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            full_name_actualization_enabled = ""
+            profile_data_actualization_enabled = ""
 
         try:
             auto_join_to_team = interactive.InteractiveValue(
-                "sso.auto_join_to_team", "Автоматическое вступление пользователей после регистрации через SSO/LDAP в первую команду на сервере", "str", config=config, is_required=is_required
+                "sso.auto_join_to_team",
+                "Автоматическое вступление пользователей после регистрации через SSO/LDAP в первую команду на сервере",
+                "str", config=config,
+                is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             auto_join_to_team = ""
 
-        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled, full_name_actualization_enabled, auto_join_to_team)
+        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled,
+                         profile_data_actualization_enabled, auto_join_to_team)
 
     # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
     def make_output(self):
-        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"full_name_actualization_enabled" => {},\n\t"auto_join_to_team" => "{}",""".format(
+        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"profile_data_actualization_enabled" => {},\n\t"auto_join_to_team" => "{}",""".format(
             self.sso_protocol,
             self.sso_web_auth_button_text,
             self.authorization_alternative_enabled,
-            self.full_name_actualization_enabled,
+            self.profile_data_actualization_enabled,
             self.auto_join_to_team,
         )
+
 
 class MailSmtpConfig:
     def __init__(self) -> None:
@@ -329,21 +363,24 @@ class MailSmtpConfig:
         # получаем значение опции подтверждения почты
         try:
             registration_2fa_enabled = interactive.InteractiveValue(
-                "mail.registration_2fa_enabled", "Включена ли опция подтверждения почты при регистрации через проверочный код", "bool", config=config
+                "mail.registration_2fa_enabled",
+                "Включена ли опция подтверждения почты при регистрации через проверочный код", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
         try:
             authorization_2fa_enabled = interactive.InteractiveValue(
-                "mail.authorization_2fa_enabled", "Включена ли опция подтверждения почты при авторизации через проверочный код", "bool", config=config
+                "mail.authorization_2fa_enabled",
+                "Включена ли опция подтверждения почты при авторизации через проверочный код", "bool", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
         # получаем значение доступных методов для авторизации
         available_methods = interactive.InteractiveValue(
-            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config,
+            is_required=False
         ).from_config()
 
         # если указан mail в качестве доступного метода авторизации, то данные для smtp должны быть заполнены
@@ -353,7 +390,8 @@ class MailSmtpConfig:
 
         try:
             smtp_host = interactive.InteractiveValue(
-                "smtp.host", "Хост для отправки писем по SMTP", "str", config=config, default_value="", is_required=is_mail_smtp_required
+                "smtp.host", "Хост для отправки писем по SMTP", "str", config=config, default_value="",
+                is_required=is_mail_smtp_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -361,7 +399,8 @@ class MailSmtpConfig:
 
         try:
             smtp_port = interactive.InteractiveValue(
-                "smtp.port", "Порт для отправки писем по SMTP", "int", config=config, default_value=0, is_required=is_mail_smtp_required
+                "smtp.port", "Порт для отправки писем по SMTP", "int", config=config, default_value=0,
+                is_required=is_mail_smtp_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -369,7 +408,8 @@ class MailSmtpConfig:
 
         try:
             smtp_username = interactive.InteractiveValue(
-                "smtp.username", "Имя пользователя для отправки писем по SMTP", "str", config=config, default_value="", is_required=False, validation="mail"
+                "smtp.username", "Имя пользователя для отправки писем по SMTP", "str", config=config, default_value="",
+                is_required=False, validation="mail"
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -377,7 +417,8 @@ class MailSmtpConfig:
 
         try:
             smtp_password = interactive.InteractiveValue(
-                "smtp.password", "Пароль для отправки писем по SMTP", "str", config=config, default_value="", is_required=False
+                "smtp.password", "Пароль для отправки писем по SMTP", "str", config=config, default_value="",
+                is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -385,7 +426,8 @@ class MailSmtpConfig:
 
         try:
             smtp_encryption = interactive.InteractiveValue(
-                "smtp.encryption", "Тип шифрования соединения по SMTP", "str", config=config, default_value="", is_required=False
+                "smtp.encryption", "Тип шифрования соединения по SMTP", "str", config=config, default_value="",
+                is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -393,7 +435,8 @@ class MailSmtpConfig:
 
         try:
             smtp_from = interactive.InteractiveValue(
-                "smtp.from", "Электронный адрес отправителя", "str", config=config, default_value="", is_required=is_mail_smtp_required, validation="mail"
+                "smtp.from", "Электронный адрес отправителя", "str", config=config, default_value="",
+                is_required=is_mail_smtp_required, validation="mail"
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -410,37 +453,37 @@ class MailSmtpConfig:
         smtp_encryption_output = '"encryption" => "%s"' % (self.smtp_encryption)
         smtp_from_output = '"from" => "%s"' % (self.smtp_from)
 
-        output = "\n%s,\n %s,\n %s,\n %s,\n %s,\n %s\n" % (smtp_host_output, smtp_port_output, smtp_username_output, smtp_password_output, smtp_encryption_output, smtp_from_output)
+        output = "\n%s,\n %s,\n %s,\n %s,\n %s,\n %s\n" % (
+            smtp_host_output, smtp_port_output, smtp_username_output, smtp_password_output, smtp_encryption_output,
+            smtp_from_output)
         return output.encode().decode()
 
-class SsoConfig:
+
+class SsoOidcConfig:
     def __init__(self) -> None:
         self.input()
 
     def init(
             self,
-            sso_client_id: str,
-            sso_client_secret: str,
+            sso_oidc_client_id: str,
+            sso_oidc_client_secret: str,
             sso_oidc_provider_metadata: str,
-            sso_attribution_mapping_first_name: str,
-            sso_attribution_mapping_last_name: str,
-            sso_attribution_mapping_mail: str,
-            sso_attribution_mapping_phone_number: str,
+            sso_oidc_attribution_mapping_mail: str,
+            sso_oidc_attribution_mapping_phone_number: str,
 
     ):
-        self.sso_client_id = sso_client_id
-        self.sso_client_secret = sso_client_secret
+        self.sso_oidc_client_id = sso_oidc_client_id
+        self.sso_oidc_client_secret = sso_oidc_client_secret
         self.sso_oidc_provider_metadata = sso_oidc_provider_metadata
-        self.sso_attribution_mapping_first_name = sso_attribution_mapping_first_name
-        self.sso_attribution_mapping_last_name = sso_attribution_mapping_last_name
-        self.sso_attribution_mapping_mail = sso_attribution_mapping_mail
-        self.sso_attribution_mapping_phone_number = sso_attribution_mapping_phone_number
+        self.sso_oidc_attribution_mapping_mail = sso_oidc_attribution_mapping_mail
+        self.sso_oidc_attribution_mapping_phone_number = sso_oidc_attribution_mapping_phone_number
 
     def input(self):
 
         # получаем значение доступных методов для авторизации
         available_methods = interactive.InteractiveValue(
-            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config,
+            is_required=False
         ).from_config()
 
         # получаем протокол sso
@@ -450,7 +493,8 @@ class SsoConfig:
 
         # проверяем, что указано корректное значение
         if "sso" in available_methods and sso_protocol not in ["oidc", "ldap"]:
-            handle_exception("sso.protocol", bcolors.WARNING + "Некорректное значение для параметра sso.protocol в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("sso.protocol",
+                             bcolors.WARNING + "Некорректное значение для параметра sso.protocol в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         # если указан sso в качестве доступного метода авторизации и протокол OIDC, то данные должны быть заполнены
         is_required = False
@@ -458,25 +502,28 @@ class SsoConfig:
             is_required = True
 
         try:
-            sso_client_id = interactive.InteractiveValue(
-                "oidc.client_id", "ID клиентского приложения", "str", config=config, default_value="", is_required=is_required
+            sso_oidc_client_id = interactive.InteractiveValue(
+                "oidc.client_id", "ID клиентского приложения", "str", config=config, default_value="",
+                is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            sso_client_id = ""
+            sso_oidc_client_id = ""
 
         try:
-            sso_client_secret = interactive.InteractiveValue(
-                "oidc.client_secret", "Секретный ключ клиентского приложения", "str", config=config, default_value="", is_required=is_required
+            sso_oidc_client_secret = interactive.InteractiveValue(
+                "oidc.client_secret", "Секретный ключ клиентского приложения", "str", config=config, default_value="",
+                is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            sso_client_secret = ""
+            sso_oidc_client_secret = ""
 
         try:
 
             sso_oidc_provider_metadata_link = interactive.InteractiveValue(
-                "oidc.oidc_provider_metadata_link", "Ссылка на метаданные SSO провайдера", "str", config=config, default_value="", is_required=is_required
+                "oidc.oidc_provider_metadata_link", "Ссылка на метаданные SSO провайдера", "str", config=config,
+                default_value="", is_required=is_required
             ).from_config()
 
             # если SSO параметры обязательны к заполнению, то получаем содержимое по ссылке
@@ -498,69 +545,191 @@ class SsoConfig:
             sso_oidc_provider_metadata = "{}"
 
         except requests.RequestException:
-            handle_exception("oidc.oidc_provider_metadata_link", "Не удалось получить содержимое ссылки с метаданными SSO провайдера")
+            handle_exception("oidc.oidc_provider_metadata_link",
+                             "Не удалось получить содержимое ссылки с метаданными SSO провайдера")
             sso_oidc_provider_metadata = "{}"
 
         except json.decoder.JSONDecodeError:
-            handle_exception("oidc.oidc_provider_metadata_link", "Содержимое ссылки не является JSON объектом с метаданными SSO провайдера")
+            handle_exception("oidc.oidc_provider_metadata_link",
+                             "Содержимое ссылки не является JSON объектом с метаданными SSO провайдера")
             sso_oidc_provider_metadata = "{}"
 
         try:
-            sso_attribution_mapping_first_name = interactive.InteractiveValue(
-                "oidc.attribution_mapping.first_name", "Сопоставление атрибута first_name (имя) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            sso_oidc_attribution_mapping_mail = interactive.InteractiveValue(
+                "oidc.attribution_mapping.mail",
+                "Сопоставление атрибута mail (почта) между учетной записью SSO и профилем пользователя Compass", "str",
+                config=config, default_value="", is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            sso_attribution_mapping_first_name = ""
+            sso_oidc_attribution_mapping_mail = ""
 
         try:
-            sso_attribution_mapping_last_name = interactive.InteractiveValue(
-                "oidc.attribution_mapping.last_name", "Сопоставление атрибута last_name (фамилия) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
+            sso_oidc_attribution_mapping_phone_number = interactive.InteractiveValue(
+                "oidc.attribution_mapping.phone_number",
+                "Сопоставление атрибута phone_number (номер телефона) между учетной записью SSO и профилем пользователя Compass",
+                "str", config=config, default_value="", is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
-            sso_attribution_mapping_last_name = ""
+            sso_oidc_attribution_mapping_phone_number = ""
 
-        try:
-            sso_attribution_mapping_mail = interactive.InteractiveValue(
-                "oidc.attribution_mapping.mail", "Сопоставление атрибута mail (почта) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
-            ).from_config()
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
-            sso_attribution_mapping_mail = ""
+        # проверяем, что одно из полей mail или phone_number должны быть заполнены
+        if is_required and sso_oidc_attribution_mapping_mail == "" and sso_oidc_attribution_mapping_phone_number == "":
+            handle_exception("", scriptutils.warning(
+                "Для корректной работы SSO аутентификации в root-пользователя необходимо заполнить хотя бы один из параметров:\noidc.attribution_mapping.mail или oidc.attribution_mapping.phone_number"))
 
-        try:
-            sso_attribution_mapping_phone_number = interactive.InteractiveValue(
-                "oidc.attribution_mapping.phone_number", "Сопоставление атрибута phone_number (номер телефона) между учетной записью SSO и профилем пользователя Compass", "str", config=config, default_value="", is_required=False
-            ).from_config()
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
-            sso_attribution_mapping_phone_number = ""
+        return self.init(sso_oidc_client_id, sso_oidc_client_secret, sso_oidc_provider_metadata,
+                         sso_oidc_attribution_mapping_mail, sso_oidc_attribution_mapping_phone_number)
 
-        # проверяем, что одно из полей first_name или last_name заполнены и одно из полей mail или phone_number заполнены
-        if is_required and sso_attribution_mapping_first_name == "" and sso_attribution_mapping_last_name == "" and sso_attribution_mapping_mail == "" and sso_attribution_mapping_phone_number == "":
-            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров в парах:\n– sso.attribution_mapping.first_name или sso.attribution_mapping.last_name\n– sso.attribution_mapping.mail или sso.attribution_mapping.phone_number"))
-        elif is_required and sso_attribution_mapping_first_name == "" and sso_attribution_mapping_last_name == "":
-            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров:\nsso.attribution_mapping.first_name или sso.attribution_mapping.last_name"))
-        elif is_required and sso_attribution_mapping_mail == "" and sso_attribution_mapping_phone_number == "":
-            handle_exception("", scriptutils.warning("Для корректной работы SSO аутентификации необходимо заполнить хотя бы один из параметров:\nsso.attribution_mapping.mail или sso.attribution_mapping.phone_number"))
-
-        return self.init(sso_client_id, sso_client_secret, sso_oidc_provider_metadata, sso_attribution_mapping_first_name, sso_attribution_mapping_last_name, sso_attribution_mapping_mail, sso_attribution_mapping_phone_number)
-
-    # подготавливаем содержимое для $CONFIG["SSO_OIDC_CONNECTION"]
+    # подготавливаем содержимое для $CONFIG["OIDC_CONNECTION"]
     def make_sso_oidc_connection_output(self):
-        return """"client_id" => "{}",\n\t"client_secret" => "{}",""".format(self.sso_client_id, self.sso_client_secret)
+        return """"client_id" => "{}",\n\t"client_secret" => "{}",""".format(self.sso_oidc_client_id,
+                                                                             self.sso_oidc_client_secret)
 
-    # подготавливаем содержимое для $CONFIG["SSO_ATTRIBUTION_MAPPING"]
-    def make_sso_attribution_mapping_output(self):
-        return """"first_name" => "{}",\n\t"last_name" => "{}",\n\t"mail" => "{}",\n\t"phone_number" => "{}",""".format(
-            self.sso_attribution_mapping_first_name,
-            self.sso_attribution_mapping_last_name,
-            self.sso_attribution_mapping_mail,
-            self.sso_attribution_mapping_phone_number,
+    # подготавливаем содержимое для $CONFIG["OIDC_ATTRIBUTION_MAPPING"]
+    def make_sso_oidc_attribution_mapping_output(self):
+        return """"mail" => "{}",\n\t"phone_number" => "{}",""".format(
+            self.sso_oidc_attribution_mapping_mail,
+            self.sso_oidc_attribution_mapping_phone_number,
         )
 
-class LdapConfig:
+
+class SsoCompassMappingConfig:
+    def __init__(self) -> None:
+        self.input()
+
+    def validate_sso_compass_mapping_values(mapping_params: dict):
+        pattern = r"^(?:\{\w+\})(?:\s\{\w+\})*$"
+        errors = {}
+
+        # валидируем каждый параметр
+        for key, value in mapping_params.items():
+            if not re.match(pattern, value):
+                errors[key] = f"Некорректное значение для параметра {key} в конфиг-файле auth.yaml"
+
+        # если есть ошибки, кидаем исключение с сообщением
+        if errors:
+            first_error_key = list(errors.keys())[0]
+            error_message = bcolors.WARNING + "\n".join(errors.values()) + bcolors.ENDC
+            raise interactive.IncorrectValueException(first_error_key, error_message)
+
+    def init(
+            self,
+            sso_compass_mapping_name: str,
+            sso_compass_mapping_avatar: str,
+            sso_compass_mapping_badge: str,
+            sso_compass_mapping_role: str,
+            sso_compass_mapping_bio: str,
+
+    ):
+        self.sso_compass_mapping_name = sso_compass_mapping_name
+        self.sso_compass_mapping_avatar = sso_compass_mapping_avatar
+        self.sso_compass_mapping_badge = sso_compass_mapping_badge
+        self.sso_compass_mapping_role = sso_compass_mapping_role
+        self.sso_compass_mapping_bio = sso_compass_mapping_bio
+
+    def input(self):
+
+        # получаем значение доступных методов для авторизации
+        available_methods = interactive.InteractiveValue(
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
+        # если указан sso в качестве доступного метода авторизации, то некоторые данные должны быть заполнены
+        is_required = False
+        if "sso" in available_methods:
+            is_required = True
+
+        try:
+            sso_compass_mapping_name = interactive.InteractiveValue(
+                "sso.compass_mapping.name",
+                "Сопоставление атрибута name (имя) между учетной записью SSO и профилем пользователя Compass", "str",
+                config=config, default_value="", is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_compass_mapping_name = ""
+
+        try:
+            sso_compass_mapping_avatar = interactive.InteractiveValue(
+                "sso.compass_mapping.avatar",
+                "Сопоставление атрибута avatar (аватар) между учетной записью SSO и профилем пользователя Compass",
+                "str",
+                config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_compass_mapping_avatar = ""
+
+        try:
+            sso_compass_mapping_badge = interactive.InteractiveValue(
+                "sso.compass_mapping.badge",
+                "Сопоставление атрибута badge (бейдж) между учетной записью SSO и профилем пользователя Compass", "str",
+                config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_compass_mapping_badge = ""
+
+        try:
+            sso_compass_mapping_role = interactive.InteractiveValue(
+                "sso.compass_mapping.role",
+                "Сопоставление атрибута role (роль) между учетной записью SSO и профилем пользователя Compass", "str",
+                config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_compass_mapping_role = ""
+
+        try:
+            sso_compass_mapping_bio = interactive.InteractiveValue(
+                "sso.compass_mapping.bio",
+                "Сопоставление атрибута bio (описание профиля) между учетной записью SSO и профилем пользователя Compass",
+                "str",
+                config=config, default_value="", is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_compass_mapping_bio = ""
+
+        try:
+            mapping_params = {}
+
+            if is_required:
+                mapping_params["sso.compass_mapping.name"] = sso_compass_mapping_name
+
+            if len(sso_compass_mapping_avatar) > 0:
+                mapping_params["sso.compass_mapping.avatar"] = sso_compass_mapping_avatar
+
+            if len(sso_compass_mapping_badge) > 0:
+                mapping_params["sso.compass_mapping.badge"] = sso_compass_mapping_badge
+
+            if len(sso_compass_mapping_role) > 0:
+                mapping_params["sso.compass_mapping.role"] = sso_compass_mapping_role
+
+            # Вызов функции валидации
+            SsoCompassMappingConfig.validate_sso_compass_mapping_values(mapping_params)
+
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+
+        return self.init(sso_compass_mapping_name, sso_compass_mapping_avatar, sso_compass_mapping_badge,
+                         sso_compass_mapping_role, sso_compass_mapping_bio)
+
+    # подготавливаем содержимое для $CONFIG["SSO_COMPASS_MAPPING"]
+    def make_sso_compass_mapping_output(self):
+        return """"name" => "{}",\n\t"avatar" => "{}",\n\t"badge" => "{}",\n\t"role" => "{}",\n\t"bio" => "{}",""".format(
+            self.sso_compass_mapping_name,
+            self.sso_compass_mapping_avatar,
+            self.sso_compass_mapping_badge,
+            self.sso_compass_mapping_role,
+            self.sso_compass_mapping_bio,
+        )
+
+
+class SsoLdapConfig:
     def __init__(self) -> None:
         self.input()
 
@@ -599,7 +768,8 @@ class LdapConfig:
 
         # получаем значение доступных методов для авторизации
         available_methods = interactive.InteractiveValue(
-            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
+            "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config,
+            is_required=False
         ).from_config()
 
         # получаем протокол sso
@@ -630,7 +800,8 @@ class LdapConfig:
 
         try:
             ldap_user_search_base = interactive.InteractiveValue(
-                "ldap.user_search_base", "Контекст поиска пользователей в LDAP каталоге", "str", config=config, default_value="", is_required=is_required
+                "ldap.user_search_base", "Контекст поиска пользователей в LDAP каталоге", "str", config=config,
+                default_value="", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -638,7 +809,9 @@ class LdapConfig:
 
         try:
             ldap_user_unique_attribute = interactive.InteractiveValue(
-                "ldap.user_unique_attribute", "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве username в форме авторизации", "str", config=config, default_value="", is_required=is_required
+                "ldap.user_unique_attribute",
+                "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве username в форме авторизации",
+                "str", config=config, default_value="", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -646,7 +819,10 @@ class LdapConfig:
 
         try:
             ldap_user_search_filter = interactive.InteractiveValue(
-                "ldap.user_search_filter", "Фильтр для поиска учетной записи LDAP в момент авторизации пользователя в приложении", "str", config=config, default_value="", is_required=False
+                "ldap.user_search_filter",
+                "Фильтр для поиска учетной записи LDAP в момент авторизации пользователя в приложении", "str",
+                config=config, default_value="",
+                is_required=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -654,7 +830,9 @@ class LdapConfig:
 
         try:
             ldap_user_search_account_dn = interactive.InteractiveValue(
-                "ldap.user_search_account_dn", "Полный DN (Distinguished Name) учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=is_required
+                "ldap.user_search_account_dn",
+                "Полный DN (Distinguished Name) учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге",
+                "str", config=config, default_value="", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -662,7 +840,10 @@ class LdapConfig:
 
         try:
             ldap_user_search_account_password = interactive.InteractiveValue(
-                "ldap.user_search_account_password", "Пароль учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге", "str", config=config, default_value="", is_required=is_required
+                "ldap.user_search_account_password",
+                "Пароль учетной записи LDAP, которая будет использоваться для поиска других учетных записей и мониторинга их удаления/блокировки в каталоге",
+                "str",
+                config=config, default_value="", is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -670,7 +851,10 @@ class LdapConfig:
 
         try:
             ldap_limit_of_incorrect_auth_attempts = interactive.InteractiveValue(
-                "ldap.limit_of_incorrect_auth_attempts", "Лимит неудачных попыток аутентификации, по достижению которых IP адрес пользователя получает блокировку на 15 минут", "int", config=config, default_value=7, is_required=is_required
+                "ldap.limit_of_incorrect_auth_attempts",
+                "Лимит неудачных попыток аутентификации, по достижению которых IP адрес пользователя получает блокировку на 15 минут",
+                "int", config=config,
+                default_value=7, is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -678,7 +862,10 @@ class LdapConfig:
 
         try:
             ldap_account_disabling_monitoring_enabled = interactive.InteractiveValue(
-                "ldap.account_disabling_monitoring_enabled", "Включен ли мониторинг удаления / блокировки учетной записи LDAP для запуска автоматической блокировки связанного пользователя в Compass", "bool", config=config, is_required=is_required
+                "ldap.account_disabling_monitoring_enabled",
+                "Включен ли мониторинг удаления / блокировки учетной записи LDAP для запуска автоматической блокировки связанного пользователя в Compass",
+                "bool",
+                config=config, is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -686,7 +873,10 @@ class LdapConfig:
 
         try:
             ldap_on_account_removing = interactive.InteractiveValue(
-                "ldap.on_account_removing", "Уровень автоматической блокировки при полном удалении учетной записи LDAP связанной с пользователем Compass", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
+                "ldap.on_account_removing",
+                "Уровень автоматической блокировки при полном удалении учетной записи LDAP связанной с пользователем Compass",
+                "str",
+                config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -694,11 +884,15 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and ldap_on_account_removing not in ["light", "hard"]:
-            handle_exception("ldap.on_account_removing", bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_removing в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.on_account_removing",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_removing в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
             ldap_on_account_disabling = interactive.InteractiveValue(
-                "ldap.on_account_disabling", "Уровень автоматической блокировки при помечании отключенной учетной записи LDAP связанной с пользователем Compass", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
+                "ldap.on_account_disabling",
+                "Уровень автоматической блокировки при помечании отключенной учетной записи LDAP связанной с пользователем Compass",
+                "str",
+                config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -706,23 +900,31 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and ldap_on_account_disabling not in ["light", "hard"]:
-            handle_exception("ldap.on_account_disabling", bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_disabling в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.on_account_disabling",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.on_account_disabling в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
             ldap_account_disabling_monitoring_interval = interactive.InteractiveValue(
-                "ldap.account_disabling_monitoring_interval", "Временной интервал между проверками мониторинга блокировки пользователя LDAP", "str", config=config, default_value="", is_required=ldap_account_disabling_monitoring_enabled
+                "ldap.account_disabling_monitoring_interval",
+                "Временной интервал между проверками мониторинга блокировки пользователя LDAP", "str", config=config,
+                default_value="", is_required=ldap_account_disabling_monitoring_enabled
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             ldap_account_disabling_monitoring_interval = ""
 
         # проверяем, что указано корректное значение
-        if ldap_account_disabling_monitoring_enabled and bool(re.match(r'^\d+[smh]$',ldap_account_disabling_monitoring_interval)) == False:
-            handle_exception("ldap.account_disabling_monitoring_interval", bcolors.WARNING + "Некорректное значение для параметра ldap.account_disabling_monitoring_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
+        if ldap_account_disabling_monitoring_enabled and bool(
+                re.match(r'^\d+[smh]$', ldap_account_disabling_monitoring_interval)) == False:
+            handle_exception("ldap.account_disabling_monitoring_interval",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.account_disabling_monitoring_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         try:
             ldap_user_search_page_size = interactive.InteractiveValue(
-                "ldap.user_search_page_size", "Количество подгружаемых учетных записей из LDAP за один запрос в механизме мониторинга удаления / блокировки учетной записи LDAP", "int", config=config, default_value=0, is_required=ldap_account_disabling_monitoring_enabled
+                "ldap.user_search_page_size",
+                "Количество подгружаемых учетных записей из LDAP за один запрос в механизме мониторинга удаления / блокировки учетной записи LDAP",
+                "int", config=config,
+                default_value=0, is_required=ldap_account_disabling_monitoring_enabled
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -730,9 +932,15 @@ class LdapConfig:
 
         # проверяем, что указано корректное значение
         if ldap_account_disabling_monitoring_enabled and ldap_user_search_page_size < 1:
-            handle_exception("ldap.user_search_page_size", bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
+            handle_exception("ldap.user_search_page_size",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
 
-        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute, ldap_limit_of_incorrect_auth_attempts, ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling, ldap_user_search_account_dn, ldap_user_search_account_password, ldap_account_disabling_monitoring_interval, ldap_user_search_page_size, ldap_user_search_filter)
+        return self.init(ldap_server_host, ldap_server_port, ldap_user_search_base, ldap_user_unique_attribute,
+                         ldap_limit_of_incorrect_auth_attempts,
+                         ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling,
+                         ldap_user_search_account_dn,
+                         ldap_user_search_account_password, ldap_account_disabling_monitoring_interval,
+                         ldap_user_search_page_size, ldap_user_search_filter)
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
@@ -752,6 +960,7 @@ class LdapConfig:
             self.account_disabling_monitoring_interval,
         )
 
+
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
 # ---ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ---#
@@ -769,6 +978,7 @@ def handle_exception(field, message: str):
 def start():
     generate_config()
     exit(0)
+
 
 # записываем содержимое в файл
 def write_file(output: str, conf_path: Path):
@@ -789,9 +999,9 @@ def write_file(output: str, conf_path: Path):
         scriptutils.warning(str(conf_path.resolve()))
     )
 
+
 # генерируем конфиг
 def generate_config():
-
     # генерируем данные для аутентификации
     auth_config_list = generate_auth_config()
     auth_output = make_auth_output(auth_config_list)
@@ -800,13 +1010,17 @@ def generate_config():
     smtp_config_list = generate_smtp_config()
     smtp_output = make_smtp_output(smtp_config_list)
 
-    # генерируем данные для sso
-    sso_config_list = generate_sso_config()
-    sso_output = make_sso_output(sso_config_list)
+    # генерируем данные для основного конфига sso
+    sso_main_config_list = generate_sso_config()
+    sso_output = make_sso_output(sso_main_config_list)
 
-    # генерируем данные для ldap
-    ldap_config_list = generate_ldap_config()
-    ldap_output = make_ldap_output(ldap_config_list)
+    # генерируем данные для sso oidc
+    sso_oidc_config_list = generate_sso_oidc_config()
+    sso_oidc_output = make_oidc_output(sso_oidc_config_list)
+
+    # генерируем данные для sso ldap
+    sso_ldap_config_list = generate_sso_ldap_config()
+    sso_ldap_output = make_ldap_output(sso_ldap_config_list)
 
     # если только валидируем данные, то файлы не пишем
     if validate_only:
@@ -828,11 +1042,12 @@ def generate_config():
     write_file(auth_output, auth_conf_path)
     write_file(smtp_output, smtp_conf_path)
     write_file(sso_output, sso_conf_path)
-    write_file(ldap_output, ldap_conf_path)
+    write_file(sso_oidc_output, sso_oidc_conf_path)
+    write_file(sso_ldap_output, sso_ldap_conf_path)
+
 
 # получаем содержимое конфига для аутентификации
 def make_auth_output(auth_config_list: list):
-
     # получаем конфиги
     auth_main_config = auth_config_list[0]
     auth_mail_config = auth_config_list[1]
@@ -869,9 +1084,9 @@ $CONFIG["AUTH_SSO"] = [
 
 return $CONFIG;""".format(auth_main_config.make_output(), auth_mail_config.make_output(), auth_sso_config.make_output())
 
+
 # получаем содержимое конфига для smtp почты
 def make_smtp_output(smtp_config_list: list):
-
     smtp_main_config = smtp_config_list[0]
 
     return """<?php
@@ -883,36 +1098,53 @@ $CONFIG["MAIL_SMTP"] = [
 ];
 return $CONFIG;""".format(smtp_main_config.make_output())
 
-# получаем содержимое конфига для sso аутентификации
-def make_sso_output(sso_config_list: list):
 
+# получаем содержимое конфига для sso
+def make_sso_output(sso_config_list: list):
     sso_main_config = sso_config_list[0]
     return """<?php
 
 namespace Compass\Federation;
 
 /** параметры подключения SSO провайдера по OpenID Connect протоколу */
-$CONFIG["SSO_OIDC_CONNECTION"] = [
+$CONFIG["SSO_COMPASS_MAPPING"] = [
 	{}
 ];
-
-/** маппинг аттрибутов/полей SSO аккаунта, для их передачи в Compass */
-$CONFIG["SSO_ATTRIBUTION_MAPPING"] = [
-	{}
-];
-
-/** конфигуруация SSO провайдера */
-$CONFIG["SSO_OIDC_PROVIDER_CONFIG"] = json_decode('{}', true, 512, JSON_BIGINT_AS_STRING);
 
 return $CONFIG;""".format(
-        sso_main_config.make_sso_oidc_connection_output(),
-        sso_main_config.make_sso_attribution_mapping_output(),
-        sso_main_config.sso_oidc_provider_metadata
+        sso_main_config.make_sso_compass_mapping_output(),
     )
+
+
+# получаем содержимое конфига для sso oidc аутентификации
+def make_oidc_output(sso_config_list: list):
+    sso_oidc_main_config = sso_config_list[0]
+    return """<?php
+
+namespace Compass\Federation;
+
+/** параметры подключения SSO провайдера по OpenID Connect протоколу */
+$CONFIG["OIDC_CONNECTION"] = [
+	{}
+];
+
+/** маппинг атрибутов/полей SSO аккаунта, для их передачи в Compass */
+$CONFIG["OIDC_ATTRIBUTION_MAPPING"] = [
+	{}
+];
+
+/** конфигуруация SSO OIDC провайдера */
+$CONFIG["OIDC_PROVIDER_CONFIG"] = json_decode('{}', true, 512, JSON_BIGINT_AS_STRING);
+
+return $CONFIG;""".format(
+        sso_oidc_main_config.make_sso_oidc_connection_output(),
+        sso_oidc_main_config.make_sso_oidc_attribution_mapping_output(),
+        sso_oidc_main_config.sso_oidc_provider_metadata
+    )
+
 
 # получаем содержимое конфига для ldap аутентификации
 def make_ldap_output(ldap_config_list: list):
-
     ldap_main_config = ldap_config_list[0]
     return """<?php
 
@@ -927,31 +1159,38 @@ return $CONFIG;""".format(
         ldap_main_config.make_output(),
     )
 
+
 # генерируем данные для аутентификации
 def generate_auth_config() -> dict:
-
     result = [AuthMainConfig(), AuthMailConfig(), AuthSsoConfig()]
 
     return result
 
+
 # генерируем данные для smtp почты
 def generate_smtp_config() -> dict:
-
     result = [MailSmtpConfig()]
 
     return result
 
-# генерируем данные для sso
-def generate_sso_config() -> dict:
 
-    result = [SsoConfig()]
+# генерируем данные для основного конфига ssp
+def generate_sso_config() -> dict:
+    result = [SsoCompassMappingConfig()]
 
     return result
 
-# генерируем данные для ldap
-def generate_ldap_config() -> dict:
 
-    result = [LdapConfig()]
+# генерируем данные для sso oidc
+def generate_sso_oidc_config() -> dict:
+    result = [SsoOidcConfig()]
+
+    return result
+
+
+# генерируем данные для sso ldap
+def generate_sso_ldap_config() -> dict:
+    result = [SsoLdapConfig()]
 
     return result
 

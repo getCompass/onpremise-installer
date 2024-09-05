@@ -39,25 +39,18 @@ if False == os.path.exists(auth_config_path):
 
 # если конфиг auth.yaml уже содержит свежие поля
 with open(auth_config_path, "r") as file:
+
     # читаем содержимое файла
     content = file.read()
 
-    # если в содержимом уже имеются новые поля, то ничего не делаем
-    if "sso.full_name_actualization_enabled" in content or "sso.profile_data_actualization_enabled" in content:
+    # если в содержимом уже имеется новое поле, то ничего не делаем
+    if "sso.profile_data_actualization_enabled" in content:
         print(scriptutils.success("Конфиг-файл auth.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
-# добавляем новое поле sso.full_name_actualization_enabled
-content += """
+# заменяем название параметра
+content = content.replace("sso.full_name_actualization_enabled", "sso.profile_data_actualization_enabled")
 
-# Включена ли опция актуализации Имени Фамилии пользователей каждый раз, когда они успешно авторизуются
-# в приложении.
-#
-# Тип данных: булево значение, true\\false
-sso.full_name_actualization_enabled: true
-"""
-
-# сохраняем изменения
 auth_config = open(auth_config_path, "w")
 auth_config.write(content)
 auth_config.close()

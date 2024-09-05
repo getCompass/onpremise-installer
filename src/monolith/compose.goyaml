@@ -137,6 +137,9 @@ configs:
   federation-sso:
     name: "{{.stack_name}}_federation_sso-{{.config_revisions.project.federation.sso.php}}"
     file: ".project.federation.sso.php"
+  federation-oidc:
+    name: "{{.stack_name}}_federation_oidc-{{.config_revisions.project.federation.oidc.php}}"
+    file: ".project.federation.oidc.php"
   federation-ldap:
     name: "{{.stack_name}}_federation_ldap-{{.config_revisions.project.federation.ldap.php}}"
     file: ".project.federation.ldap.php"
@@ -740,6 +743,8 @@ services:
             target: "/app/src/Compass/Pivot/api/conf/mail.php"
           - source: "federation-sso"
             target: "/app/src/Compass/Federation/api/conf/sso.php"
+          - source: "federation-oidc"
+            target: "/app/src/Compass/Federation/api/conf/oidc.php"
           - source: "federation-ldap"
             target: "/app/src/Compass/Federation/api/conf/ldap.php"
           - source: "bot-conf"

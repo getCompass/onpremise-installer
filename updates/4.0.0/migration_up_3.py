@@ -47,7 +47,7 @@ with open(auth_config_path, "r") as file:
         print(scriptutils.success("Конфиг-файл auth.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
-# добавляем новое поле sso.full_name_actualization_enabled
+# добавляем новое поле ldap.user_search_page_size
 content += """
 
 # Количество подгружаемых учетных записей из LDAP за один запрос в механизме мониторинга удаления / блокировки учетной записи LDAP
