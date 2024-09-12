@@ -89,7 +89,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.2.0"
+        tag: "v4.2.2"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -107,11 +107,11 @@ projects:
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
-        tag: "v4.2.1"
+        tag: "v4.2.2"
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v4.2.1"
+        tag: "v4.2.2"
 
   pivot:
     host: "0.0.0.0"
@@ -152,11 +152,11 @@ projects:
         huawei_voip_push_version: 1
         apns_push_version: 2
       go_sender_balancer:
-        tag: "v4.2.1"
+        tag: "v4.2.2"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.2.1"
+        tag: "v4.2.2"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -201,11 +201,11 @@ projects:
       php_announcement:
         tag: "v1.5.0"
       go_sender_balancer:
-        tag: "v4.2.1"
+        tag: "v4.2.2"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.2.1"
+        tag: "v4.2.2"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -327,17 +327,17 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.2.0"
+          tag: "v4.2.2"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v4.2.1"
+          tag: "v4.2.2"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v4.2.1"
+          tag: "v4.2.2"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
