@@ -368,7 +368,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.1.0"
+          tag: "v4.2.3"
         nginx:
           external_https_port: 20106
   userbot:
@@ -488,7 +488,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.1.0"
+        tag: "v4.2.3"
         external_port: 43100
 
   integration:
@@ -553,5 +553,5 @@ projects:
       subnet: "172.20.11.0/24"
     service:
       jitsi_web:
-        tag: "v3.0.0"
+        tag: "v4.2.3"
         external_port: 20113
