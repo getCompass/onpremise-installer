@@ -368,7 +368,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.2.1"
+          tag: "v4.1.0"
         nginx:
           external_https_port: 20106
   userbot:
