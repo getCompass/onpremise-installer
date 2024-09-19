@@ -89,7 +89,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.2.2"
+        tag: "v4.2.4"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -327,7 +327,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.2.2"
+          tag: "v4.2.4"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -368,7 +368,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.2.3"
+          tag: "v4.2.4"
         nginx:
           external_https_port: 20106
   userbot:
@@ -488,7 +488,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.2.3"
+        tag: "v4.2.4"
         external_port: 43100
 
   integration:
@@ -516,7 +516,7 @@ projects:
     static_updated_at: 1723105578
     subdomain: ""
     subdir: "/-/c"
-    tag: "v4.0.0"
+    tag: "v4.2.4"
     jwt:
       app_id: "compass"
       app_secret: ""

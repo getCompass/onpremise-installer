@@ -8,12 +8,39 @@ import subprocess, argparse
 
 from utils import scriptutils
 from pathlib import Path
-import docker
+import docker, yaml
 from time import sleep
 from loader import Loader
 from utils.scriptutils import bcolors
 
 scriptutils.assert_root()
+
+# функция проверки наличия предыдущей установки
+def check_previous_install(global_file_path: Path):
+
+    with global_file_path.open("r") as global_file:
+        global_values = yaml.safe_load(global_file)
+        global_values = {} if global_values is None else global_values
+
+    # если у нас нет информации по root_mount_path, не проверяем и проходим на установку
+    if global_values == {}:
+        return
+    
+    root_mount_path_str = global_values.get("root_mount_path")
+    if root_mount_path_str is None:
+        return
+
+    root_mount_path = Path(root_mount_path_str)
+
+    # если папка существует, и там есть хотя бы один файлик - говорим об этом пользователю
+    if root_mount_path.exists() and any(root_mount_path.iterdir()):
+
+        confirm = input(
+            scriptutils.warning("Обнаружены данные Compass в директории root_mount_path. Для предотвращения ошибок рекомендуем удалить эти данные перед продолжением установки. Продолжить установку? [Y/n]\n")
+            )
+
+        if confirm.lower() != "y":
+            scriptutils.die("Установка прервана")
 
 # получаем папку, где находится скрипт
 script_path = Path(__file__).parent
@@ -59,6 +86,14 @@ while confirm != "y":
         exit(1)
 
 # подготовка
+script_dir = str(Path(__file__).parent.resolve())
+
+# проверяем, что папка с данными для компасса пуста
+global_file_path = Path("%s/../configs/global.yaml" % (script_dir))
+
+if global_file_path.exists():
+    check_previous_install(global_file_path)
+
 print("Создаем пользователя www-data, от имени которого будет работать приложение")
 subprocess.run(
     ["python3", script_resolved_path + "/create_www_data.py"]
@@ -207,8 +242,6 @@ subprocess.run(
 # деплой
 
 # удаляем старые симлинки, только с помощью subproccess, ибо симлинки ведут на удаленные дериктории и unlink/rmtree просто не срабатывает
-script_dir = str(Path(__file__).parent.resolve())
-
 monolith_variable_nginx_path = Path("%s/../src/monolith/variable/nginx" % (script_dir))
 subprocess.run(["rm", "-rf", monolith_variable_nginx_path])
 

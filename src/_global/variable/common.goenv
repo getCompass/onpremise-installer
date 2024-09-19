@@ -135,3 +135,7 @@ INTEGRATION_AUTHORIZATION_TOKEN="{{.security_keys.integration.integration_author
 CA_CERTIFICATE="{{ read_file (concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA.crt") }}"
 
 FORCE_COMPANY_CONFIG_UPDATE_INTERVAL_SEC=180
+
+SENTRY_DSN_KEY_ELECTRON="{{.sentry_dsn_key_electron}}"
+SENTRY_DSN_KEY_ANDROID="{{.sentry_dsn_key_android}}"
+SENTRY_DSN_KEY_IOS="{{.sentry_dsn_key_ios}}"

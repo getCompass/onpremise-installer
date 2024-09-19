@@ -35,6 +35,14 @@ x-log-rule-default: &log-rule-default
       max-size: "15m"
       max-file: "3"
 
+configs:
+
+  # конфиг /config/jvb.conf
+  # генерируется из этого шаблона https://github.com/jitsi/docker-jitsi-meet/blob/master/jvb/rootfs/defaults/jvb.conf
+  videobridge:
+    name: "{{.stack_name}}_videobridge-{{.config_revisions.project.jitsi.videobridge.conf}}"
+    file: ".project.jitsi.videobridge.conf"
+
 volumes:
   jitsi-custom-web-{{.projects.jitsi.tag}}:
 
@@ -101,6 +109,9 @@ services:
         protocol: "udp"
     env_file:
       - ".project.jitsi.common.env"
+    configs:
+      - source: "videobridge"
+        target: "/config/jvb.conf"
     depends_on:
       - prosody-{{.projects.jitsi.label}}
     networks:

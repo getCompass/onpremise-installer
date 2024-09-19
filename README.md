@@ -48,7 +48,7 @@
 - Single-server:
     - CPU 16 CORE;
     - RAM 24GB;
-    - RAID HDD или SSD 1TB.
+    - SSD 1TB.
 
 #### От 300 до 1000 активных пользователей:
 

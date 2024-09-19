@@ -544,6 +544,33 @@ required_root_fields = [
         "type": "str",
         "ask": False,
     },
+    {
+        "name": "sentry_dsn_key_electron",
+        "comment": "Sentry DSN ключ для electron",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "skip_current_value": True,
+    },
+    {
+        "name": "sentry_dsn_key_android",
+        "comment": "Sentry DSN ключ для android",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "skip_current_value": True,
+    },
+    {
+        "name": "sentry_dsn_key_ios",
+        "comment": "Sentry DSN ключ для ios",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "skip_current_value": True,
+    },
 ]
 
 common_project_fields = [
@@ -1188,7 +1215,7 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
         if new_values != values_initial_dict:
             required_root_field["default_value"] = (
                 current_values[required_root_field["name"]]
-                if current_values.get(required_root_field["name"]) is not None
+                if current_values.get(required_root_field["name"]) is not None and (required_root_field.get("skip_current_value") is None or required_root_field["skip_current_value"] == False)
                 else required_root_field["default_value"]
             )
 
@@ -1198,6 +1225,10 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
                     "value_function"
                 ]("", "", {}, new_values, *required_root_field["args"])
 
+            is_required = True
+            if required_root_field.get("is_required") is not None:
+                is_required = required_root_field.get("is_required")
+
             try:
                 new_value = InteractiveValue(
                     required_root_field["name"],
@@ -1206,7 +1237,8 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
                     required_root_field["default_value"],
                     validation=required_root_field.get("validation"),
                     force_default=use_default_values,
-                    config=config
+                    config=config,
+                    is_required=is_required
                 ).from_config()
             except IncorrectValueException as e:
                 handle_exception(e.field, e.message)
