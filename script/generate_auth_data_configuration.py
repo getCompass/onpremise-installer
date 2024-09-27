@@ -1053,7 +1053,7 @@ def make_auth_output(auth_config_list: list):
     auth_mail_config = auth_config_list[1]
     auth_sso_config = auth_config_list[2]
 
-    return """<?php
+    return r'''<?php
 
 namespace Compass\Pivot;
 
@@ -1082,27 +1082,27 @@ $CONFIG["AUTH_SSO"] = [
     {}
 ];
 
-return $CONFIG;""".format(auth_main_config.make_output(), auth_mail_config.make_output(), auth_sso_config.make_output())
+return $CONFIG;'''.format(auth_main_config.make_output(), auth_mail_config.make_output(), auth_sso_config.make_output())
 
 
 # получаем содержимое конфига для smtp почты
 def make_smtp_output(smtp_config_list: list):
     smtp_main_config = smtp_config_list[0]
 
-    return """<?php
+    return r'''<?php
 
 namespace Compass\Pivot;
 
 $CONFIG["MAIL_SMTP"] = [
     {}
 ];
-return $CONFIG;""".format(smtp_main_config.make_output())
+return $CONFIG;'''.format(smtp_main_config.make_output())
 
 
 # получаем содержимое конфига для sso
 def make_sso_output(sso_config_list: list):
     sso_main_config = sso_config_list[0]
-    return """<?php
+    return r'''<?php
 
 namespace Compass\Federation;
 
@@ -1111,7 +1111,7 @@ $CONFIG["SSO_COMPASS_MAPPING"] = [
 	{}
 ];
 
-return $CONFIG;""".format(
+return $CONFIG;'''.format(
         sso_main_config.make_sso_compass_mapping_output(),
     )
 
@@ -1119,7 +1119,7 @@ return $CONFIG;""".format(
 # получаем содержимое конфига для sso oidc аутентификации
 def make_oidc_output(sso_config_list: list):
     sso_oidc_main_config = sso_config_list[0]
-    return """<?php
+    return r'''<?php
 
 namespace Compass\Federation;
 
@@ -1136,7 +1136,7 @@ $CONFIG["OIDC_ATTRIBUTION_MAPPING"] = [
 /** конфигуруация SSO OIDC провайдера */
 $CONFIG["OIDC_PROVIDER_CONFIG"] = json_decode('{}', true, 512, JSON_BIGINT_AS_STRING);
 
-return $CONFIG;""".format(
+return $CONFIG;'''.format(
         sso_oidc_main_config.make_sso_oidc_connection_output(),
         sso_oidc_main_config.make_sso_oidc_attribution_mapping_output(),
         sso_oidc_main_config.sso_oidc_provider_metadata
@@ -1146,7 +1146,7 @@ return $CONFIG;""".format(
 # получаем содержимое конфига для ldap аутентификации
 def make_ldap_output(ldap_config_list: list):
     ldap_main_config = ldap_config_list[0]
-    return """<?php
+    return r'''<?php
 
 namespace Compass\Federation;
 
@@ -1155,7 +1155,7 @@ $CONFIG["LDAP"] = [
 	{}
 ];
 
-return $CONFIG;""".format(
+return $CONFIG;'''.format(
         ldap_main_config.make_output(),
     )
 

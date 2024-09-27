@@ -174,12 +174,12 @@ exist_conf_message = (
 )
 
 main_template_start = (
-    "<?php\r\n\r\n"
-    "namespace Compass\Pivot;\r\n\r\n"
+    '<?php\r\n\r\n'
+    'namespace Compass\\Pivot;\r\n\r\n'
     '$CONFIG["SMS_PROVIDER_LIST"] = [\r\n\r\n'
 )
 
-main_template_end = "];\r\n\r\n" "return $CONFIG;"
+main_template_end = '];\r\n\r\n' 'return $CONFIG;'
 # -------------------------------------------------------
 
 # проверяем количество переданных аргументов

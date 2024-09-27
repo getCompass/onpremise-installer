@@ -73,3 +73,5 @@ ATTRIBUTION_JOIN_SPACE_VISITS_MATCHING_PERIOD=3600
 ON_PREMISE_VERSION=1
 
 VIDEO_CONFERENCE_NODE_LIST=[["link"=>"{{$.protocol}}://{{.projects.jitsi.domain}}/","updated_at"=>{{.projects.jitsi.static_updated_at}},]]
+
+PUBLIC_ENTRYPOINT_ELECTRON_UPDATE30=https://update-onpremise.getcompass.ru

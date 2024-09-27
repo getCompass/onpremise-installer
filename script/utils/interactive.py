@@ -18,9 +18,10 @@ domain_pattern = re.compile(
 )
 
 mail_pattern = re.compile(r'([A-Za-z0-9]+[.\-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+', re.IGNORECASE)
+password_pattern = re.compile(r"^[^\s]+$", re.UNICODE)
 
-phone_number_pattern = "^\\+?[1-9][0-9]{7,14}$"
-protocol_pattern = "^.+:\/\/"
+phone_number_pattern = r'^\+?[1-9][0-9]{7,14}$'
+protocol_pattern = r'^.+:\/\/'
 
 class InteractiveValue:
     def __init__(
@@ -236,7 +237,9 @@ def validate(value: str, validation: Union[str, None]) -> str:
         return validate_phone(value)
     if validation == "mail":
         return validate_mail(value)
-
+    if validation == "mail_password":
+        return validate_mail_password(value)
+    
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
@@ -252,6 +255,18 @@ def validate_mail(mail: str) -> str:
     match = re.match(mail_pattern, mail)
     if match is None:
         return "Неверный формат почты"
+
+    return ""
+def validate_mail_password(password: str) -> str:
+
+    password_length = len(password)
+
+    if password_length < 8 or password_length > 40:
+        return "Пароль должен содержать от 8 до 40 символов"
+
+    match = re.match(password_pattern, password)
+    if match is None:
+        return "Неверный формат пароля"
 
     return ""
 

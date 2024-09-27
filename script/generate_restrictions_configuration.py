@@ -256,9 +256,9 @@ def handle_exception(field, message: str, config_path):
 
 # начинаем выполнение
 def start():
-    generate_config(pivot_restrictions_conf_path, "Compass\Pivot")
-    generate_config(domino_restrictions_conf_path, "Compass\Company")
-    generate_config(integration_restrictions_conf_path, "Compass\Integration")
+    generate_config(pivot_restrictions_conf_path, r"Compass\Pivot")
+    generate_config(domino_restrictions_conf_path, r"Compass\Company")
+    generate_config(integration_restrictions_conf_path, r"Compass\Integration")
     exit(0)
 
 
@@ -310,7 +310,7 @@ def generate_config(restrictions_conf_path: Path, module_namespace: str):
 
 # получаем содержимое конфига для аутентификации
 def make_output(config: RestrictionsMainConfig, module_namespace: str):
-    return """<?php
+    return r'''<?php
 
 namespace {};
 
@@ -328,7 +328,7 @@ $CONFIG["RESTRICTIONS_PLATFORM"] = [
     {}
 ];
 
-return $CONFIG;""".format(module_namespace, config.make_profile_output(), config.make_platform_output())
+return $CONFIG;'''.format(module_namespace, config.make_profile_output(), config.make_platform_output())
 
 
 # ---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#

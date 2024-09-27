@@ -198,7 +198,8 @@ try:
         "str",
         config=config,
         is_required=("mail" in available_method_list), # если среди доступных методов указан "mail"
-        default_value=""
+        default_value="",
+        validation="mail_password"
     ).from_config()
 except IncorrectValueException as e:
     handle_exception(e.field, e.message)

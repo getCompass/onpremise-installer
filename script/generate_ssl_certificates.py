@@ -4,12 +4,22 @@ import sys
 
 sys.dont_write_bytecode = True
 
-from OpenSSL import crypto
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+import ipaddress
+
 from pathlib import Path
 import random, shutil, subprocess, ipaddress, argparse, yaml
 from utils import scriptutils, interactive
 from loader import Loader
 from typing import Tuple
+from datetime import datetime, timedelta, timezone
 
 scriptutils.assert_root()
 script_path = Path(__file__).parent.resolve()
@@ -137,36 +147,34 @@ def create_root_certificate() -> Tuple[Path, Path]:
         "Успешно сгенерировали сертификат",
         "Не смогли сгенерировать сертификат",
     ).start()
-    k = crypto.PKey()
-    k.generate_key(crypto.TYPE_RSA, 2048)
+    k = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
     serialnumber = random.getrandbits(64)
 
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, CN)])
+    basic_contraints = x509.BasicConstraints(ca=True, path_length=None)
+    now = datetime.now(timezone.utc)
 
-    cert = crypto.X509()
-    cert.set_version(0x2)
-    cert.get_subject().C = "CA"
-    cert.get_subject().ST = "Compass"
-    cert.get_subject().L = "Compass"
-    cert.get_subject().O = "Compass"
-    cert.get_subject().OU = "Compass"
-    cert.get_subject().CN = CN
-    cert.set_serial_number(serialnumber)
-    cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
-    cert.set_issuer(cert.get_subject())
-    cert.set_pubkey(k)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(k.public_key())
+        .serial_number(serialnumber)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=10 * 365))
+        .add_extension(basic_contraints, True)
+        .sign(k, hashes.SHA256(), default_backend())
+    )
 
-    extensions = []
-    extensions.append(crypto.X509Extension(b"basicConstraints", True, b"CA:TRUE"))
-    cert.add_extensions(extensions)
-    
-    cert.sign(k, "sha256")
+    cert_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
+    key_pem = k.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
 
-    pub = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-    priv = crypto.dump_privatekey(crypto.FILETYPE_PEM, k)
-
-    pubkey_path.open("wt").write(pub.decode("utf-8"))
-    privkey_path.open("wt").write(priv.decode("utf-8"))
+    pubkey_path.open("wt").write(cert_pem.decode("utf-8"))
+    privkey_path.open("wt").write(key_pem.decode("utf-8"))
     srl_path.open("wt").write("00")
 
     loader.success()
@@ -217,59 +225,64 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     if pubkey_path.exists() and privkey_path.exists() and not force:
         return pubkey_path, privkey_path
 
-    ca_cert = crypto.load_certificate(crypto.FILETYPE_PEM, ca_pubkey_path.open().read())
-    ca_key = crypto.load_privatekey(crypto.FILETYPE_PEM, ca_privkey_path.open().read())
+    ca_cert = x509.load_pem_x509_certificate(ca_pubkey_path.open(mode="rb").read(),backend=default_backend())
+    ca_key = load_pem_private_key(ca_privkey_path.open(mode="rb").read(), password=None,backend=default_backend())
 
     loader = Loader(
         "Генерируем сертификат и ключ для хоста %s" % host,
         "Сгенерировали сертификат и ключ для хоста %s" % host,
     ).start()
-    k = crypto.PKey()
-    k.generate_key(crypto.TYPE_RSA, 2048)
+    k = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
     serialnumber = random.getrandbits(64)
 
-    cert_req = crypto.X509Req()
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, host)])
+    basic_contraints = x509.BasicConstraints(ca=False, path_length=None)
 
-    cert_req.get_subject().C = ca_cert.get_subject().C
-    cert_req.get_subject().ST = ca_cert.get_subject().ST
-    cert_req.get_subject().L = ca_cert.get_subject().L
-    cert_req.get_subject().O = ca_cert.get_subject().O
 
-    if ca_cert.get_subject().organizationalUnitName != "":
-        cert_req.get_subject().OU = ca_cert.get_subject().OU
-
-    cert_req.get_subject().CN = host
-
-    extensions = []
-    extensions.append(crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"))
-    extensions.append(
-        crypto.X509Extension(
-            b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"
+    key_usage = x509.KeyUsage(
+        key_encipherment=True,
+        digital_signature=True,
+        content_commitment=True,
+        data_encipherment=False,
+        key_agreement=False,
+        encipher_only=False,
+        decipher_only=False,
+        key_cert_sign=False,
+        crl_sign=False
         )
+    
+    now = datetime.now(timezone.utc)
+    alt_names_list = [x509.IPAddress(ipaddress.ip_address(host))]
+    alt_names = x509.SubjectAlternativeName(alt_names_list)
+
+    cert_req_builer = (x509.CertificateSigningRequestBuilder(subject_name=name)
+                       .add_extension(basic_contraints, True)
+                       .add_extension(key_usage, True)
+                       .add_extension(alt_names, True))
+    
+    cert_req = cert_req_builer.sign(ca_key, hashes.SHA256())
+
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(cert_req.subject)
+        .issuer_name(ca_cert.issuer)
+        .public_key(k.public_key())
+        .serial_number(serialnumber)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=10 * 365))
+        .add_extension(basic_contraints, True)
+        .add_extension(key_usage, True)
+        .add_extension(alt_names, True)
+        .sign(ca_key, hashes.SHA256(), default_backend())
     )
-    extensions.append(
-        crypto.X509Extension(b"subjectAltName", True, ("IP:%s" % host).encode("utf-8"))
+
+    ca_pub = ca_cert.public_bytes(encoding=serialization.Encoding.PEM)
+    pub = cert.public_bytes(encoding=serialization.Encoding.PEM)
+    priv = k.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
     )
-
-    cert_req.add_extensions(extensions)
-    cert_req.set_pubkey(k)
-    cert_req.sign(ca_key, "sha256")
-
-    cert = crypto.X509()
-    cert.set_version(0x2)
-    cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
-    cert.set_issuer(ca_cert.get_subject())
-    cert.set_subject(cert_req.get_subject())
-    cert.set_pubkey(cert_req.get_pubkey())
-    cert.set_serial_number(serialnumber)
-    cert.add_extensions(extensions)
-    cert.sign(ca_key, "sha256")
-
-    ca_pub = crypto.dump_certificate(crypto.FILETYPE_PEM, ca_cert)
-
-    pub = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
-    priv = crypto.dump_privatekey(crypto.FILETYPE_PEM, k)
 
     pubkey_path.open("wt").write(pub.decode("utf-8") + ca_pub.decode("utf-8"))
     privkey_path.open("wt").write(priv.decode("utf-8"))

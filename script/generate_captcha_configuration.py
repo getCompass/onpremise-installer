@@ -291,12 +291,12 @@ def generate_provider_config(provider: str) -> dict:
 
 
 def make_output(providers: dict):
-    config_head = """<?php
+    config_head = r'''<?php
 
 namespace Compass\Pivot;
 
 $CONFIG["CAPTCHA_PROVIDER_LIST"] = [
-"""
+'''
     provider_output = ""
     for provider, provider_values in providers.items():
         app_output = "\n"
@@ -306,8 +306,8 @@ $CONFIG["CAPTCHA_PROVIDER_LIST"] = [
             if len(make_output) > 0:
                 app_output += '\t\t"%s" => [%s],\n' % (app, make_output)
                 provider_output += '\t"%s" => [%s\t],\n' % (provider, app_output)
-    config_end = """];
-return $CONFIG;"""
+    config_end = r'''];
+return $CONFIG;'''
 
     return config_head + provider_output + config_end
 
