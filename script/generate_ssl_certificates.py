@@ -34,10 +34,10 @@ config = {}
 if not config_path.exists():
     print(scriptutils.error("Отсутствует файл конфигурации %s." % str(config_path.resolve())) +  "Запустите скрипт create_configs.py и заполните конфигурацию")
     exit(1)
-    
+
 with config_path.open("r") as config_file:
     config_values = yaml.safe_load(config_file)
-    
+
 config.update(config_values)
 
 parser = argparse.ArgumentParser(add_help=False)
@@ -250,7 +250,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
         key_cert_sign=False,
         crl_sign=False
         )
-    
+
     now = datetime.now(timezone.utc)
     alt_names_list = [x509.IPAddress(ipaddress.ip_address(host))]
     alt_names = x509.SubjectAlternativeName(alt_names_list)
@@ -259,7 +259,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
                        .add_extension(basic_contraints, True)
                        .add_extension(key_usage, True)
                        .add_extension(alt_names, True))
-    
+
     cert_req = cert_req_builer.sign(ca_key, hashes.SHA256())
 
     cert = (

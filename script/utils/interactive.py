@@ -109,7 +109,7 @@ class InteractiveValue:
             value = ",".join(value)
 
         # если запрашивается значение или значение не пустое
-        if self.is_required or (value != ""):
+        if (self.is_required or (value != "")) and self.type != "arr":
             error = validate(value, self.validation)
 
         if error != "":
@@ -120,7 +120,9 @@ class InteractiveValue:
 
     # подготавливаем массив
     def prepare_arr(self, value):
-        string_values = ""
+
+        output = []
+
         if type(value) is not list:
             # разбиваем строку через запятую
             item_list = value.split(",")
@@ -131,18 +133,16 @@ class InteractiveValue:
             # оборачиваем в кавычки
             item = str(item).strip()
 
-            string_values += f'"{item}"'
-
-            if index != len(item_list) - 1:
-                string_values += ", "
-
-        # отдаём в виде массива
-        value = f"[{string_values}]"
-
-        if value == "[]" and self.is_required:
+            # валидируем каждое значение
+            error = validate(item, self.validation)
+            
+            if error != "":
+                raise IncorrectValueException(self.name, bcolors.WARNING + error + ", параметр в конфиге %s" % self.name + bcolors.ENDC)
+            output.append(item)
+        if len(output) < 1 and self.is_required:
             raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации не введено перечисление для поля %s, исправьте и попробуйте еще раз" % self.name + bcolors.ENDC)
 
-        return value
+        return output
 
     # Попросить значение у пользователя
     def input(self):

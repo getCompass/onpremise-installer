@@ -172,7 +172,7 @@ except IncorrectValueException as e:
     mail = ""
 
 try:
-   mail_allowed_domains = InteractiveValue(
+   mail_allowed_domain_list = InteractiveValue(
        "mail.allowed_domains",
        "Получаем доступные домены для почты",
        "arr",
@@ -180,6 +180,8 @@ try:
        is_required=False,
        default_value=[]
    ).from_config()
+
+   mail_allowed_domains = "[%s]" % ', '.join(mail_allowed_domain_list)
 except IncorrectValueException as e:
     handle_exception(e.field, e.message)
     mail_allowed_domains = "[]"

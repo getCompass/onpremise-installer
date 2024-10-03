@@ -7,6 +7,22 @@ from utils import scriptutils
 from utils import interactive
 from subprocess import Popen
 
+# ---АГРУМЕНТЫ СКРИПТА---#
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')
+parser.add_argument('-e', '--environment', required=False, type=str, help='Окружение, в котором развернут проект')
+
+args = parser.parse_args()
+# ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
+
+# ---СКРИПТ---#
+
+scriptutils.assert_root()
+
+values_arg = args.values if args.values else ''
+environment = args.environment if args.environment else ''
+stack_name_prefix = environment + '-' + values_arg
 
 # класс для сравнения версии инсталлятора
 class Version(tuple):
@@ -72,7 +88,12 @@ for migration_folder in sorted(config_files_path.glob("*")):
                     script_path = str(migration_files_path.resolve() / script)
 
                     # запуск скрипта в отдельном процессе с выводом в реальном времени
-                    process = Popen(["python3", script_path], stdout=sys.stdout, stderr=sys.stderr)
+                    process = Popen(["python3", script_path, 
+                                     "-e",
+                                    environment,
+                                    "-v",
+                                    values_arg
+                                    ], stdout=sys.stdout, stderr=sys.stderr)
 
                     # ждем завершения процесса
                     process.wait()

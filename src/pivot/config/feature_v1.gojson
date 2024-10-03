@@ -1,4 +1,18 @@
 {
+	"iphone_comteam": {
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
+			"rules": []
+		}
+	},
+	"android_comteam": {
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
+			"rules": []
+		}
+	},
 	"electron_comteam": {
 		"mbti": {
 			"name": "mbti",
@@ -278,6 +292,20 @@
 		"is_conversations_instant_opening_on_updated_version_enabled": {
 			"name": "is_conversations_instant_opening_on_updated_version_enabled",
 			"value": 1,
+			"rules": []
+		}
+	},
+	"iphone_compass": {
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
+			"rules": []
+		}
+	},
+	"android_compass": {
+		"max_reaction_version": {
+			"name": "max_reaction_version",
+			"value": 15,
 			"rules": []
 		}
 	},

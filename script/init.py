@@ -928,9 +928,10 @@ required_specific_project_fields = {
             "name": "service.jvb.media_advertise_ips",
             "comment": "Укажите IP-адрес или список IP-адресов (через запятую), по которым клиенты будут подключаться к медиа-серверу",
             "default_value": None,
-            "type": "string",
+            "type": "arr",
             "ask": True,
             "is_required": False,
+            "validation": "ip"
         },
         {
             "name": "service.jvb.media_port",

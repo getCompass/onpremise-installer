@@ -148,6 +148,8 @@ command = [
     environment,
     "-v",
     values_name,
+    "-p", 
+    "monolith",
     "--validate-only",
 ]
 subprocess.run(command).returncode == 0 or scriptutils.die(
@@ -205,7 +207,7 @@ subprocess.run(
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
 
 print("Запускаем скрипт инициализации проекта")
-command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name]
+command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
     command.append("--use-default-values")
 

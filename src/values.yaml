@@ -89,7 +89,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.2.7"
+        tag: "v4.2.8"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -111,7 +111,7 @@ projects:
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v4.2.2"
+        tag: "v4.2.8"
 
   pivot:
     host: "0.0.0.0"
@@ -156,7 +156,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.2.2"
+        tag: "v4.2.8"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -205,7 +205,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.2.2"
+        tag: "v4.2.8"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -272,7 +272,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v4.2.5"
+          tag: "v4.2.8"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -327,13 +327,13 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.2.7"
+          tag: "v4.2.8"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v4.2.2"
+          tag: "v4.2.8"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:

@@ -26,23 +26,27 @@ args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
 
+# пишем константы
+values_name = "compass"
+environment = "production"
+stack_name_prefix = environment + "-" + values_name
+domino_id = "d1"
+
 # сначала актуализируем инсталлятор
 sb = subprocess.run(
     [
         "python3",
         script_resolved_path + "/installer_migrations_up.py",
+        "-e",
+        environment,
+        "-v",
+        values_name,
     ]
 )
 if sb.returncode == 1:
     exit(1)
 
 sb.returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
-
-# пишем константы
-values_name = "compass"
-environment = "production"
-stack_name_prefix = environment + "-" + values_name
-domino_id = "d1"
 
 # подготовка
 print("Создаем пользователя www-data, от имени которого будет работать приложение")
@@ -99,6 +103,8 @@ command = [
     environment,
     "-v",
     values_name,
+    "-p",
+    "monolith",
     "--validate-only",
 ]
 subprocess.run(command).returncode == 0 or scriptutils.die(
@@ -151,7 +157,7 @@ subprocess.run(
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
 
 print("Запускаем скрипт инициализации проекта")
-command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name]
+command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
     command.append("--use-default-values")
 if install_integration:
@@ -235,7 +241,7 @@ if install_integration:
         "integration",
         "--project-name-override",
         "integration",
-        ]
+    ]
     if use_default_values:
         command.append("--use-default-values")
     command.append("--install-integration")
@@ -260,8 +266,8 @@ while n <= timeout:
 
     # ждем, пока у сервиса не будет статуса обновления completed
     service_list = client.services.list(filters={
-            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
-        })
+        "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+    })
 
     if len(service_list) > 0:
         monolith_service = service_list[0]
@@ -269,7 +275,8 @@ while n <= timeout:
     if monolith_service is None:
         continue
 
-    if (monolith_service.attrs.get("UpdateStatus") is not None and monolith_service.attrs["UpdateStatus"].get("State") != "completed"):
+    if (monolith_service.attrs.get("UpdateStatus") is not None and monolith_service.attrs["UpdateStatus"].get(
+            "State") != "completed"):
         continue
 
     # проверяем, что контейнер жив
@@ -315,8 +322,8 @@ while n <= timeout:
 
     # ждем, пока у сервиса не будет статуса обновления completed
     service_list = client.services.list(filters={
-            "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
-        })
+        "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
+    })
 
     if len(service_list) > 0:
         nginx_service = service_list[0]
@@ -329,7 +336,8 @@ while n <= timeout:
             scriptutils.die("nginx не поднялся")
         continue
 
-    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get("State") == "paused"):
+    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get(
+            "State") == "paused"):
         n = n + 40
         if n == timeout:
             loader.error()
@@ -341,7 +349,8 @@ while n <= timeout:
         sleep(20)
         continue
 
-    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get("State") != "completed"):
+    if (nginx_service.attrs.get("UpdateStatus") is not None and nginx_service.attrs["UpdateStatus"].get(
+            "State") != "completed"):
         n = n + 5
         sleep(5)
         if n == timeout:

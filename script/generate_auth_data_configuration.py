@@ -114,11 +114,11 @@ class AuthMainConfig:
             self,
             captcha_enabled: int,
             require_after: int,
-            available_method_list: str,
+            available_method_list: list,
     ):
         self.captcha_enabled = captcha_enabled
         self.require_after = require_after
-        self.available_method_list = available_method_list
+        self.available_methods =  "[%s]" % (", ").join(map(lambda s: '"%s"' % s,available_method_list)) if len(available_method_list) > 0 else "[]"
 
     def input(self):
 
@@ -156,7 +156,7 @@ class AuthMainConfig:
 
     # заполняем содержимым
     def make_output(self):
-        available_method_list_output = '"available_method_list" => %s' % (self.available_method_list)
+        available_method_list_output = '"available_method_list" => %s' % (self.available_methods)
         captcha_enabled_output = '"captcha_enabled" => %s' % (str(self.captcha_enabled).lower())
         captcha_require_after_output = '"captcha_require_after" => %d' % (self.require_after)
 
@@ -171,11 +171,11 @@ class AuthMailConfig:
 
     def init(
             self,
-            allowed_domain_list: str,
+            allowed_domain_list: list,
             registration_2fa_enabled: int,
             authorization_2fa_enabled: int,
     ):
-        self.allowed_domain_list = allowed_domain_list
+        self.allowed_domains =  "[%s]" % (", ").join(map(lambda s: '"%s"' % s,allowed_domain_list)) if len(allowed_domain_list) > 0 else "[]"
         self.registration_2fa_enabled = registration_2fa_enabled
         self.authorization_2fa_enabled = authorization_2fa_enabled
 
@@ -192,17 +192,14 @@ class AuthMailConfig:
         ).from_config()
 
         # проверяем количество доменов почтовых адресов
-        if len(allowed_domain_list.split(",")) > 3:
+        if len(allowed_domain_list) > 3:
             scriptutils.die(
                 "Превышено количество доступных доментов почтовых адресов: не более 3"
             )
 
         # проверяем, что список содержит только ENG домены
-        for domain in allowed_domain_list.split(","):
+        for domain in allowed_domain_list:
 
-            domain = domain.replace('"', "")
-            domain = domain.replace('[', "")
-            domain = domain.replace(']', "")
             if re.search(r'[^a-z\W\d]', domain.lower()) is not None:
                 scriptutils.die(
                     "Разрешены только ENG домены"
@@ -229,7 +226,7 @@ class AuthMailConfig:
 
     # заполняем содержимым
     def make_output(self):
-        allowed_domain_list_output = '"allowed_domain_list" => %s' % (self.allowed_domain_list)
+        allowed_domain_list_output = '"allowed_domain_list" => %s' % (self.allowed_domains)
         mail_registration_2fa_enabled_output = '"registration_2fa_enabled" => %s' % (
             str(self.registration_2fa_enabled).lower())
         mail_authorization_2fa_enabled_output = '"authorization_2fa_enabled" => %s' % (
