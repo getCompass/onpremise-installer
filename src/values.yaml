@@ -49,6 +49,10 @@ domino_id: "d1"
 file_node_id: "file1"
 file_default_node_id: "file_default"
 
+# настройки для базы
+database_connection:
+  driver: "docker"
+
 triggers:
   before:
     - "triggers/check_security.py"
@@ -89,7 +93,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.2.8"
+        tag: "v4.3.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -132,7 +136,7 @@ projects:
         port: 3306
         host: "mysql-pivot"
       php_pivot:
-        tag: "v1.5.0"
+        tag: "v4.3.0"
       php_file_balancer:
         tag: "v1.5.0"
         mysql_user: "root"
@@ -368,7 +372,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.2.4"
+          tag: "v4.3.0"
         nginx:
           external_https_port: 20106
   userbot:

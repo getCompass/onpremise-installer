@@ -1,0 +1,13 @@
+{{if eq .database_connection.driver "host"}}
+{
+{{- range $company_mysql_host := .database_connection.driver_data.company_mysql_hosts -}}
+    "{{concatne ":" $company_mysql_host.host $company_mysql_host.port}}" : {
+        "host": "{{$company_mysql_host.host}}",
+        "port": {{$company_mysql_host.port}},
+        "root_password": "{{$company_mysql_host.root_password}}"
+    },
+
+{{- end -}}
+"end": {}
+}
+{{end}}

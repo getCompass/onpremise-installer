@@ -152,7 +152,11 @@ configs:
   company-restrictions:
     name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
     file: ".project.domino.company_restrictions.php"
-
+{{if eq .database_connection.driver "host"}}
+  predefined-db:
+    name: "{{.stack_name}}_predefined_db-{{.config_revisions.project.predefined_db.json}}"
+    file: ".project.predefined_db.json"
+{{end}}
   ## КОНФИГУРАЦИИ АНОНСОВ
   # настройки nginx анонсов
   nginx-include-announcement:
@@ -370,6 +374,7 @@ services:
       retries: 3
     <<: *log-rule-default
 
+  {{- if eq .database_connection.driver "docker"}}
   # MYSQL
   mysql-{{.projects.monolith.label}}:
     image: "{{.registry_service_path}}/mysql:8.0.28"
@@ -394,6 +399,7 @@ services:
       timeout: "10s"
       retries: 6
     <<: *log-rule-default
+  {{- end}}
 
   # GO_EVENT
   go-event-{{.projects.monolith.label}}:
@@ -529,7 +535,9 @@ services:
     image: "{{.registry_compass_path}}/go_pivot_cache:{{.projects.pivot.service.go_pivot_cache.tag}}"
     depends_on:
       - "rabbit-{{.projects.pivot.label}}"
+      {{- if eq .database_connection.driver "docker"}}
       - "mysql-{{.projects.pivot.label}}"
+      {{- end}}
     environment:
       TCP_PORT: 1000
       GRPC_PORT: 2000
@@ -665,7 +673,9 @@ services:
     depends_on:
       - "memcached-{{$domino.label}}"
       - "rabbit-{{$domino.label}}"
+      {{- if eq .database_connection.driver "docker"}}
       - "mysql-{{$domino.label}}"
+      {{- end}}
       - "go-company-cache-{{$domino.label}}"
       - "go-sender-{{$domino.label}}"
       - "go-pivot-cache-{{.projects.pivot.label}}"
@@ -781,7 +791,9 @@ services:
     image: "{{.registry_compass_path}}/go_company_cache:{{$domino.service.go_company_cache.tag}}"
     depends_on:
       - "rabbit-{{$domino.label}}"
+      {{- if eq .database_connection.driver "docker"}}
       - "mysql-{{$domino.label}}"
+      {{- end}}
     environment:
       TCP_PORT: 1000
       GRPC_PORT: 2000
@@ -852,8 +864,10 @@ services:
   # GO_DATABASE_CONTROLLER
   go-database-controller-{{$domino.label}}:
     image: "{{.registry_compass_path}}/go_database_controller:{{$domino.service.go_database_controller.tag}}"
+    {{- if eq .database_connection.driver "docker"}}
     depends_on:
       - "mysql-{{$domino.label}}"
+    {{- end}}
     environment:
       LOGGING_LEVEL: 2
       DOMINO_NETWORK: {{$network}}
@@ -893,3 +907,8 @@ services:
       interval: "5s"
       timeout: "25s"
       retries: 10
+    {{- if eq .database_connection.driver "host"}}
+    configs:
+      - source: "predefined-db"
+        target: "/app/api/conf/predefined_db.json"
+    {{- end}}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import json
 import sys
 
 sys.dont_write_bytecode = True
@@ -107,6 +107,12 @@ class InteractiveValue:
 
         if self.type == "arr_join":
             value = ",".join(value)
+
+        if self.type == "dict_or_none":
+            if value is not None and isinstance(value, str):
+                value = json.loads(value)
+            if value is not None and not isinstance(value, dict):
+                value = ""
 
         # если запрашивается значение или значение не пустое
         if (self.is_required or (value != "")) and self.type != "arr":

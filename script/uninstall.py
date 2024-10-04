@@ -2,6 +2,8 @@
 
 import sys
 
+import mysql.connector.errorcode
+
 sys.dont_write_bytecode = True
 
 import subprocess, yaml, os, shutil
@@ -11,6 +13,7 @@ from pathlib import Path
 from loader import Loader
 from time import sleep
 import docker
+import mysql.connector
 
 scriptutils.assert_root()
 
@@ -49,7 +52,7 @@ stack_name_prefix = environment + "-" + values_name
 scriptutils.assert_root()
 
 try:
-    if input("Удаляем приложение Compass, продолжить? [y/N]\n") != "y":
+    if input("Удаляем приложение Compass, продолжить? [y/N]\n").lower() != "y":
         scriptutils.die("Удаление приложения было отменено")
 except UnicodeDecodeError as e:
     print("Не смогли декодировать ответ. Error: ", e)
@@ -75,6 +78,77 @@ loader = Loader(
     "Успешно удалили приложение",
     "Не смогли удалить приложение",
 ).start()
+
+
+# стереть все базы по указанному сокету
+def drop_all_databases(host: str, port: str, user: str, password: str, need_drop_users: bool = False):
+    restricted_db_list = [
+        'information_schema',
+        'mysql',
+        'performance_schema',
+        'sys'
+    ]
+
+    mydb = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+    )
+
+    drop_users = "DROP USER 'user'@'%';DROP USER 'backup_user'@'127.0.0.1';FLUSH PRIVILEGES;"
+    drop_command = 'DROP DATABASE'
+    show_databases = 'SHOW DATABASES'
+    my_cursor = mydb.cursor(buffered=True)
+    my_cursor.execute(show_databases)
+
+    db_for_deletion = []
+    result = my_cursor.fetchall()
+    for row in result:
+
+        if row[0] in restricted_db_list:
+            continue
+        db_for_deletion.append(row[0])
+
+    for db in db_for_deletion:
+        my_cursor.execute('%s %s' % (drop_command, db))
+
+    mydb.commit()
+
+    if need_drop_users:
+        my_cursor.execute('%s' % (drop_users))
+    mydb.close()
+
+# чистим базы
+def clear_mysql_instances(database_config: dict):
+
+    if database_config["database_connection"]["driver"] != "host":
+        return
+
+    monolith_mysql_root_password = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['root_password']
+    monolith_mysql_host = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['host']
+    monolith_mysql_port = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['port']
+
+    loader = Loader('Чистим базы на хосте...', 'Базы очищены',
+                    'Не получилось почистить базы').start()
+
+    company_mysql_hosts: dict = database_config['database_connection']['driver_data']['company_mysql_hosts']
+
+    # дропаем все, что только можно
+    try:
+        drop_all_databases(monolith_mysql_host, monolith_mysql_port, 'root', monolith_mysql_root_password)
+
+        for v in company_mysql_hosts:
+            drop_all_databases(v["host"], v["port"], 'root', v["root_password"], True)
+
+    except mysql.connector.Error as err:
+
+        if err.errno != mysql.connector.errorcode.ER_CANNOT_USER:
+            loader.error()
+            print(err)
+            exit(1)
+
+    loader.success()
 
 client = docker.from_env()
 
@@ -138,7 +212,7 @@ try:
         input(
             "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
             % str(root_mount_path.resolve())
-        )
+        ).lower()
         != "y"
     ):
         scriptutils.die("Удаление данных было отменено")
@@ -157,6 +231,29 @@ for item in root_mount_path.glob("*"):
         elif item.is_dir():
             shutil.rmtree(item)
 
+# спрашиваем, удалять ли базы
+try:
+    
+    database_config_file_path = Path("%s/../configs/database.yaml" % (script_dir))
+
+    if database_config_file_path.exists():
+        
+        with database_config_file_path.open() as database_config_file:
+            database_config = yaml.load(database_config_file, Loader=yaml.BaseLoader)
+
+        if ( database_config["database_connection"]["driver"] == "host" and
+            input(
+                "Очищаем инстансы mysql, которые использовались для приложения, продолжить? [y/N]\n"
+                ).lower()
+            == "y"
+        ):
+            clear_mysql_instances(database_config)
+except UnicodeDecodeError as e:
+    print("Не смогли декодировать ответ. Error: ", e)
+    exit(0)
+
 # раз удалили данные, то и текущая конфигурация сервера больше не нужна
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
-values_file_path.unlink()
+
+if values_file_path.exists():
+    values_file_path.unlink()

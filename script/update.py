@@ -54,6 +54,11 @@ subprocess.run(
     ["python3", script_resolved_path + "/create_www_data.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании пользователя www-data")
 
+print("Проверяем конфигурацию БД")
+command = ["python3", script_resolved_path + "/validate_db_configuration.py", "--validate-only"]
+if subprocess.run(command).returncode != 0:
+    scriptutils.die("Ошибка при валидации конфигурации БД")
+
 print("Валидируем конфигурацию капчи")
 sb = subprocess.run(
     [
@@ -135,6 +140,10 @@ subprocess.run(
         "--validate-only"
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации данных команды")
+
+print("Запускаем скрипт генерации конфигурации известных БД")
+if subprocess.run(["python3", script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
+    scriptutils.die("Ошибка при создании конфигурации известных БД")
 
 print("Запускаем скрипт генерации конфигурации капчи")
 subprocess.run(

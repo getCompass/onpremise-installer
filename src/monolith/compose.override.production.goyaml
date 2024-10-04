@@ -48,11 +48,13 @@ volumes:
 
 services:
 
+  {{- if eq .database_connection.driver "docker"}}
   ## MONOLITH
   # MYSQL
   mysql-{{.projects.monolith.label}}:
     volumes:
       - "{{.root_mount_path}}/monolith/database:/var/lib/mysql"
+  {{- end}}
 
   ## DOMINO PROJECT
   php-monolith-{{$domino.label}}:

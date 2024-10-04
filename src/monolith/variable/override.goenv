@@ -36,3 +36,28 @@ GO_PUSHER_TCP_PORT=1000
 # Точка входа для домино
 ENTRYPOINT_DOMINO="{{.protocol}}://{{entrypoint (netaddr $domino.code_host $domino.service.nginx.external_https_port) .url_path $domino.url_path 0}}"
 
+{{if eq .database_connection.driver "host"}}
+MYSQL_HOST={{.database_connection.driver_data.project_mysql_hosts.monolith.host}}
+MYSQL_USER=root
+MYSQL_PASS={{.database_connection.driver_data.project_mysql_hosts.monolith.root_password}}
+MYSQL_ROOT_PASSWORD={{.database_connection.driver_data.project_mysql_hosts.monolith.root_password}}
+MYSQL_ROOT_PASS={{.database_connection.driver_data.project_mysql_hosts.monolith.root_password}}
+MYSQL_PORT={{.database_connection.driver_data.project_mysql_hosts.monolith.port}}
+
+MYSQL_SYSTEM_HOST={{.database_connection.driver_data.project_mysql_hosts.monolith.host}}
+MYSQL_SYSTEM_PASS={{.database_connection.driver_data.project_mysql_hosts.monolith.root_password}}
+MYSQL_SYSTEM_PORT={{.database_connection.driver_data.project_mysql_hosts.monolith.port}}
+{{else}}
+MYSQL_HOST=mysql-{{.projects.pivot.label}}
+MYSQL_USER=root
+MYSQL_PASS={{.projects.pivot.service.mysql.root_password}}
+MYSQL_ROOT_PASSWORD={{.projects.pivot.service.mysql.root_password}}
+MYSQL_ROOT_PASS={{.projects.pivot.service.mysql.root_password}}
+MYSQL_PORT={{.projects.pivot.service.mysql.port}}
+
+MYSQL_SYSTEM_HOST=mysql-{{.projects.pivot.label}}
+MYSQL_SYSTEM_USER=root
+MYSQL_SYSTEM_PASS={{.projects.pivot.service.mysql.root_password}}
+MYSQL_SYSTEM_PORT={{.projects.pivot.service.mysql.port}}
+{{end}}
+

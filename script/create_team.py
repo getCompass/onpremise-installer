@@ -46,10 +46,19 @@ args = parser.parse_args()
 scriptutils.assert_root()
 script_dir = str(Path(__file__).parent.resolve())
 
+
+class DBDriverConf:
+
+    def __init__(self, driver: str, data: any):
+        self.driver = driver
+        self.data = data
+
+
 # загружаем конфиги
 config_path_list = [
     Path(script_dir + "/../configs/team.yaml"),
     Path(script_dir + "/../configs/global.yaml"),
+    Path(script_dir + "/../configs/database.yaml"),
 ]
 
 config = {}
@@ -59,7 +68,7 @@ for config_path in config_path_list:
     if not config_path.exists():
         print(
             scriptutils.error(
-                "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+                "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию"
                 % str(config_path.resolve())
             )
         )
@@ -123,6 +132,7 @@ def create_domino(
     database_user: str,
     database_pass: str,
     go_database_controller_port: str,
+    db_driver: DBDriverConf,
 ):
 
     pivot_container.exec_run(
@@ -145,28 +155,46 @@ def create_domino(
         "Создаю domino...", "Создал domino", "Не смог создать domino"
     ).start()
 
-    output = pivot_container.exec_run(
-        user="www-data",
-        cmd=[
-            "bash",
-            "-c",
-            "php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id=%s --mysql-user=%s --mysql-pass=%s --start-port=%i --end-port=%i --type=common"
-            % (
-                domino_id,
-                database_user,
-                database_pass,
-                start_company_port,
-                end_company_port,
-            ),
-       ],
-    )
+    if db_driver.driver == "host":
+
+        # если драйвер host, то порты нужно добавлять по одному, а не пачкой
+        # проходимся по всем портам компаний из данных драйвера и склеиваем их
+        host_list = []
+        for instance in db_driver.data.get("company_mysql_hosts"):
+            host_list.append(f"{instance['host']}:{instance['port']}")
+
+        host_list_serialized = ",".join(host_list)
+
+        output = pivot_container.exec_run(
+            user="www-data",
+            cmd=[
+                "bash",
+                "-c",
+                f"php src/Compass/Pivot/sh/php/domino/add_predefined_host_to_domino.php --domino-id={domino_id} --mysql-user={database_user} --mysql-pass={database_pass} --host-list=[{host_list_serialized}] --type=common"
+            ],
+        )
+    else:
+
+        # остальные случаи пытаемся обработать стандартной логикой добавления портов
+        # достаем данные о начальном и конечном порте диапазона
+        drv_data = db_driver.data
+        start_port = drv_data["start_company_port"]
+        end_port = drv_data["end_company_port"]
+
+        output = pivot_container.exec_run(
+            user="www-data",
+            cmd=[
+                "bash",
+                "-c",
+                f"php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id={domino_id} --mysql-user={database_user} --mysql-pass={database_pass} --start-port={start_port} --end-port={end_port} --type=common"
+            ],
+        )
 
     if output.exit_code == 0:
         loader.success()
     else:
         loader.error()
         print(output.output.decode("utf-8"))
-
 
 # ---СКРИПТ---#
 
@@ -210,7 +238,18 @@ if not validate_only:
                 scriptutils.error("Не был развернут проект domino через скрипт deploy.py")
             )
 
-start_company_port, end_company_port = get_company_ports()
+db_config = interactive.InteractiveValue(
+    "database_connection", "Введите драйвер БД", "dict_or_none", config=config,
+).from_config()
+
+db_driver_name = db_config.get("driver")
+
+if db_driver_name == "docker":
+    start_company_port, end_company_port = get_company_ports()
+    db_driver = DBDriverConf(db_driver_name, {"start_company_port": start_company_port, "end_company_port": end_company_port})
+else:
+    db_driver = DBDriverConf(db_driver_name, db_config.get("driver_data", None))
+
 if init:
     try:
         team_name = interactive.InteractiveValue(
@@ -228,6 +267,7 @@ else:
             "Введите название команды",
             "str",
         ).input()
+
 if validate_only:
     if len(validation_errors) > 0:
         print("Ошибка в конфигурации")
@@ -286,6 +326,7 @@ if output.exit_code != 0:
         first_domino["company_mysql_user"],
         first_domino["company_mysql_password"],
         first_domino["go_database_controller_port"],
+        db_driver,
     )
 
 if init:

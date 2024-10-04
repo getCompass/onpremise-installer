@@ -19,19 +19,29 @@ script_dir = str(Path(__file__).parent.resolve())
 
 # загружаем конфиги
 config_path = Path(script_dir + "/../configs/global.yaml")
+database_config_path = Path(script_dir + "/../configs/database.yaml")
 
 validation_errors = []
 config = {}
 protected_config = {}
+database_config = {}
 
 if not config_path.exists():
     print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
     exit(1)
 
+if not database_config_path.exists():
+    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(database_config_path.resolve())))
+    exit(1)
+
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
+with database_config_path.open("r") as database_config_file:
+    database_config_values = yaml.load(database_config_file, Loader=yaml.BaseLoader)
+
 config.update(config_values)
+database_config.update(database_config_values)
 
 protected_config_path = Path(script_dir + "/../configs/global.protected.yaml")
 
@@ -95,6 +105,11 @@ jitsi_ports = {
     "service.jvb.media_port": 10000,
     "service.jicofo.port": 35001,
     "service.prosody.serve_port": 35002,
+}
+
+database_driver_data_fields = {
+    "predefined": ["database_definition_path"],
+    "docker": [],
 }
 
 # ---АГРУМЕНТЫ СКРИПТА---#
@@ -404,19 +419,19 @@ def convert_idn(value: str):
     return value.strip().encode("idna").decode()
 
 def onpremise_domain(
-        project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict, _4=None
 ):
     return global_values.get("domain")
 
 ### END POST FUNCTIONS ###
 ### SKIP FUNCTIONS ###
 def skip_subdomain(
-        project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict, _4=None
 ):
     return not bool(global_values.get("subdomain_enabled"))
 
 def skip_url_path(
-        project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict, _4=None
 ):
     return bool(global_values.get("subdomain_enabled"))
 ### END SKIP FUNCTIONS ###
@@ -436,6 +451,23 @@ nginx_fields = [
         "type": "str",
         "ask": True,
     },
+]
+
+database_connection_fields = [
+    {
+        "name": "driver",
+        "comment": "Укажите драйвер, с помощью которого будет выполняться подключение к базе (docker, host)",
+        "default_value": "docker",
+        "type": "str",
+        "ask": True,
+    },
+    {
+        "name": "driver_data",
+        "comment": "Параметры драйвера подключения к БД",
+        "default_value": None,
+        "type": "dict_or_none",
+        "ask": True,
+    }
 ]
 
 required_root_fields = [
@@ -1035,7 +1067,7 @@ def process_field(
 
     if field.get("skip_function") is not None:
         if field["skip_function"](
-            project, label, {}, new_values
+            project, label, {}, new_values, field["skip_args"] if field.get("skip_args") is not None else []
         ):
             return None, None
 
@@ -1147,6 +1179,7 @@ def start():
 
     new_values = init_global(values_initial_dict, values_file_path, environment)
     new_values = init_nginx(new_values)
+    new_values = init_database(new_values)
 
     if not project:
         write_to_file(new_values)
@@ -1209,7 +1242,7 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
 
         if required_root_field.get("skip_function") is not None:
             if required_root_field["skip_function"](
-                    project, "", {}, new_values
+                    project, "", {}, new_values, required_root_field["skip_args"] if required_root_field.get("skip_args") is not None else []
             ):
                 continue
 
@@ -1277,6 +1310,39 @@ def init_nginx(new_values: dict):
             continue
 
         new_values = nested_set(new_values, "nginx.%s" % field_name, new_value)
+
+    return new_values
+
+
+def init_database(new_values: dict):
+
+    """инициализируем конфигурацию БД"""
+
+    # первый делом вольем конфиг БД в обычный конфиг —
+    # обычный не включается в себя yaml в привычном его виде,
+    # но конфигурации БД объявлять построчно неудобно, поэтому
+    # они лежат отдельный файлом, который уже для advanced пользователей
+    # должен быть понятен и они его не сломают. Вливаем полностью перезаписывая
+    # имеющийся, чтобы избежать возможных конфликтов
+    config["database_connection.driver"] = database_config.get("database_connection", {}).get("driver", "")
+    config["database_connection.driver_data"] = database_config.get("database_connection", {}).get("driver_data", None)
+
+    # создаем пустой набор полей в итоговом values, если он не был объявлен
+    if new_values.get("database_connection") is None:
+        new_values["database_connection"] = {}
+
+    # выполняем наполнение конфигурации полями
+    for field in database_connection_fields:
+
+        new_value, field_name = process_field(
+            field.copy(), "database_connection", "database_connection",
+            new_values["database_connection"], new_values
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "database_connection.%s" % field_name, new_value)
 
     return new_values
 
@@ -1441,7 +1507,7 @@ def init_project(
 
             if extra_field.get("skip_function") is not None:
                 if extra_field["skip_function"](
-                    project, label, {}, new_values
+                    project, label, {}, new_values, extra_field["skip_args"] if extra_field.get("skip_args") is not None else []
                 ):
                     continue
 

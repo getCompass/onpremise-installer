@@ -1,0 +1,354 @@
+#!/usr/bin/env python3
+import argparse
+
+import yaml, functools, mysql.connector, mysql.connector.errorcode
+
+from pathlib import Path
+from utils import scriptutils
+
+# region АГРУМЕНТЫ СКРИПТА #
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("--validate-only", required=False, action="store_true")
+args = parser.parse_args()
+
+script_dir = str(Path(__file__).parent.resolve())
+root_path = str(Path(script_dir + "/../").resolve())
+
+validate_only = args.validate_only
+
+# проверяем конфигурационный файл с глобальными параметрами
+config_path = Path(script_dir + "/../configs/global.yaml")
+
+if not config_path.exists():
+    scriptutils.die(
+        f"Отсутствует файл конфигурации {str(config_path.resolve())}. " +
+        f"Запустите скрипт create_configs.py и заполните конфигурацию"
+    )
+
+# загружаем конфигурационный файл с глобальными параметрами
+with config_path.open("r") as config_file:
+    config: dict = yaml.load(config_file, Loader=yaml.BaseLoader)
+
+# проверяем конфигурационный файл с глобальными параметрами
+database_config_path = Path(script_dir + "/../configs/database.yaml")
+
+if not database_config_path.exists():
+    scriptutils.die(
+        f"Отсутствует файл конфигурации {str(database_config_path.resolve())}. " +
+        f"Запустите скрипт create_configs.py и заполните конфигурацию"
+    )
+
+try :
+    # загружаем конфигурационный файл с параметрами БД
+    with database_config_path.open("r") as database_config_file:
+        database_config: dict = yaml.load(database_config_file, Loader=yaml.BaseLoader)
+except:
+    scriptutils.die("Не смогли прочитать конфигурацию %s. Поправьте её и запустите установку снова." % str(database_config_path.resolve()))
+
+# известные базы данных, если используются predefined базы, нужно контролировать
+# их изменение, чтобы приложение не начало смотреть куда-то не туда.
+known_database_path = None
+known_database_config = None
+
+lock_file_rel_path = "deploy_configs/database.lock.yaml"
+
+if config.get("root_mount_path") is not None:
+
+    # загружаем конфиг c ранее объявленными настройками БД
+    known_database_path = Path(config.get("root_mount_path") + "/" + lock_file_rel_path)
+
+    if known_database_path.exists():
+        with known_database_path.open("r") as known_database_file:
+            known_database_config = yaml.load(known_database_file, Loader=yaml.BaseLoader)
+
+# endregion АГРУМЕНТЫ СКРИПТА #
+
+# известные виды драйверов
+allowed_driver_list = ["docker", "host"]
+
+
+class DBDriverConf:
+    """Класс-экземпляра параметров драйвера подключения к БД"""
+
+    def __init__(self, cnf: dict):
+        self.known_instance_uniq_list = []
+        self.cnf = cnf
+
+    def try_conf(self):
+
+        """Проверяет указанную конфигурацию БД"""
+        driver = self.cnf.get("driver", None)
+
+        # если драйвер не передан или неизвестен, считаем, что конфиг невалидный
+        if driver is None or driver not in allowed_driver_list:
+            return False, "Указан неподдерживаемый драйвер в параметрах подключения к БД"
+
+        result = True
+        message = ""
+
+        # для хоста проверяем по правилам хоста
+        if driver == "host":
+            result, message = self._try_host(self.cnf.get("driver_data", None))
+
+        # для докера проверяем по правилам докера
+        if driver == "docker":
+            result, message = self._try_docker(self.cnf.get("driver_data", None))
+
+        if result is False:
+            return False, message
+
+        dupes = [x for n, x in enumerate(self.known_instance_uniq_list) if x in self.known_instance_uniq_list[:n]]
+        if len(dupes) > 0:
+            return False, "В конфигурации найдены дублирующиеся параметры подключения к БД: " + str(dupes)
+
+        return True, ""
+
+    def _try_docker(self, _: any):
+
+        """Для конфигурации через докер нет ограничений"""
+        return True, ""
+
+    def _try_host(self, driver_data: any):
+
+        """Проверяет настройку для подключения к хостовым БД"""
+        if not isinstance(driver_data, dict):
+            return False, "Неверный формат конфигурации для БД"
+
+        projects_conf = driver_data.get("project_mysql_hosts", None)
+
+        if projects_conf is None:
+            return False, "Неверный формат конфигурации для БД"
+
+        monolith_conf = driver_data.get("project_mysql_hosts", {}).get("monolith", None)
+        company_conn_list = driver_data.get("company_mysql_hosts", None)
+
+        if monolith_conf is None:
+            project_check, message = self._try_multi_host(monolith_conf)
+        else:
+            project_check, message = self._try_monolith_host(projects_conf)
+
+        if project_check is False:
+            return False, message
+
+        if company_conn_list is None or not isinstance(company_conn_list, list):
+            return False, "Неверный формат конфигурации для БД"
+
+        company_conn_count = 0
+
+        for company_conn in company_conn_list:
+
+            conn = DBConnConf(company_conn)
+            result, message = conn.try_conf()
+
+            if result is False:
+                return False, message
+
+            self.known_instance_uniq_list.append(conn.get_key())
+            company_conn_count = company_conn_count + 1
+
+        if company_conn_count <= 0 or company_conn_count > 15:
+            return False, "Неверно указано число БД для команд"
+
+        return True, ""
+
+    def _try_monolith_host(self, projects_conf: any):
+
+        """Проверяет подключения для БД монолита"""
+        conn = DBConnConf(projects_conf.get("monolith", {}))
+        result, message = conn.try_conf()
+
+        if result is True:
+            self.known_instance_uniq_list.append(conn.get_key())
+
+        return result, message
+
+    # noinspection PyMethodMayBeStatic
+    def _try_multi_host(self, _: any):
+
+        """Проверяет подключения для БД в рамках мультимодулей. Но сейчас такой реализации нет."""
+        return False, "Not Implemented"
+
+    def is_extender_for(self, existing: dict):
+
+        """Сравнивает два конфига и определяет, является ли текущий расширением указанного"""
+
+
+class DBConnConf:
+    """Класс-экземпляра конфигурации подключения к БД"""
+
+    def __init__(self, cnf: dict):
+        self.cnf = cnf
+
+    def try_conf(self):
+
+        """Проверяет переданный набор настроек на валидность конфига подключения"""
+        host = self.cnf.get("host", None)
+        port = self.cnf.get("port", None)
+        r_password = self.cnf.get("root_password", None)
+
+        field_dict = {"host": host, "port": port, "root_password": r_password}
+
+        # если какие-то из параметров не объявлены, то говорим, что конфиг невалидный
+        if (host is None or host == "") or (port is None or port == "") or (r_password is None or r_password == ""):
+
+            err_str = functools.reduce(lambda p, k: p + k + ", " if field_dict[k] is None or field_dict[k] == "" else  p + "", field_dict, "")
+            err_str = err_str[:-2]
+
+            return False, f"В наборе присутствуют следующие некорректные значения для подключения к БД: {err_str}"
+
+        # если данные имеют какой-то неправильный тип
+        if not isinstance(host, str) or host == "" or not str(port).isnumeric():
+            return False, f"Указан некорректный набор параметров для подключения к БД у следующего инстанса: {host}:{port}"
+
+        # если база недоступна, значит ее использовать нельзя
+        if not is_database_avaialble(host, port, 'root', r_password):
+            return False, f"Указанный инстанс MySQL в конфигурации недоступен: {host}:{port}"
+        
+        return True, ""
+
+    def get_key(self) -> str:
+
+        """Возвращает уникальный ключ-пару хост:порт"""
+        return f"{self.cnf.get('host', None)}:{self.cnf.get('port', None)}"
+
+    def get_uniq(self) -> str:
+
+        """Возвращает уникальную строку подключения"""
+        return f"{self.cnf.get('host', None)}:{self.cnf.get('port', None)}:{self.cnf.get('root_password', None)}"
+
+
+class ConfComparer:
+    """Класс, проверяющий, является ли новый конфиг расширение имеющегося"""
+
+    def __init__(self, passed: DBDriverConf, existing: DBDriverConf):
+        self.passed = passed
+        self.existing = existing
+
+    def compare(self):
+
+        """Сравнивает два блока конфигурации БД"""
+        if self.passed.cnf.get("driver") != self.existing.cnf.get("driver"):
+            return False, "Не совпадает драйвер БД в новой и имеющейся конфигурации"
+
+        # для докера больше не делаем проверок
+        if self.passed.cnf.get("driver") == "docker":
+            return True, ""
+
+        # получаем список БД для переданных параметров
+        passed_driver_data = self.passed.cnf.get("driver_data")
+        passed_monolith_conf = passed_driver_data.get("project_mysql_hosts", {}).get("monolith", None)
+
+        if passed_monolith_conf is not None:
+
+            result, message = self._compare_monolith()
+            if result is False:
+                return result, message
+
+        return self._compare_companies()
+
+    def _compare_monolith(self):
+
+        """Сравниваем параметры подключения для монолита"""
+
+        existing_driver_data = self.existing.cnf.get("driver_data", None)
+        existing_monolith_conf = existing_driver_data.get("project_mysql_hosts", {}).get("monolith", None)
+
+        # если в имеющемся конфигурационном файле нет параметров для монолита, то
+        # считаем, что валидация пройдена, поскольку новый конфиг добавит поля
+        if existing_monolith_conf is None:
+            return True, ""
+
+        passed_driver_data = self.passed.cnf.get("driver_data", None)
+        passed_monolith_conf = passed_driver_data.get("project_mysql_hosts", {}).get("monolith", None)
+
+        if DBConnConf(passed_monolith_conf).get_uniq() != DBConnConf(existing_monolith_conf).get_uniq():
+            return False, "Не совпадает конфигурация БД в новой и имеющейся конфигурации для проекта monolith"
+
+        return True, ""
+
+    def _compare_companies(self):
+
+        """Сравниваем параметры подключения для компаний"""
+
+        existing_driver_data = self.existing.cnf.get("driver_data")
+        existing_company_conn_list = existing_driver_data.get("company_mysql_hosts", None)
+
+        # если в имеющемся конфигурационном файле нет параметров для компаний, то
+        # считаем, что валидация пройден, поскольку новый конфиг добавит поля
+        if existing_company_conn_list is None or len(existing_company_conn_list) == 0:
+            return True, ""
+
+        passed_driver_data = self.passed.cnf.get("driver_data")
+        passed_company_conn_list = passed_driver_data.get("company_mysql_hosts", None)
+
+        passed_uniq_list = {}
+
+        for passed_company_conn in passed_company_conn_list:
+            passed_uniq_list[DBConnConf(passed_company_conn).get_uniq()] = True
+
+        for existing_company_conn in existing_company_conn_list:
+
+            uniq = DBConnConf(existing_company_conn).get_uniq()
+            if passed_uniq_list.get(uniq, None) is None:
+                return False, f"Новая конфигурация БД команды не содержит уже имеющееся подключение {uniq}"
+
+        return True, ""
+
+
+def is_database_avaialble(host: str, port: str, user: str, password: str) -> bool:
+    """Проверить доступность базы данных"""
+
+    try:
+        db = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            connection_timeout=2
+        )
+        db.close()
+    except mysql.connector.Error as err:
+        return False
+    
+    return True
+            
+
+def write_known_database_config(cfg: dict):
+
+    """Записывает конфигурацию БД в файл известных конфигураций"""
+
+    if validate_only:
+        return
+
+    if known_database_path is None:
+        raise FileNotFoundError("Не найден путь для записи конфигурации БД")
+
+    with open(known_database_path, "w") as outfile:
+        yaml.dump(cfg, outfile)
+
+
+def start():
+
+    db_conf = database_config.get("database_connection", None)
+    if db_conf is None:
+        scriptutils.die("Не найден блок параметров подключения к БД")
+
+    db_driver_conf = DBDriverConf(db_conf)
+    result, msg = db_driver_conf.try_conf()
+    if result is False:
+        scriptutils.die(msg)
+
+    if known_database_config is None:
+        write_known_database_config(db_conf)
+        return
+
+    result, msg = ConfComparer(db_driver_conf, DBDriverConf(known_database_config)).compare()
+    if result is False:
+        scriptutils.die(msg)
+
+    write_known_database_config(db_conf)
+    return
+
+
+start()
+print(scriptutils.success("Проверка конфигурации БД прошла успешно"))
