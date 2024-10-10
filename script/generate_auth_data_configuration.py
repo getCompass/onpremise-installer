@@ -406,7 +406,7 @@ class MailSmtpConfig:
         try:
             smtp_username = interactive.InteractiveValue(
                 "smtp.username", "Имя пользователя для отправки писем по SMTP", "str", config=config, default_value="",
-                is_required=False, validation="mail"
+                is_required=False, validation="smtp_username"
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
