@@ -248,7 +248,7 @@ def validate(value: str, validation: Union[str, None]) -> str:
         return validate_mail_password(value)
     if validation == "smtp_username":
             return validate_smtp_username(value)
-    
+
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
