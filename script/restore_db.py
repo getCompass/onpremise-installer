@@ -108,27 +108,33 @@ def start():
 # останавливаем окружение
 def stop_environment() -> None:
 
-    result = input(scriptutils.error("Перед восстановлением необходимо завершить работу приложения и удалить текущие данные БД. Согласны?[Y/n]"))
+    result = input(scriptutils.error("Перед восстановлением необходимо завершить работу приложения Compass и удалить текущие данные БД. Согласны?[Y/n]"))
 
     if result.lower() != "y":
         scriptutils.die("Восстановление отменено")
-    
-    # удаляем стаки
-    result = subprocess.run([
-        "sh",
-        "-c",
-        "docker stack ls | grep %s | awk '{print $1}' | xargs docker stack rm" % stack_name_prefix
 
-    ])
+    # Добавляем проверку перед удалением стеков
+    remove_stack_if_exists(stack_name_prefix)
 
     loader = Loader("Ждем остановки приложения...", "Приложение остановлено", "Не смогли остановить приложение").start()
     while True:
-
         docker_monolith_network_list = client.networks.list(names=["%s-monolith-private" % stack_name_prefix])
         if len(docker_monolith_network_list) < 1:
             break
     loader.success()
-    
+
+# Функция для удаления стека с проверкой
+def remove_stack_if_exists(stack_name):
+
+    # Выполняем команду 'docker stack ls' и проверяем, существует ли стек
+    result = subprocess.run(f"docker stack ls | grep {stack_name}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Если стек найден, удаляем его
+    if result.stdout:
+        print(f"Удаление стека {stack_name}...")
+        subprocess.run(f"docker stack rm {stack_name}", shell=True)
+    # Если стек не найден, ничего не делаем и не выводим сообщение
+
 # обнвоить конфиги пространств
 def update_space_configs() -> None:
 
