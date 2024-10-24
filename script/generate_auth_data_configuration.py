@@ -118,7 +118,8 @@ class AuthMainConfig:
     ):
         self.captcha_enabled = captcha_enabled
         self.require_after = require_after
-        self.available_methods = "[%s]" % (", ").join(map(lambda s: '"%s"' % s, available_method_list)) if len(available_method_list) > 0 else "[]"
+        self.available_methods = "[%s]" % (", ").join(map(lambda s: '"%s"' % s, available_method_list)) if len(
+            available_method_list) > 0 else "[]"
 
     def input(self):
 
@@ -175,7 +176,8 @@ class AuthMailConfig:
             registration_2fa_enabled: int,
             authorization_2fa_enabled: int,
     ):
-        self.allowed_domains = "[%s]" % (", ").join(map(lambda s: '"%s"' % s, allowed_domain_list)) if len(allowed_domain_list) > 0 else "[]"
+        self.allowed_domains = "[%s]" % (", ").join(map(lambda s: '"%s"' % s, allowed_domain_list)) if len(
+            allowed_domain_list) > 0 else "[]"
         self.registration_2fa_enabled = registration_2fa_enabled
         self.authorization_2fa_enabled = authorization_2fa_enabled
 
@@ -245,12 +247,14 @@ class AuthSsoConfig:
             self,
             sso_protocol: str,
             sso_web_auth_button_text: str,
+            sso_web_auth_ldap_description_text: str,
             authorization_alternative_enabled: bool,
             profile_data_actualization_enabled: bool,
             auto_join_to_team: str,
     ):
         self.sso_protocol = sso_protocol
         self.sso_web_auth_button_text = sso_web_auth_button_text
+        self.sso_web_auth_ldap_description_text = sso_web_auth_ldap_description_text
         self.authorization_alternative_enabled = authorization_alternative_enabled
         self.profile_data_actualization_enabled = profile_data_actualization_enabled
         self.auto_join_to_team = auto_join_to_team
@@ -289,6 +293,18 @@ class AuthSsoConfig:
             sso_web_auth_button_text = ""
 
         try:
+            sso_web_auth_ldap_description_text = interactive.InteractiveValue(
+                "sso.web_auth_ldap_description_text",
+                "Кастомный текст описания на веб-сайте авторизации в On-Premise решении через LDAP", "str",
+                config=config,
+                default_value="Для авторизации введите username и пароль от вашей корпоративной учётной записи LDAP:",
+                is_required=is_required and sso_protocol.lower() == "ldap"
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            sso_web_auth_ldap_description_text = ""
+
+        try:
             authorization_alternative_enabled = interactive.InteractiveValue(
                 "sso.authorization_alternative_enabled",
                 "Включена ли опция альтернативных способов аутентификации при аутентификации через SSO", "bool",
@@ -321,14 +337,16 @@ class AuthSsoConfig:
             handle_exception(e.field, e.message)
             auto_join_to_team = ""
 
-        return self.init(sso_protocol, sso_web_auth_button_text, authorization_alternative_enabled,
+        return self.init(sso_protocol, sso_web_auth_button_text, sso_web_auth_ldap_description_text,
+                         authorization_alternative_enabled,
                          profile_data_actualization_enabled, auto_join_to_team)
 
     # подготавливаем содержимое для $CONFIG["AUTH_SSO"]
     def make_output(self):
-        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"profile_data_actualization_enabled" => {},\n\t"auto_join_to_team" => "{}",""".format(
+        return """"protocol" => "{}",\n\t"start_button_text" => "{}",\n\t"ldap_description_text" => "{}",\n\t"authorization_alternative_enabled" => {},\n\t"profile_data_actualization_enabled" => {},\n\t"auto_join_to_team" => "{}",""".format(
             self.sso_protocol,
             self.sso_web_auth_button_text,
+            self.sso_web_auth_ldap_description_text,
             self.authorization_alternative_enabled,
             self.profile_data_actualization_enabled,
             self.auto_join_to_team,
@@ -942,7 +960,8 @@ class SsoLdapConfig:
             handle_exception("ldap.user_search_page_size",
                              bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
 
-        return self.init(ldap_server_host, ldap_server_port, ldap_use_ssl, ldap_user_search_base, ldap_user_unique_attribute,
+        return self.init(ldap_server_host, ldap_server_port, ldap_use_ssl, ldap_user_search_base,
+                         ldap_user_unique_attribute,
                          ldap_limit_of_incorrect_auth_attempts,
                          ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling,
                          ldap_user_search_account_dn,
