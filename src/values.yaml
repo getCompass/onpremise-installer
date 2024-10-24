@@ -93,7 +93,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.4.0"
+        tag: "v4.4.2"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -331,7 +331,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.4.0"
+          tag: "v4.4.2"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -492,7 +492,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.2.4"
+        tag: "v4.4.2"
         external_port: 43100
 
   integration:
