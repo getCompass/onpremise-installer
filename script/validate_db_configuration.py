@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
+
 import argparse
-
-import yaml, functools, mysql.connector, mysql.connector.errorcode
-
 from pathlib import Path
+
+import docker
+import docker.errors
+import functools
+import mysql.connector
+import mysql.connector.errorcode
+import yaml
+
 from utils import scriptutils
 
 # region АГРУМЕНТЫ СКРИПТА #
@@ -201,7 +207,7 @@ class DBConnConf:
             return False, f"Указан некорректный набор параметров для подключения к БД у следующего инстанса: {host}:{port}"
 
         # если база недоступна, значит ее использовать нельзя
-        if not is_database_avaialble(host, port, 'root', r_password):
+        if not is_database_available(host, port, 'root', r_password):
             return False, f"Указанный инстанс MySQL в конфигурации недоступен: {host}:{port}"
         
         return True, ""
@@ -217,7 +223,7 @@ class DBConnConf:
         return f"{self.cnf.get('host', None)}:{self.cnf.get('port', None)}:{self.cnf.get('root_password', None)}"
 
 
-class ConfComparer:
+class DBConfComparer:
     """Класс, проверяющий, является ли новый конфиг расширение имеющегося"""
 
     def __init__(self, passed: DBDriverConf, existing: DBDriverConf):
@@ -295,7 +301,7 @@ class ConfComparer:
         return True, ""
 
 
-def is_database_avaialble(host: str, port: str, user: str, password: str) -> bool:
+def is_database_available(host: str, port: str, user: str, password: str) -> bool:
     """Проверить доступность базы данных"""
 
     try:
@@ -307,11 +313,83 @@ def is_database_avaialble(host: str, port: str, user: str, password: str) -> boo
             connection_timeout=2
         )
         db.close()
-    except mysql.connector.Error as err:
+    except mysql.connector.Error:
         return False
-    
+
     return True
-            
+
+
+# известные режимы работы шифрования БД
+allowed_encrypt_mode_list = ["none", "read_write", "read"]
+
+
+class EncryptDBConf:
+    """Класс-экземпляра параметров шифрования БД"""
+
+    def __init__(self, cnf: dict):
+
+        self.known_instance_uniq_list = []
+        self.cnf = cnf
+
+        if self.cnf.get("use_encryption", None) is None:
+
+            if self.cnf.get("mode", None) == "none":
+                self.cnf["use_encryption"] = False
+            else:
+                self.cnf["use_encryption"] = True
+        elif self.cnf.get("use_encryption", None) == "true" or self.cnf.get("use_encryption", None) is True:
+            self.cnf["use_encryption"] = True
+        else:
+            self.cnf["use_encryption"] = False
+
+    def try_conf(self):
+
+        """Проверяет конфиг на валидность"""
+
+        # проверяем, что режим работы указан верно
+        mode = self.cnf.get("mode", None)
+        if mode is None or mode not in allowed_encrypt_mode_list:
+            return False, "Указан неверный параметр «mode» конфигурации шифрования БД."
+
+        use_encryption = self.cnf.get("use_encryption", None)
+        if use_encryption is None:
+            return False, "Неверная конфигурация шифрования БД."
+
+        # при режиме none никаких дополнительных проверок не нужно проводить,
+        # несовместимость с ранее включенным write/read дальше проверится
+        if mode == "none":
+            return True, ""
+
+        # проверим, что мастер ключ на месте
+        master_key = self.cnf.get("master_key", None)
+        if master_key is None or master_key == "":
+            return False, f"Мастер ключ конфигурации шифрования БД должен быть указан при включенном шифровании БД."
+
+        client = docker.from_env()
+
+        try:
+            # проверяем наличие существующего секрета
+            existing = client.secrets.get("compass_database_encryption_secret_key")
+        except docker.errors.NotFound:
+            return False, f"Docker-секрет «compass_database_encryption_secret_key» с ключом секретом должен существовать при включенном шифровании БД."
+
+        return True, ""
+
+class EncryptConfComparer:
+    """Класс, проверяющий, совместим ли новый конфиг шифрования с имеющимся"""
+
+    def __init__(self, passed: EncryptDBConf, existing: EncryptDBConf):
+        self.passed = passed
+        self.existing = existing
+
+    def compare(self):
+        """Проверяет две конфигурации на совместимость"""
+
+        if self.existing.cnf.get("use_encryption") is True and self.passed.cnf.get("use_encryption") is False:
+            return False, "Необходимо включить шифрование БД — ранее использовалась конфигурация с шифрованием."
+
+        return True, ""
+
 
 def write_known_database_config(cfg: dict):
 
@@ -327,9 +405,11 @@ def write_known_database_config(cfg: dict):
         yaml.dump(cfg, outfile)
 
 
-def start():
+def compare_database_config(passed: dict, known: dict):
 
-    db_conf = database_config.get("database_connection", None)
+    """Сравнивает две конфигурации подключения к БД"""
+
+    db_conf = passed.get("database_connection", None)
     if db_conf is None:
         scriptutils.die("Не найден блок параметров подключения к БД")
 
@@ -338,15 +418,55 @@ def start():
     if result is False:
         scriptutils.die(msg)
 
-    if known_database_config is None:
-        write_known_database_config(db_conf)
+    if known is None:
         return
 
-    result, msg = ConfComparer(db_driver_conf, DBDriverConf(known_database_config)).compare()
+    # небольшой костылик, при первом релизе поля лежали просто
+    # в файле, не внутри объекта database_connection
+    known_db_conf = known.get("database_connection", None)
+    if known_db_conf is None:
+        known_db_conf = known
+
+    result, msg = DBConfComparer(db_driver_conf, DBDriverConf(known_db_conf)).compare()
     if result is False:
         scriptutils.die(msg)
 
-    write_known_database_config(db_conf)
+
+def compare_encryption_config(passed: dict, known: dict):
+
+    """Сравнивает две конфигурации шифрования БД"""
+
+    db_conf = passed.get("database_encryption", None)
+    if db_conf is None:
+        scriptutils.die("Не найден блок параметров шифрования БД")
+
+    db_driver_conf = EncryptDBConf(db_conf)
+    result, msg = db_driver_conf.try_conf()
+    if result is False:
+        scriptutils.die(msg)
+
+    if known is None:
+        return
+
+    # если в имеющемся конфигу нет блока с шифрованием бд
+    # (такое будет при первом обновлении), то заканчиваем
+    known_db_conf = known.get("database_encryption", None)
+    if known_db_conf is None:
+        return
+
+    result, msg = EncryptConfComparer(db_driver_conf, EncryptDBConf(known_db_conf)).compare()
+    if result is False:
+        scriptutils.die(msg)
+
+
+def start():
+
+    # сравниваем текущую и имеющуюся конфигурации
+    compare_database_config(database_config, known_database_config)
+    compare_encryption_config(database_config, known_database_config)
+
+    # записываем новую конфигурацию
+    write_known_database_config(database_config)
     return
 
 

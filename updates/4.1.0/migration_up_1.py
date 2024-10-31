@@ -58,7 +58,7 @@ loader = Loader(
 ).start()
 
 get_stack_command = ["docker", "stack", "ls"]
-grep_command = ["grep", r'production-compass-integration|production-compass-monolith']
+grep_command = ["grep", "-E", r'production-compass-integration|production-compass-monolith']
 awk_command = ["awk", '{print $1}']
 delete_command = ["xargs", "docker", "stack", "rm"]
 
