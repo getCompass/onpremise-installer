@@ -135,6 +135,10 @@ ENCRYPT_IV_COMPANY_SESSION={{.encrypt_keys.encrypt_iv_company_session}}
 ENCRYPT_IV_ACTION={{.encrypt_keys.encrypt_iv_action}}
 ENCRYPT_PASSPHRASE_ACTION={{.encrypt_keys.encrypt_passphrase_action}}
 
+# параметры шифрования бд
+DATABASE_ENCRYPTION_MASTER_KEY={{.database_encryption.master_key}}
+DATABASE_ENCRYPTION_MODE={{.database_encryption.mode}}
+
 IS_URL_PREVIEW_ENABLED=true
 IS_IMAGE_URL_PREVIEW_ENABLED=true
 IS_VIDEO_URL_PREVIEW_ENABLED=true

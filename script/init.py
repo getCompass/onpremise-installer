@@ -470,6 +470,24 @@ database_connection_fields = [
     }
 ]
 
+database_encryption_fields = [
+    {
+        "name": "mode",
+        "comment": "Режим работы шифрования БД (none, read_write, read)",
+        "default_value": "none",
+        "type": "str",
+        "ask": True,
+    },
+    {
+        "name": "master_key",
+        "comment": "Мастер ключ шифрования БД",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+    }
+]
+
 required_root_fields = [
     {
         "name": "subdomain_enabled",
@@ -1089,6 +1107,11 @@ def process_field(
         if (field.get("force_default") == True):
             use_default = True
 
+        if field.get("is_required") is False:
+            is_required = False
+        else:
+            is_required = True
+
         try:
             new_value = InteractiveValue(
                     prefix + field["name"],
@@ -1097,7 +1120,8 @@ def process_field(
                     field["default_value"],
                     validation=field.get("validation"),
                     force_default=use_default,
-                    config=config
+                    config=config,
+                    is_required=is_required
             ).from_config()
         except IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -1343,6 +1367,26 @@ def init_database(new_values: dict):
             continue
 
         new_values = nested_set(new_values, "database_connection.%s" % field_name, new_value)
+
+    # повторяем то же самое для параметров шифрования
+    config["database_encryption.mode"] = database_config.get("database_encryption", {}).get("mode", "none")
+    config["database_encryption.master_key"] = database_config.get("database_encryption", {}).get("master_key", "")
+
+    if new_values.get("database_encryption") is None:
+        new_values["database_encryption"] = {}
+
+    # выполняем наполнение конфигурации полями
+    for field in database_encryption_fields:
+
+        new_value, field_name = process_field(
+            field.copy(), "database_encryption", "database_encryption",
+            new_values["database_encryption"], new_values
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "database_encryption.%s" % field_name, new_value)
 
     return new_values
 
