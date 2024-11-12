@@ -2392,5 +2392,17 @@
 				"supported_version_list": [0]
 			}
 		}
+	},
+	"notifications_hint": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		}
 	}
 }
