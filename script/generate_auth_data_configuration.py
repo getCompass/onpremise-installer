@@ -753,6 +753,7 @@ class SsoLdapConfig:
             server_host: str,
             server_port: int,
             use_ssl: bool,
+            require_cert_strategy: str,
             user_search_base: str,
             user_unique_attribute: str,
             limit_of_incorrect_auth_attempts: int,
@@ -769,6 +770,7 @@ class SsoLdapConfig:
         self.server_host = server_host
         self.server_port = server_port
         self.use_ssl = use_ssl
+        self.require_cert_strategy = require_cert_strategy
         self.user_search_base = user_search_base
         self.user_unique_attribute = user_unique_attribute
         self.limit_of_incorrect_auth_attempts = limit_of_incorrect_auth_attempts
@@ -822,6 +824,25 @@ class SsoLdapConfig:
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             ldap_use_ssl = True
+
+        try:
+            ldap_require_cert_strategy = interactive.InteractiveValue(
+                "ldap.require_cert_strategy", "Стратегия проверки сертификатов SSL/TLS при установлении безопасного соединения с LDAP-сервером", "string", config=config,
+                is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_require_cert_strategy = ""
+
+        # проверяем, что передано корректное значение параметра ldap.require_cert_strategy
+        require_cert_strategy_values = {"never", "allow", "try", "demand"}
+        if ldap_require_cert_strategy not in require_cert_strategy_values:
+            handle_exception("ldap.require_cert_strategy",
+                             "Некорректное значение параметра. Ожидается одно из следующих значений: \"never\", \"allow\", \"try\", \"demand\"")
+
+        # если ldap.use_ssl = false, то ожидается что ldap.require_cert_strategy будет never
+        if ldap_use_ssl == False and ldap_require_cert_strategy != "never":
+            print(bcolors.WARNING + "В случае ldap.use_ssl: false, рекомендованное значение для параметра ldap.require_cert_strategy: \"never\"" + bcolors.ENDC)
 
         try:
             ldap_user_search_base = interactive.InteractiveValue(
@@ -960,20 +981,30 @@ class SsoLdapConfig:
             handle_exception("ldap.user_search_page_size",
                              bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
 
-        return self.init(ldap_server_host, ldap_server_port, ldap_use_ssl, ldap_user_search_base,
+        return self.init(ldap_server_host,
+                         ldap_server_port,
+                         ldap_use_ssl,
+                         ldap_require_cert_strategy,
+                         ldap_user_search_base,
                          ldap_user_unique_attribute,
                          ldap_limit_of_incorrect_auth_attempts,
-                         ldap_account_disabling_monitoring_enabled, ldap_on_account_removing, ldap_on_account_disabling,
+                         ldap_account_disabling_monitoring_enabled,
+                         ldap_on_account_removing,
+                         ldap_on_account_disabling,
                          ldap_user_search_account_dn,
-                         ldap_user_search_account_password, ldap_account_disabling_monitoring_interval,
-                         ldap_user_search_page_size, ldap_user_search_filter)
+                         ldap_user_search_account_password,
+                         ldap_account_disabling_monitoring_interval,
+                         ldap_user_search_page_size,
+                         ldap_user_search_filter
+                         )
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
+            self.require_cert_strategy,
             self.user_search_base,
             self.user_search_page_size,
             self.user_search_filter,
