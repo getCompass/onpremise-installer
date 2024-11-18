@@ -65,7 +65,7 @@ services:
 
   # RABBIT
   rabbit-{{$file_node.label}}:
-    image: "{{.registry_service_path}}/rabbitmq:master"
+    image: "{{.registry_service_path}}/rabbitmq:4.0.3-1"
     networks:
       - "file-node-private"
     env_file:
@@ -83,7 +83,7 @@ services:
 
   # MEMCACHED
   memcached-{{$file_node.label}}:
-    image: "{{.registry_service_path}}/memcached:master"
+    image: "{{.registry_service_path}}/memcached:3.20-1"
     networks:
       - "file-node-private"
     env_file:
