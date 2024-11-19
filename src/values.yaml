@@ -97,7 +97,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v4.4.5-1"
+        tag: "v4.4.6"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -111,15 +111,15 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v4.4.4"
+        tag: "v4.4.6"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
-        tag: "v4.4.4"
+        tag: "v4.4.6"
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v4.4.4"
+        tag: "v4.4.6"
 
   pivot:
     host: "0.0.0.0"
@@ -146,11 +146,11 @@ projects:
         mysql_user: "root"
         mysql_password: "4321"
       go_pivot_cache:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
       go_pusher:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_pusher_queue"
         rabbit_exchange: "go_pusher_exchange"
         is_push_mock_enable: 0
@@ -160,11 +160,11 @@ projects:
         huawei_voip_push_version: 1
         apns_push_version: 2
       go_sender_balancer:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -172,7 +172,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -209,11 +209,11 @@ projects:
       php_announcement:
         tag: "v1.5.0"
       go_sender_balancer:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -335,25 +335,25 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v4.4.5-1"
+          tag: "v4.4.6"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -372,11 +372,11 @@ projects:
           rabbit_queue: "go_partner_agent_queue"
           rabbit_exchange: "go_partner_agent_exchange"
         go_rating:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.4.4"
+          tag: "v4.4.6"
         nginx:
           external_https_port: 20106
   userbot:
@@ -396,7 +396,7 @@ projects:
       php_userbot:
         tag: "v1.5.0"
       go_userbot_cache:
-        tag: "v4.4.4"
+        tag: "v4.4.6"
         rabbit_queue: "go_userbot_cache_queue"
         rabbit_exchange: "go_userbot_cache_exchange"
       prometheus:
