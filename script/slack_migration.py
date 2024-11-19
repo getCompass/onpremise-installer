@@ -284,7 +284,7 @@ while n <= timeout:
     if n == timeout:
         try:
             exporter_container = client.containers.run(
-                "docker.getcompass.ru/backend_compass/php_slack_migrator:v3.0.1",
+                "docker.getcompass.ru/backend_compass/php_slack_migrator:v4.4.6",
                 name="compass-migration-exporter",
                 volumes=["%s:/app/exported" % slack_export_workdir],
                 detach=True
