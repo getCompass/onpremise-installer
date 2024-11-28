@@ -230,7 +230,10 @@ configs:
   join-web-nginx-conf:
     name: "{{.stack_name}}_join_web_nginx_conf-{{.config_revisions.project.join_web.nginx.conf}}"
     file: ".project.join_web.nginx.conf"
-
+  # конфиг мантикоры
+  manticore-conf:
+    name: "{{.stack_name}}_manticore-{{.config_revisions.project.search.manticore.conf}}"
+    file: ".project.search.manticore.conf"
   # настройки nginx jitsi
   nginx-include-jitsi:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.jitsi.nginx_include.conf}}"
@@ -286,7 +289,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:master"
+    image: "{{.registry_service_path}}/nginx:1.27.2-1"
     networks:
       monolith-private:
         aliases:
@@ -654,14 +657,29 @@ services:
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
-    image: "{{.registry_service_path}}/manticore:6.3.0"
+    image: "{{.registry_service_path}}/manticore:6.3.6-1"
     environment:
       - EXTRA=0
       - MCL=1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
     volumes:
       - "{{$domino.manticore_path}}:/var/lib/manticore/"
     ports:
       - "{{$domino.service.manticore.external_port}}:{{$domino.service.manticore.port}}"
+    configs:
+      - source: "manticore-conf"
+        target: "/etc/manticoresearch/manticore.conf"
     ulimits:
       nproc: 65535
       nofile:

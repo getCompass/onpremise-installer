@@ -110,7 +110,7 @@ services:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}:
-    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.tag}}"
+    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
     expose:
       - '5222'
       - '5269'
