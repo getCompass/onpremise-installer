@@ -129,6 +129,8 @@ services:
         target: "/config/conf.d/persistent-lobby.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl/:/tmp/ssl:ro"
     networks:
       monolith-private:
         aliases:
