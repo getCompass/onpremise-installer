@@ -7,7 +7,7 @@ import argparse
 import os
 from pathlib import Path
 
-import yaml
+import yaml, shutil
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
@@ -42,11 +42,17 @@ def make_temporary_symbolic_link_for_deploy_units(project:str, deploy_units:list
 
         # очищаем конфиги, если есть
         if symlink_conf_path.exists():
-            symlink_conf_path.unlink()
+            try:
+                symlink_conf_path.unlink()
+            except IsADirectoryError:
+                shutil.rmtree(symlink_conf_path)
 
         # очищаем переменные, если есть
         if symlink_var_path.exists():
-            symlink_var_path.unlink()
+            try:
+                symlink_var_path.unlink()
+            except IsADirectoryError:
+                shutil.rmtree(symlink_var_path)
 
         # пересоздаем символьные ссылки на директории деплой-юнита
         symlink_conf_path.symlink_to(Path(root_path + "/src/" + deploy_unit + "/config"))

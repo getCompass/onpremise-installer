@@ -13,6 +13,7 @@ from pathlib import Path
 from loader import Loader
 from time import sleep
 from datetime import datetime
+import ipaddress
 
 scriptutils.assert_root()
 
@@ -37,11 +38,32 @@ parser.add_argument(
     type=str,
     help="название файла со значениями для деплоя",
 )
+
 parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
 args = parser.parse_args()
 
 values_name = args.values
 environment = args.environment
+
+# загружаем конфиг
+script_path = Path(__file__).parent
+config_path = Path(str(script_path) + "/../configs/global.yaml")
+
+config = {}
+
+if not config_path.exists():
+    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(config_path.resolve())) +  "Запустите скрипт create_configs.py и заполните конфигурацию")
+    exit(1)
+
+with config_path.open("r") as config_file:
+    config_values = yaml.safe_load(config_file)
+try:
+    ipaddress.ip_address(config_values["host_ip"])
+except ValueError:
+    scriptutils.die("Указан неверный ip адрес хоста в аргументах")
+
+host_ip = config_values["host_ip"]
+
 stack_name_prefix = environment + '-' + values_name
 
 need_backup_spaces =True
@@ -102,8 +124,14 @@ def start():
     # запускаем окружение
     start_environment(current_values)
 
+    monolith_container: docker.models.containers.Container = wait_monolith_container()
+
+    # если передали ip - меняем
+    if host_ip != "":
+        update_host_ip(monolith_container, host_ip, current_values["root_mount_path"])
+    
     # обновляем конфиги пространств
-    update_space_configs()
+    update_space_configs(monolith_container)
 
 # останавливаем окружение
 def stop_environment() -> None:
@@ -132,11 +160,37 @@ def remove_stack_if_exists(stack_name):
     # Если стек найден, удаляем его
     if result.stdout:
         print(f"Удаление стека {stack_name}...")
-        subprocess.run(f"docker stack rm {stack_name}", shell=True)
+        subprocess.run("docker stack ls | grep %s | awk '{print $1}' | xargs docker stack rm" % (stack_name), shell=True)
     # Если стек не найден, ничего не делаем и не выводим сообщение
 
-# обнвоить конфиги пространств
-def update_space_configs() -> None:
+# обновить хостовый ip
+def update_host_ip(monolith_container: docker.models.containers.Container, host_ip: str, root_mount_path: str) -> None:
+    
+    # обновляем ip в базе
+    result = monolith_container.exec_run([
+        "bash",
+        "-c",
+        f'mysql -h "$MYSQL_HOST" -p"$MYSQL_ROOT_PASS" -D pivot_company_service -e "UPDATE domino_registry SET \`database_host\` = \'{host_ip}\', \`code_host\` = \'{host_ip}\';"'
+    ])
+    if result.exit_code != 0:
+
+        print(result.output)
+        scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
+
+    # обновляем айпи в конфиге домино хостов
+    domino_hosts_file = f"{root_mount_path}/company_configs/.domino_hosts.json"
+
+    with open(domino_hosts_file, "r") as file:
+        json_str = file.read()
+        json_dict = json.loads(json_str) if json_str != "" else {}
+    
+    json_dict["d1"] = host_ip
+
+    with open(domino_hosts_file, "w") as file:
+        file.write(json.dumps(json_dict))
+    
+# дождаться контейнера монолита
+def wait_monolith_container() -> docker.models.containers.Container:
 
     # получаем контейнер monolith
     timeout = 600
@@ -162,6 +216,12 @@ def update_space_configs() -> None:
                 "Не был найден необходимый docker-контейнер для обновления конфигурации пространств. Убедитесь, что окружение поднялось корректно."
             )
     loader.success()
+
+    return monolith_container
+
+# обновить конфиги пространств
+def update_space_configs(monolith_container: docker.models.containers.Container) -> None:
+
     loader = Loader("Запускаем пространства...", "Запустили пространства", "Не смогли запустить пространства").start()
     
     result = monolith_container.exec_run(
@@ -193,7 +253,7 @@ def start_environment(current_values: dict) -> None:
             ])
         
         if result.returncode != 0:
-            scriptutils.die("Не смогли поднять окружение после восстановления. Проверьте конфигурацию приложения и запустите скрипт install.py заново.")
+            scriptutils.die("Не смогли поднять окружение после восстановления. Проверьте конфигурацию приложения и запустите скрипт restore_db.py заново.")
         
         return
     
@@ -285,7 +345,7 @@ def choose_backup(current_values: dict) -> str:
     chosen_backup_index = input(backup_option_str)
 
     if (not chosen_backup_index.isdigit()) or int(chosen_backup_index) < 0 or int(chosen_backup_index) > len(backup_option_list):
-        scriptutils.die("Выбран некорректный варииант")
+        scriptutils.die("Выбран некорректный вариант")
     
     return backup_path_dict[backup_option_list[int(chosen_backup_index) - 1]]
 
