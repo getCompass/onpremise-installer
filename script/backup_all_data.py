@@ -152,9 +152,16 @@ def transfer_data():
     try:
 
         start_time = time.time()
-        loader = Loader("Отправляем резервную копию данных в указанное место", "Отправили резервную копию данных приложения Compass On-Premise").start()
-        subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        loader.success()
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # выводим в рилтайме лог выполнения
+        while True:
+            output = process.stdout.readline()
+            if output == b'' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip().decode())
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Отправка резервной копии заняла: {elapsed_time:.2f} sec")
