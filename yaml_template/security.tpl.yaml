@@ -9,6 +9,7 @@ security_keys:
   file:
     socket_key_file_node: ""
     socket_key_file_balancer: ""
+    socket_key_file_auth: ""
   announcement:
     socket_key_go_sender: ""
     salt_sender_hash: ""
@@ -94,6 +95,7 @@ encrypt_keys:
   encrypt_iv_session: ""
   encrypt_iv_company_session: ""
   encrypt_key_company_session: ""
+  encrypt_key_download_token: ""
 ssl_keys:
   company_to_pivot:
     public_key: ""

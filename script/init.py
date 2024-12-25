@@ -20,11 +20,13 @@ script_dir = str(Path(__file__).parent.resolve())
 # загружаем конфиги
 config_path = Path(script_dir + "/../configs/global.yaml")
 database_config_path = Path(script_dir + "/../configs/database.yaml")
+team_config_path = Path(script_dir + "/../configs/team.yaml")
 
 validation_errors = []
 config = {}
 protected_config = {}
 database_config = {}
+team_config = {}
 
 if not config_path.exists():
     print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
@@ -34,14 +36,22 @@ if not database_config_path.exists():
     print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(database_config_path.resolve())))
     exit(1)
 
+if not team_config_path.exists():
+    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(team_config_path.resolve())))
+    exit(1)
+
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
 with database_config_path.open("r") as database_config_file:
     database_config_values = yaml.load(database_config_file, Loader=yaml.BaseLoader)
 
+with team_config_path.open("r") as team_config_file:
+    team_config_values = yaml.load(team_config_file, Loader=yaml.BaseLoader)
+
 config.update(config_values)
 database_config.update(database_config_values)
+team_config.update(team_config_values)
 
 protected_config_path = Path(script_dir + "/../configs/global.protected.yaml")
 
@@ -486,6 +496,16 @@ database_encryption_fields = [
         "ask": True,
         "is_required": False,
     }
+]
+
+team_fields = [
+    {
+        "name": "file_access_restriction_mode",
+        "comment": "Режим доступа к файлам",
+        "default_value": "none",
+        "type": "str",
+        "ask": True,
+    },
 ]
 
 required_root_fields = [
@@ -1204,6 +1224,7 @@ def start():
     new_values = init_global(values_initial_dict, values_file_path, environment)
     new_values = init_nginx(new_values)
     new_values = init_database(new_values)
+    new_values = init_team(new_values)
 
     if not project:
         write_to_file(new_values)
@@ -1335,6 +1356,24 @@ def init_nginx(new_values: dict):
 
         new_values = nested_set(new_values, "nginx.%s" % field_name, new_value)
 
+    return new_values
+
+
+def init_team(new_values: dict):
+
+    """инициализируем конфигурацию команды"""
+
+    file_access_restriction_mode = team_config.get("file.access_restriction_mode", None)
+
+    if file_access_restriction_mode is None:
+        scriptutils.die("не заполнен параметр file.access_restriction_mode")
+
+    if file_access_restriction_mode != "none" and file_access_restriction_mode != "auth":
+        scriptutils.die("параметр file.access_restriction_mode должен иметь значение none или auth")
+
+    # выполняем наполнение конфигурации полями
+    config["file_access_restriction_mode"] = file_access_restriction_mode
+    new_values = nested_set(new_values, "file_access_restriction_mode", file_access_restriction_mode)
     return new_values
 
 

@@ -1,5 +1,6 @@
 {{$domino := index .projects.domino .domino_id}}
 
+SOCKET_KEY_GO_FILE_AUTH={{.security_keys.file.socket_key_file_auth}}
 SOCKET_KEY_INTERCOM={{.security_keys.intercom.socket_key_intercom}}
 INTERCOM_PROTOCOL="{{.protocol}}"
 USER_SCREEN_TIME_SECONDS=900

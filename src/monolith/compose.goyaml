@@ -940,3 +940,40 @@ services:
       - source: "predefined-db"
         target: "/app/api/conf/predefined_db.json"
     {{- end}}
+
+  {{- if eq .file_access_restriction_mode "auth"}}
+  # GO_FILE_AUTH
+  go-file-auth-{{$file_node.label}}:
+    image: "{{.registry_compass_path}}/go_file_auth:{{$file_node.service.go_file_auth.tag}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.file.common.env"
+      - ".project.file.go_file_auth.env"
+    networks:
+      - "monolith-private"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+  {{- end}}

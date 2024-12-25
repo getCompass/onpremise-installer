@@ -1,4 +1,17 @@
 {{$file_node := index .projects.file .file_node_id}}
+
+{{- if eq .file_access_restriction_mode "auth"}}
+map $request_uri $original_uri {
+  default        $uri;
+  "~^/([^?]+)\?" $1;
+}
+
+map $request_uri $token {
+  default                '-';
+  "~^/[^?]+\?token=(.*)" $1;
+}
+{{- end}}
+
 server {
 
       	listen 443 http2 ssl;

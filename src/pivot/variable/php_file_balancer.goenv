@@ -9,3 +9,6 @@ MYSQL_SYSTEM_PASS="{{.projects.pivot.service.php_file_balancer.mysql_password}}"
 CDN_URL={{.protocol}}://{{.projects.file.file1.subdomain}}.{{.domain}}/
 
 SOCKET_KEY_INTERCOM=""
+
+ENCRYPT_KEY_DOWNLOAD_TOKEN={{.encrypt_keys.encrypt_key_download_token}}
+IS_FILE_AUTH_RESTRICTION_ENABLED={{if eq .file_access_restriction_mode "auth"}}1{{else}}0{{end}}

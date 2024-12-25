@@ -2,15 +2,28 @@
 {{$locprefix := locprefix .url_path $file_node.url_path -}}
 
 set $upstream_file_node php-file-node-{{$file_node.label}}:9000;
+set $upstream_file_auth go-file-auth-{{$file_node.label}}:1000;
+
+{{- if eq .file_access_restriction_mode "auth"}}
+location /auth {
+
+	internal;
+	proxy_pass http://$upstream_file_auth/fileauthz/check?token=$token&original=$original_uri;
+}
+{{- end}}
 
 ########################################################
 # СТАТИКА, НАДЕЕМСЯ, ЧТО ОНО НЕ ПЕРЕСЕЧЕТСЯ С БАЛАНСЕРОМ
 ########################################################
 location {{$locprefix}}/files/ {
 
+	{{- if eq .file_access_restriction_mode "auth"}}
+	auth_request /auth;
+	{{- end}}
+
 	# перенаправляем в примаунченную папку, где хранятся файлы
 	root /home;
-	rewrite ^{{$locprefix}}/(.*)$ /$1 break;
+	rewrite ^{{$locprefix}}/([^?]*) /$1 break;
 
 	# отключаем gzip чтобы в ответе возвращался content-length
 	gzip off;
@@ -39,7 +52,7 @@ location {{$locprefix}}/files/ {
 	# для видеозаписей
 	location ~* \.(mp4|mov)$ {
 
-		rewrite ^{{$locprefix}}/(.*)$ /$1 break;
+		rewrite ^{{$locprefix}}/([^?]*) /$1 break;
 
 		# отключаем open_file_cache
 		# существует баг, из-за которого nginx будет отдавать 500 Internal Server Error
