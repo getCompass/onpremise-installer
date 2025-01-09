@@ -1,0 +1,10 @@
+SOCKET_KEY_GO_FILE_AUTH={{.security_keys.file.socket_key_file_auth}}
+ENCRYPT_KEY_DOWNLOAD_TOKEN={{.encrypt_keys.encrypt_key_download_token}}
+TRUSTED_ENTRYPOINT_LIST="
+{{- range $domino_id, $domino := .projects.domino -}}
+    {{- with $code_host := index $domino "code_host" -}}
+        {{- if and $code_host (not (eq $code_host "0.0.0.0")) -}}
+            {{$.protocol}}://{{entrypoint (netaddr $code_host $domino.service.nginx.external_https_port) $.url_path $domino.url_path 0}},
+        {{- end -}}
+    {{- end -}}
+{{- end -}}"

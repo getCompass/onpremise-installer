@@ -20,4 +20,6 @@ RABBIT_PASS=root2
 RABBITMQ_DEFAULT_USER=user
 RABBITMQ_DEFAULT_PASS=root2
 
-ONPREMISE_VERSION="4.4.12"
+IS_FILE_AUTH_RESTRICTION_ENABLED={{if eq .file_access_restriction_mode "auth"}}1{{else}}0{{end}}
+
+ONPREMISE_VERSION="5.0.0"

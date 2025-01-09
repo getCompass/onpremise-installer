@@ -1,5 +1,18 @@
 {{$file_node := index .projects.file .file_node_id}}
 {{$domino := index .projects.domino .domino_id}}
+{{$filelocprefix := locprefix .url_path $file_node.url_path -}}
+
+{{- if eq .file_access_restriction_mode "auth"}}
+map $request_uri $original_uri {
+    default                           $request_uri;
+    "~^{{$filelocprefix}}/([^?]+)\??" $1;
+}
+
+map $request_uri $token {
+    default                '-';
+    "~^/[^?]+\?token=(.*)" $1;
+}
+{{- end}}
 
 # Объявляем upstreams, ниже будет развилка,
 # которая потребует разделения на разниые апстимы файл-баласера
