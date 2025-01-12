@@ -20,13 +20,15 @@ config.bosh = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'http-bin
 // Video configuration.
 //
 
-config.resolution = 720;
+config.resolution = 1080;
 config.constraints = {
 	video: {
-		height: {ideal: 720, max: 720, min: 180},
-		width: {ideal: 1280, max: 1280, min: 320},
+		height: {ideal: 1080, max: 1080, min: 144},
+		width: {ideal: 1920, max: 1920, min: 256},
 	}
 };
+
+config.maxFullResolutionParticipants = 16;
 
 config.startVideoMuted = 10;
 config.startWithVideoMuted = false;
@@ -34,7 +36,7 @@ config.startWithVideoMuted = false;
 // Desktop sharing
 config.desktopSharingFrameRate = {
 	min: 15,
-	max: 20,
+	max: 30,
 };
 
 config.flags = {
@@ -186,42 +188,62 @@ config.videoQuality = {
 	// Provides a way to set the codec preference on desktop based endpoints.
 	codecPreferenceOrder: ['H264', 'VP9'],
 
+	// Provides a way to set the codec for screenshare.
+	screenshareCodec: 'H264',
+	mobileScreenshareCodec: 'VP9',
+
 	// Codec specific settings for scalability modes and max bitrates.
 	av1: {
 		maxBitratesVideo: {
+			"144p": 200000,
 			low: 300000,
+			"240p": 350000,
 			standard: 600000,
+			"480p": 750000,
+			"640p": 1000000,
 			high: 1500000,
-			ssHigh: 3000000
+			fullHd: 3000000,
 		},
-		scalabilityModeEnabled: true,
+		scalabilityModeEnabled: false,
 		useSimulcast: true,
-		useKSVC: true
+		useKSVC: false
 	},
 	h264: {
 		maxBitratesVideo: {
+			"144p": 200000,
 			low: 300000,
-			standard: 600000,
-			high: 1500000,
-			ssHigh: 3000000
+			"240p": 350000,
+			standard: 500000,
+			"480p": 750000,
+			"640p": 1000000,
+			high: 2000000,
+			fullHd: 4000000,
 		},
 		scalabilityModeEnabled: true,
 	},
 	vp8: {
 		maxBitratesVideo: {
+			"144p": 200000,
 			low: 300000,
+			"240p": 350000,
 			standard: 600000,
+			"480p": 750000,
+			"640p": 1000000,
 			high: 1500000,
-			ssHigh: 3000000
+			fullHd: 3000000,
 		},
-		scalabilityModeEnabled: true,
+		scalabilityModeEnabled: false,
 	},
 	vp9: {
 		maxBitratesVideo: {
+			"144p": 200000,
 			low: 300000,
+			"240p": 350000,
 			standard: 600000,
+			"480p": 750000,
+			"640p": 1000000,
 			high: 1500000,
-			ssHigh: 3000000
+			fullHd: 3000000,
 		},
 		scalabilityModeEnabled: true,
 		useSimulcast: true,
@@ -245,7 +267,7 @@ config.videoQuality = {
 	},
 
 	// Provides a way to set the codec preference on mobile devices, both on RN and mobile browser based endpoint
-	mobileCodecPreferenceOrder: ['AV1', 'VP9', 'H264'],
+	mobileCodecPreferenceOrder: ['VP9', 'H264'],
 };
 
 if (typeof navigator !== 'undefined' && typeof navigator.userAgent !== 'undefined' && navigator.userAgent.indexOf('YaBrowser') !== -1) {

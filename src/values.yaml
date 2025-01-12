@@ -100,7 +100,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v5.0.0"
+        tag: "v5.1.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -340,7 +340,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v5.0.0"
+          tag: "v5.1.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
@@ -526,10 +526,10 @@ projects:
     host: "0.0.0.0"
     label: "jitsi"
     domain: "example.com"
-    static_updated_at: 1723105578
+    static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v4.4.9"
+    tag: "v5.1.0_4"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -548,11 +548,11 @@ projects:
       jvb:
         media_port: 10000
         media_advertise_ips: ""
-        wrap_tag: "v4.3.1"
+        wrap_tag: "v5.1.0"
       jicofo:
         port: 20111
       prosody:
-        tag: "v4.4.10"
+        tag: "v5.1.0"
         serve_port: 20112
       turn:
         host: ""

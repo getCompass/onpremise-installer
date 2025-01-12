@@ -43,7 +43,7 @@ services:
 
   # Frontend
   web-{{.projects.jitsi.label}}:
-    image: jitsi/web:web-1.0.7968-1
+    image: jitsi/web:web-1.0.8187-1
     ports:
       - '{{.projects.jitsi.service.web.https_port}}:443'
     env_file:
@@ -111,7 +111,7 @@ services:
 
   # Focus component
   jicofo-{{.projects.jitsi.label}}:
-    image: jitsi/jicofo:stable-9364-1
+    image: jitsi/jicofo:stable-9753
     ports:
       - '{{.projects.jitsi.service.jicofo.port}}:8888'
     env_file:
