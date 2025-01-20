@@ -141,7 +141,7 @@ jitsi.service.turn.secret: "XKwpb9C2bMkhNCsWxxg2CxzGDrl3wZG6"
 # ["udp"] – используется только UDP протокол
 # ["tcp"] – используется только TCP протокол
 # ["udp", "tcp"] – используются оба протокола
-jitsi.service.turn.use_protocols: ["udp"]
+jitsi.service.turn.use_protocols: ["udp", "tcp"]
 
 # Использовать ли принудительно TURN сервер для соединения в видеоконференция
 # По умолчанию флаг включен для повышения гарантии установления соединения
