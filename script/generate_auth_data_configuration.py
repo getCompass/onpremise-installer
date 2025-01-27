@@ -193,12 +193,6 @@ class AuthMailConfig:
             default_value=[]
         ).from_config()
 
-        # проверяем количество доменов почтовых адресов
-        if len(allowed_domain_list) > 3:
-            scriptutils.die(
-                "Превышено количество доступных доментов почтовых адресов: не более 3"
-            )
-
         # проверяем, что список содержит только ENG домены
         for domain in allowed_domain_list:
 
