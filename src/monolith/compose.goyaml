@@ -569,6 +569,36 @@ services:
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
 
+  # GO_ACTIVITY
+  go-activity-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_activity:{{.projects.pivot.service.go_activity.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      {{- if eq .database_connection.driver "docker"}}
+      - "mysql-{{.projects.pivot.label}}"
+      {{- end}}
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_activity.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_activity.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.pivot.common.env"
+      - ".project.pivot.go_activity.env"
+      - ".project.override.env"
+    networks:
+      - "monolith-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+
   # GO_PUSHER
   go-pusher-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_pusher:{{.projects.pivot.service.go_pusher.tag}}"
@@ -703,6 +733,7 @@ services:
       - "go-company-cache-{{$domino.label}}"
       - "go-sender-{{$domino.label}}"
       - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-activity-{{.projects.pivot.label}}"
       - "go-sender-balancer-{{.projects.pivot.label}}"
       - "go-event-{{$domino.label}}"
       - "default-file-{{.projects.pivot.label}}"

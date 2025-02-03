@@ -99,7 +99,7 @@ class AppBlock:
 
         try:
             captcha_enabled = interactive.InteractiveValue(
-                "captcha.enabled", "Включена ли опция для проверки капчи после неудачных попыток аутентификации.", "bool", config=config
+                "captcha.enabled", "Включена ли опция для проверки капчи после неудачных попыток аутентификации.", "bool", config=config, is_required=False, default_value=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)

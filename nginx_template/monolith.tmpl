@@ -35,7 +35,7 @@ server {
         server_name     {{.domain}} *.{{.domain}};
         sendfile on;
         chunked_transfer_encoding       off;
-        client_max_body_size    256m; # макс размер запроса, присылаемый клиентом
+        client_max_body_size    {{.max_file_size_mb}}m; # макс размер запроса, присылаемый клиентом
 
         ssl_certificate     /etc/nginx/ssl/{{$.nginx.ssl_crt}};
         ssl_certificate_key /etc/nginx/ssl/{{$.nginx.ssl_key}};

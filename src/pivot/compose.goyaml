@@ -250,6 +250,7 @@ services:
       - "rabbit-{{.projects.pivot.label}}"
       - "mysql-{{.projects.pivot.label}}"
       - "go-pivot-cache-{{.projects.pivot.label}}"
+      - "go-activity-{{.projects.pivot.label}}"
       - "go-sender-balancer-{{.projects.pivot.label}}"
       - "go-event-{{.projects.pivot.label}}"
       - "default-file-{{.projects.pivot.label}}"
@@ -344,6 +345,32 @@ services:
       - ".global.common.env"
       - ".project.common.env"
       - ".project.go_pivot_cache.env"
+    networks:
+      - "pivot-private"
+    <<: *default-deploy
+    healthcheck:
+      test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    <<: *log-rule-default
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+  # GO_ACTIVITY
+  go-activity-{{.projects.pivot.label}}:
+    image: "{{.registry_compass_path}}/go_activity:{{.projects.pivot.service.go_activity.tag}}"
+    depends_on:
+      - "rabbit-{{.projects.pivot.label}}"
+      - "mysql-{{.projects.pivot.label}}"
+    environment:
+      TCP_PORT: 1000
+      GRPC_PORT: 2000
+      RABBIT_QUEUE: "{{.projects.pivot.service.go_activity.rabbit_queue}}"
+      RABBIT_EXCHANGE: "{{.projects.pivot.service.go_activity.rabbit_exchange}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.go_activity.env"
     networks:
       - "pivot-private"
     <<: *default-deploy

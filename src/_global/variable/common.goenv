@@ -137,6 +137,8 @@ INTEGRATION_AUTHORIZATION_TOKEN="{{.security_keys.integration.integration_author
 CA_CERTIFICATE="{{ read_file (concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA.crt") }}"
 
 FORCE_COMPANY_CONFIG_UPDATE_INTERVAL_SEC=180
+MAX_FILE_SIZE_MB={{.max_file_size_mb}}
+DEFAULT_UPLOAD_TIMEOUT_SEC={{.default_upload_timeout_sec}}
 
 SENTRY_DSN_KEY_ELECTRON="{{.sentry_dsn_key_electron}}"
 SENTRY_DSN_KEY_ANDROID="{{.sentry_dsn_key_android}}"

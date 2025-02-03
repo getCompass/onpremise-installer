@@ -50,6 +50,7 @@ with team_config_path.open("r") as team_config_file:
     team_config_values = yaml.load(team_config_file, Loader=yaml.BaseLoader)
 
 config.update(config_values)
+config.update(team_config_values)
 database_config.update(database_config_values)
 team_config.update(team_config_values)
 
@@ -640,7 +641,7 @@ required_root_fields = [
         "ask": True,
         "is_required": False,
         "skip_current_value": True,
-    },
+    }
 ]
 
 common_project_fields = [
@@ -1366,14 +1367,30 @@ def init_team(new_values: dict):
     file_access_restriction_mode = team_config.get("file.access_restriction_mode", None)
 
     if file_access_restriction_mode is None:
-        scriptutils.die("не заполнен параметр file.access_restriction_mode")
+        scriptutils.die("Не заполнен параметр file.access_restriction_mode")
 
     if file_access_restriction_mode != "none" and file_access_restriction_mode != "auth":
-        scriptutils.die("параметр file.access_restriction_mode должен иметь значение none или auth")
+        scriptutils.die("Параметр file.access_restriction_mode должен иметь значение none или auth")
 
     # выполняем наполнение конфигурации полями
     config["file_access_restriction_mode"] = file_access_restriction_mode
     new_values = nested_set(new_values, "file_access_restriction_mode", file_access_restriction_mode)
+
+    # проверяем максимальный размер загружаемого
+    max_file_size_mb = team_config.get("max_file_size_mb", None)
+    try:
+        max_file_size_mb = int(max_file_size_mb)
+    except:
+        scriptutils.die("Параметр max_file_size_mb в team,yaml должен быть числом от 20 до 2048")
+    if max_file_size_mb is None:
+        scriptutils.die("Не заполнен параметр max_file_size_mb в team.yaml")
+
+    if not (20 <= max_file_size_mb <= 2048):
+        scriptutils.die("Параметр max_file_size_mb в team.yaml должен иметь значение от 20 до 2048")
+
+    # выполняем наполнение конфигурации полями
+    config["max_file_size_mb"] = max_file_size_mb
+    new_values = nested_set(new_values, "max_file_size_mb", max_file_size_mb)
     return new_values
 
 
