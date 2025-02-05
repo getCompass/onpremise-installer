@@ -20,3 +20,5 @@ GO_EVENT_GLOBAL_EVENT_QUEUE={{$domino.service.go_event.rabbit_service_queue}}
 GO_EVENT_SERVICE_EVENT_EXCHANGE={{$domino.service.go_event.rabbit_service_exchange}}
 GO_COMPANY_QUEUE={{$domino.service.go_company.rabbit_queue}}
 GO_COMPANY_EXCHANGE={{$domino.service.go_company.rabbit_exchange}}
+
+IS_ALLOW_SEND_DEVICE_LOGIN_SUCCESS=false

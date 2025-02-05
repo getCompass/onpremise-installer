@@ -30,7 +30,7 @@ class InteractiveValue:
         name: str,
         comment: str,
         type: str,
-        default_value: Union[int, str, None] = None,
+        default_value: Union[int, str, bool, None] = None,
         validation: Union[str, None] = None,
         options: list = [],
         force_default: bool = False,

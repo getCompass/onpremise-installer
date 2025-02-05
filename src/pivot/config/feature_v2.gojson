@@ -2446,5 +2446,131 @@
 				"supported_version_list": [0]
 			}
 		}
+	},
+	"security_device": {
+		"electron": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		}
+	},
+	"message_actions": {
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0]
+			}
+		}
+	},
+	"user_online": {
+		"electron": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		}
 	}
 }

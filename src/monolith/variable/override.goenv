@@ -61,3 +61,8 @@ MYSQL_SYSTEM_PASS={{.projects.pivot.service.mysql.root_password}}
 MYSQL_SYSTEM_PORT={{.projects.pivot.service.mysql.port}}
 {{end}}
 
+GO_ACTIVITY_HOST=go-activity-{{.projects.pivot.label}}
+GO_ACTIVITY_PROTOCOL=http
+GO_ACTIVITY_GRPC_PORT=2000
+GO_ACTIVITY_HTTP_PORT=1000
+

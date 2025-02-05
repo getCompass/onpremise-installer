@@ -18,7 +18,7 @@ server {
 
 	server_name {{$file_node.subdomain}}.{{.domain}};
 
-	client_max_body_size 	2000m;  # макс размер запроса, присылаемый клиентом
+	client_max_body_size 	2048m;  # макс размер запроса, присылаемый клиентом
 	client_body_buffer_size 25m; # размер буфера для запроса присланного клиентом
 
       	ssl_certificate     /etc/nginx/ssl/{{$file_node.host}}.crt;

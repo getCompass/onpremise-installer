@@ -49,6 +49,10 @@ domino_id: "d1"
 file_node_id: "file1"
 file_default_node_id: "file_default"
 
+# максимальный размер скачиваемого файла что будет доступен для загрузки
+max_file_size_mb: 2048
+default_upload_timeout_sec: 60
+
 # настройки для базы
 database_connection:
   driver: "docker"
@@ -100,7 +104,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v5.1.2-1"
+        tag: "v5.2.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -114,7 +118,7 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v4.4.6"
+        tag: "v5.2.0"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
@@ -122,7 +126,7 @@ projects:
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v4.4.6"
+        tag: "v5.2.0"
 
   pivot:
     host: "0.0.0.0"
@@ -149,9 +153,13 @@ projects:
         mysql_user: "root"
         mysql_password: "4321"
       go_pivot_cache:
-        tag: "v4.4.6"
+        tag: "v5.2.0"
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
+      go_activity:
+        tag: "v5.2.0"
+        rabbit_queue: "pivot_go_activity_queue"
+        rabbit_exchange: "pivot_go_activity_exchange"
       go_pusher:
         tag: "v4.4.6"
         rabbit_queue: "go_pusher_queue"
@@ -167,7 +175,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.4.6"
+        tag: "v5.2.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -175,7 +183,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v4.4.6"
+        tag: "v5.2.0"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -216,7 +224,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v4.4.6"
+        tag: "v5.2.0"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -283,7 +291,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v5.0.0"
+          tag: "v5.2.0"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -340,13 +348,13 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v5.1.1"
+          tag: "v5.2.0"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v4.4.6"
+          tag: "v5.2.0"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
@@ -358,7 +366,7 @@ projects:
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v4.4.6"
+          tag: "v5.2.0"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -381,7 +389,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v4.4.6"
+          tag: "v5.2.0"
         nginx:
           external_https_port: 20106
   userbot:
@@ -501,7 +509,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v4.4.2"
+        tag: "v5.2.0"
         external_port: 43100
 
   integration:
