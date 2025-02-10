@@ -28,9 +28,9 @@ config.constraints = {
 	}
 };
 
-config.maxFullResolutionParticipants = 16;
+config.maxFullResolutionParticipants = -1;
 
-config.startVideoMuted = 10;
+config.startVideoMuted = 1001;
 config.startWithVideoMuted = false;
 
 // Desktop sharing
@@ -185,6 +185,8 @@ config.disableDeepLinking = false;
 // Video quality settings.
 config.videoQuality = {
 
+	enableAdaptiveMode: false,
+
 	// Provides a way to set the codec preference on desktop based endpoints.
 	codecPreferenceOrder: ['H264', 'VP9'],
 
@@ -242,12 +244,12 @@ config.videoQuality = {
 			standard: 600000,
 			"480p": 750000,
 			"640p": 1000000,
-			high: 1500000,
-			fullHd: 3000000,
+			high: 2000000,
+			fullHd: 4500000,
 		},
 		scalabilityModeEnabled: true,
-		useSimulcast: true,
-		useKSVC: true
+		useSimulcast: false,
+		useKSVC: false
 	},
 
 	// The options can be used to override default thresholds of video thumbnail heights corresponding to
