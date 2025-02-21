@@ -120,9 +120,10 @@ services:
       monolith-private:
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-php-9000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-php-9000
     configs:
       - source: "integration-restrictions"
         target: "/app/src/Compass/Integration/api/conf/restrictions.php"

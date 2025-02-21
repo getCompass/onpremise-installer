@@ -268,7 +268,6 @@ services:
         read_only: false
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - "{{.company_config_mount_path}}:/pivot_config"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
       interval: "10s"
@@ -299,7 +298,9 @@ services:
         target: "/app/src/Compass/Pivot/api/conf/domino.php"
       - source: "bot-conf"
         target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
 
   ## PHP_FILE_BALANCER
   php-file-balancer-{{.projects.pivot.label}}:
@@ -321,13 +322,14 @@ services:
       - ".project.common.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
       interval: "5s"
       timeout: "25s"
       retries: 10
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
   # GO_PIVOT_CACHE
@@ -347,13 +349,14 @@ services:
       - ".project.go_pivot_cache.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
   # GO_ACTIVITY
@@ -373,13 +376,14 @@ services:
       - ".project.go_activity.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
   # GO_PUSHER
@@ -407,13 +411,14 @@ services:
         target: "/app/private/firebase_compass_key.json"
       - source: "go-pusher-firebase-comteam-key"
         target: "/app/private/firebase_comteam_key.json"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
   # GO_SENDER_BALANCER
@@ -432,13 +437,14 @@ services:
       - ".project.common.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 
@@ -463,13 +469,14 @@ services:
       - ".project.common.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 30000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 
@@ -490,13 +497,14 @@ services:
     configs:
       - source: "go-collector-agent-sharding-conf"
         target: "/app/api/conf/sharding.example.json"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "25s"
       retries: 10
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 
@@ -522,13 +530,14 @@ services:
       - ".project.event.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
+    <<:
+      - *default-deploy
+      - *log-rule-default
     healthcheck:
       test: "nc -z 127.0.0.1 3000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
   ## PHP_PREMISE
@@ -544,13 +553,14 @@ services:
       - ".project.php_premise.env"
     networks:
       - "pivot-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
       interval: "5s"
       timeout: "25s"
       retries: 10
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 volumes:

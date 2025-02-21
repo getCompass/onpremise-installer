@@ -444,9 +444,10 @@ services:
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-go-2000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
 
   # GO_SENDER_BALANCER
   go-sender-balancer-{{.projects.monolith.label}}:
@@ -468,9 +469,10 @@ services:
         aliases:
           - "go-sender-balancer-{{.projects.pivot.label}}"
           - "go-sender-balancer-{{.projects.announcement.label}}"
-    <<: *default-deploy
-    <<: *healthcheck-go-2000
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
 
@@ -501,9 +503,10 @@ services:
           - "go-sender-{{.projects.announcement.label}}"
           - "go-sender-{{.projects.pivot.label}}"
           - "go-sender-{{$domino.label}}"
-    <<: *default-deploy
-    <<: *healthcheck-go-2000
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
@@ -559,13 +562,14 @@ services:
       - ".project.override.env"
     networks:
       - "monolith-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
 
@@ -589,13 +593,14 @@ services:
       - ".project.override.env"
     networks:
       - "monolith-private"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
 
@@ -627,13 +632,14 @@ services:
         target: "/app/private/firebase_compass_key.json"
       - source: "go-pusher-firebase-comteam-key"
         target: "/app/private/firebase_comteam_key.json"
-    <<: *default-deploy
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
       interval: "5s"
       timeout: "10s"
       retries: 3
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
 
@@ -655,9 +661,10 @@ services:
       - ".project.override.env"
     networks:
       - "monolith-private"
-    <<: *default-deploy
-    <<: *healthcheck-go-2000
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *healthcheck-go-2000
+      - *log-rule-default
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
 
@@ -676,9 +683,10 @@ services:
       - ".project.override.env"
     networks:
       - "monolith-private"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-php-9000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-php-9000
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
@@ -718,8 +726,9 @@ services:
       memlock:
         soft: -1
         hard: -1
-    <<: *default-deploy
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
 
   # PHP_MONOLITH
   php-monolith-{{$domino.label}}:
@@ -780,9 +789,10 @@ services:
       - type: "volume"
         source: "default-file-{{.projects.pivot.service.default_file.tag}}"
         target: "/app/www/default_file/"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-php-9000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-php-9000
     configs:
       - source: "feature-conf"
         target: "/app/src/Compass/Pivot/conf/feature_v2.json"
@@ -868,9 +878,10 @@ services:
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-go-2000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
 
   # GO_RATING
   go-rating-{{$domino.label}}:
@@ -891,9 +902,10 @@ services:
     volumes:
       - "{{$domino.company_config_dir}}/:/config"
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-go-2000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
 
   # GO_COMPANY
   go-company-{{$domino.label}}:
@@ -916,9 +928,10 @@ services:
     volumes:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
-    <<: *default-deploy
-    <<: *log-rule-default
-    <<: *healthcheck-go-2000
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-go-2000
 
   # GO_DATABASE_CONTROLLER
   go-database-controller-{{$domino.label}}:
@@ -959,8 +972,9 @@ services:
       - "/etc/ssl/certs:/etc/ssl/certs:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
-    <<: *default-deploy
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
     healthcheck:
       test: "nc -z 127.0.0.1 {{$domino.go_database_controller_port}}"
       interval: "5s"

@@ -53,5 +53,6 @@ services:
       memlock:
         soft: -1
         hard: -1
-    <<: *default-deploy
-    <<: *log-rule-default
+    <<:
+      - *default-deploy
+      - *log-rule-default
