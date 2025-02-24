@@ -25,20 +25,24 @@ PLATFORM_FEATURES = {
         'ios': '1103915',
         'android': '100051500'
     },
+    'Версия с включением функционала "Статус онлайн и контроль сессий"': {
+        'ios': '1110540',
+        'android': '100051701'
+    },
 }
 
 def print_menu(options):
     for i, option in enumerate(options, 1):
         print(f"{i}. {option}")
-    print("0. Завершить выполнение")
+    print("4. Завершить выполнение")
 
 def select_feature():
-    print("\nПожалуйста, выберите фичу из списка ниже:")
+    print("\nПожалуйста, выберите версию из списка ниже:")
     features = list(PLATFORM_FEATURES.keys())
     print_menu(features)
     
     try:
-        feature_choice = int(input("\nВведите номер фичи: "))
+        feature_choice = int(input("\nВведите номер версии: "))
         if feature_choice == 0:
             sys.exit(0)
         if feature_choice < 0 or feature_choice > len(features):
