@@ -80,7 +80,7 @@ services:
 
   # MEMCACHED
   memcached-{{.projects.announcement.label}}:
-    image: "{{.registry_service_path}}/memcached:3.20-1"
+    image: "{{.registry_service_path}}/memcached:3.21"
     networks:
       - "announcement-private"
     env_file:
