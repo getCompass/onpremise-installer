@@ -104,7 +104,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v5.3.0-1"
+        tag: "v5.3.1"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -118,15 +118,15 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v5.2.0"
+        tag: "v5.3.1"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
-        tag: "v4.4.6"
+        tag: "v5.3.1"
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v5.3.0"
+        tag: "v5.3.1"
 
   pivot:
     host: "0.0.0.0"
@@ -147,21 +147,21 @@ projects:
         port: 3306
         host: "mysql-pivot"
       php_pivot:
-        tag: "v4.3.0"
+        tag: "v5.3.1"
       php_file_balancer:
-        tag: "v5.0.0"
+        tag: "v5.3.1"
         mysql_user: "root"
         mysql_password: "4321"
       go_pivot_cache:
-        tag: "v5.2.0"
+        tag: "v5.3.1"
         rabbit_queue: "go_pivot_cache_queue"
         rabbit_exchange: "go_pivot_cache_exchange"
       go_activity:
-        tag: "v5.3.0"
+        tag: "v5.3.1"
         rabbit_queue: "pivot_go_activity_queue"
         rabbit_exchange: "pivot_go_activity_exchange"
       go_pusher:
-        tag: "v4.4.6"
+        tag: "v5.3.1"
         rabbit_queue: "go_pusher_queue"
         rabbit_exchange: "go_pusher_exchange"
         is_push_mock_enable: 0
@@ -171,11 +171,11 @@ projects:
         huawei_voip_push_version: 1
         apns_push_version: 2
       go_sender_balancer:
-        tag: "v4.4.6"
+        tag: "v5.3.1"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v5.3.0"
+        tag: "v5.3.1"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -183,7 +183,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v5.2.0"
+        tag: "v5.3.1"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -218,13 +218,13 @@ projects:
         password: "4321"
         external_port: 5000
       php_announcement:
-        tag: "v1.5.0"
+        tag: "v5.3.1"
       go_sender_balancer:
-        tag: "v4.4.6"
+        tag: "v5.3.1"
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v5.3.0"
+        tag: "v5.3.1"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -250,7 +250,7 @@ projects:
         password: "4321"
         external_port: 5000
       php_federation:
-        tag: "v1.5.0"
+        tag: "v5.3.1"
       nginx:
         external_https_port: 20105
   analytic:
@@ -291,7 +291,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v5.2.0"
+          tag: "v5.3.1"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -301,7 +301,7 @@ projects:
         go_collector_agent:
           tag: "v1.5.0"
         go_file_auth:
-          tag: "v5.0.0"
+          tag: "v5.3.1"
         prometheus:
           auth:
             username: "scrapman"
@@ -340,33 +340,33 @@ projects:
           external_port: 20602
           port: 9306
         php_company:
-          tag: "v1.5.0"
+          tag: "v5.3.1"
         php_file_balancer:
-          tag: "v5.0.0"
+          tag: "v5.3.1"
         php_speaker:
-          tag: "v1.5.0"
+          tag: "v5.3.1"
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v5.3.0-1"
+          tag: "v5.3.1"
         php_migration:
           tag: "v1.5.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v5.3.0"
+          tag: "v5.3.1"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v4.4.6"
+          tag: "v5.3.1"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
-          tag: "v4.4.6"
+          tag: "v5.3.1"
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v5.2.0"
+          tag: "v5.3.1"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -385,11 +385,11 @@ projects:
           rabbit_queue: "go_partner_agent_queue"
           rabbit_exchange: "go_partner_agent_exchange"
         go_rating:
-          tag: "v4.4.6"
+          tag: "v5.3.1"
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v5.2.0"
+          tag: "v5.3.1"
         nginx:
           external_https_port: 20106
   userbot:
@@ -407,9 +407,9 @@ projects:
         password: "4321"
         port: 3306
       php_userbot:
-        tag: "v1.5.0"
+        tag: "v5.3.1"
       go_userbot_cache:
-        tag: "v4.4.6"
+        tag: "v5.3.1"
         rabbit_queue: "go_userbot_cache_queue"
         rabbit_exchange: "go_userbot_cache_exchange"
       prometheus:
@@ -509,7 +509,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v5.2.0"
+        tag: "v5.3.1"
         external_port: 43100
 
   integration:
@@ -537,7 +537,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v5.2.1_2"
+    tag: "v5.3.1"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -560,7 +560,7 @@ projects:
       jicofo:
         port: 20111
       prosody:
-        tag: "v5.2.1"
+        tag: "v5.3.1"
         serve_port: 20112
       turn:
         host: ""
@@ -576,5 +576,5 @@ projects:
       subnet: "172.20.11.0/24"
     service:
       jitsi_web:
-        tag: "v4.2.3"
+        tag: "v5.3.1"
         external_port: 20113

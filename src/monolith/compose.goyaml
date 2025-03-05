@@ -289,7 +289,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:1.27.2-1"
+    image: "{{.registry_service_path}}/nginx:1.27.4"
     networks:
       monolith-private:
         aliases:
@@ -359,7 +359,7 @@ services:
 
   # MEMCACHE
   memcached-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/memcached:3.20-1"
+    image: "{{.registry_service_path}}/memcached:3.21"
     networks:
       monolith-private:
         aliases:
