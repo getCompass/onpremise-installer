@@ -33,6 +33,8 @@ parser.add_argument(
     action='store_true'
 )
 
+parser.add_argument('--service_label', required=False, default="", type=str, help='Метка сервиса, к которому закреплён стак')
+
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -77,7 +79,9 @@ config.update(auth_config_values)
 
 values_arg = args.values if args.values else ""
 environment = args.environment if args.environment else ""
+service_label = args.service_label if args.service_label else ''
 stack_name_prefix = environment + "-" + values_arg
+stack_name = stack_name_prefix + "-monolith"
 validate_only = args.validate_only
 
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_arg))
@@ -101,6 +105,11 @@ if not validate_only:
             )
 
         domain = str(current_values["domain"]).encode().decode('idna')
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+service_label = current_values.get("service_label") if current_values.get("service_label") else ""
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
 
 def handle_exception(field, message: str):
 
@@ -244,7 +253,7 @@ while n <= timeout:
 
     docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+            "name": "%s_php-monolith" % (stack_name),
             "health": "healthy",
         }
     )

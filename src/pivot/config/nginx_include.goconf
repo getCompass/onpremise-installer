@@ -7,7 +7,7 @@ set $upstream_pivot_php php-pivot-{{.projects.pivot.label}}:9000;
 set $upstream_file_balancer php-file-balancer-{{.projects.pivot.label}}:9000;
 set $upstream_pusher go-pusher-{{.projects.pivot.label}}:80;
 set $upstream_sender go-sender-{{.projects.pivot.label}}:30000;
-set $upstream_join_web join_web:80;
+set $upstream_join_web join_web-{{.projects.pivot.label}}:80;
 set $upstream_premise_php php-monolith-{{$domino.label}}:9000;
 set $upstream_jitsi php-monolith-{{$domino.label}}:9000;
 

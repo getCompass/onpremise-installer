@@ -41,14 +41,14 @@ def make_temporary_symbolic_link_for_deploy_units(project:str, deploy_units:list
         symlink_var_path = Path(project_var_dir + deploy_unit)
 
         # очищаем конфиги, если есть
-        if symlink_conf_path.exists():
+        if symlink_conf_path.exists() or symlink_conf_path.is_symlink():
             try:
                 symlink_conf_path.unlink()
             except IsADirectoryError:
                 shutil.rmtree(symlink_conf_path)
 
         # очищаем переменные, если есть
-        if symlink_var_path.exists():
+        if symlink_var_path.exists() or symlink_var_path.is_symlink():
             try:
                 symlink_var_path.unlink()
             except IsADirectoryError:

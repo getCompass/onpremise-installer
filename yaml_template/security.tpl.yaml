@@ -103,10 +103,6 @@ ssl_keys:
   pivot_to_company:
     public_key: ""
     private_key: ""
-
-
-
-
-
-
-
+replication:
+  mysql_user: ""
+  mysql_pass: ""

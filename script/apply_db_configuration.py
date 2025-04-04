@@ -33,6 +33,34 @@ args = parser.parse_args()
 values_arg = args.values if args.values else ""
 environment = args.environment if args.environment else ""
 stack_name_prefix = environment + "-" + values_arg
+stack_name = stack_name_prefix + "-monolith"
+
+script_dir = str(Path(__file__).parent.resolve())
+
+values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_arg))
+
+if not values_file_path.exists():
+    scriptutils.die(('Не найден файл со сгенерированными значениями. Вы развернули приложение?'))
+
+with values_file_path.open('r') as values_file:
+    current_values = yaml.safe_load(values_file)
+    current_values = {} if current_values is None else current_values
+
+    if current_values == {}:
+        scriptutils.die('Не найден файл со сгенерированными значениями. Вы развернули приложение?')
+
+    if current_values.get('projects', {}).get('domino', {}) == {}:
+        scriptutils.die(scriptutils.error('Не был развернут проект domino через скрипт deploy.py'))
+
+    domino_project = current_values['projects']['domino']
+
+    if len(domino_project) < 1:
+        scriptutils.die(scriptutils.error('Не был развернут проект domino через скрипт deploy.py'))
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+service_label = current_values.get("service_label") if current_values.get("service_label") else ""
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
 
 script_dir = str(Path(__file__).parent.resolve())
 root_path = str(Path(script_dir + "/../").resolve())
@@ -110,7 +138,7 @@ def get_pivot_container() -> docker.models.containers.Container:
 
         docker_container_list = client.containers.list(
             filters={
-                "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+                "name": "%s_php-monolith" % (stack_name),
                 "health": "healthy",
             }
         )

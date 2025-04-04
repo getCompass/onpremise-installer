@@ -8,7 +8,7 @@ import subprocess, argparse
 
 from utils import scriptutils
 from pathlib import Path
-import docker
+import docker, yaml, json
 from time import sleep
 from loader import Loader
 
@@ -22,14 +22,25 @@ parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
+parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="Окружение, в котором разворачиваем")
+# ВНИМАНИЕ - в data передается json
+parser.add_argument(
+    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+)
 args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
+override_data = args.data if args.data else {}
+if not override_data:
+    override_data = {}
+product_type = override_data.get("product_type", "") if override_data else ""
+
+environment = args.environment
 
 # пишем константы
 values_name = "compass"
-environment = "production"
 stack_name_prefix = environment + "-" + values_name
+stack_name = stack_name_prefix + "-monolith"
 domino_id = "d1"
 
 # сначала актуализируем инсталлятор
@@ -176,6 +187,30 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
     "Ошибка при сверке конфигурации приложения"
 )
 
+if Path("src/values." + environment + "." + values_name + ".yaml").exists():
+    specified_values_file_name = str(
+        Path("src/values." + environment + "." + values_name + ".yaml").resolve()
+    )
+elif (
+        product_type
+        and Path("src/values." + values_name + "." + product_type + ".yaml").exists()
+):
+    specified_values_file_name = str(
+        Path("src/values." + values_name + "." + product_type + ".yaml").resolve()
+    )
+elif (Path("src/values." + values_name + ".yaml").exists()):
+    specified_values_file_name = str(Path("src/values." + values_name + ".yaml").resolve())
+else:
+    specified_values_file_name = str(Path("src/values.yaml").resolve())
+
+with open(specified_values_file_name, "r") as values_file:
+    values_dict = yaml.safe_load(values_file)
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+service_label = values_dict.get("service_label") if values_dict.get("service_label") else ""
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
+
 print(
     "Запускаем скрипт генерации ssl сертификатов для безопасного общения между проектами"
 )
@@ -206,6 +241,15 @@ subprocess.run(
 
 # удаляем старые симлинки, только с помощью subproccess, ибо симлинки ведут на удаленные дериктории и unlink/rmtree просто не срабатывает
 script_dir = str(Path(__file__).parent.resolve())
+service_label_path = Path(script_dir + "/../.service_label")
+
+# если файл с service_label отсутствует, то считаем что он пустой
+current_service_label = ""
+need_delete_old_stack = False
+need_repair_all_teams = False
+if service_label_path.exists():
+    current_service_label = service_label_path.open("r").read()
+    need_delete_old_stack = True
 
 monolith_variable_nginx_path = Path("%s/../src/monolith/variable/nginx" % (script_dir))
 subprocess.run(["rm", "-rf", monolith_variable_nginx_path])
@@ -217,6 +261,97 @@ monolith_config_join_web_path = Path(
     "%s/../src/monolith/config/join_web" % (script_dir)
 )
 subprocess.run(["rm", "-rf", monolith_config_join_web_path])
+
+# подключаемся к докеру
+client = docker.from_env()
+
+if need_delete_old_stack and ((current_service_label != "" and current_service_label != service_label) or (current_service_label == "" and service_label != "")):
+
+    try:
+        print("!!!Не забудьте поменять label у docker на сервере!!!")
+        if input("При смене service_label приложение будет недоступно для пользователей в течение ~5 минут, продолжить? [y/N]\n").lower() != "y":
+            scriptutils.die("Смена service_label была отменена")
+    except UnicodeDecodeError as e:
+        print("Не смогли декодировать ответ. Error: ", e)
+        exit(0)
+
+    # удаляем стаки компаний
+    get_stack_command = ["docker", "stack", "ls"]
+    grep_command = ["grep", stack_name_prefix]
+    grep_company_command = ["grep", r"\-company"]
+    delete_command = ["xargs", "docker", "stack", "rm"]
+
+    # сначала удаляем компанейские стаки
+    get_stack_process = subprocess.Popen(get_stack_command, stdout=subprocess.PIPE)
+    grep_process = subprocess.Popen(
+        grep_command, stdin=get_stack_process.stdout, stdout=subprocess.PIPE
+    )
+    grep_company_process = subprocess.Popen(
+        grep_company_command, stdin=grep_process.stdout, stdout=subprocess.PIPE
+    )
+    delete_process = subprocess.Popen(
+        delete_command, stdin=grep_company_process.stdout, stdout=subprocess.PIPE
+    )
+    output, _ = delete_process.communicate()
+
+    # удаляем остальные стаки
+    get_stack_command = ["docker", "stack", "ls"]
+    grep_command = ["grep", stack_name_prefix]
+    grep_monolith_command = ["grep", "-v", r"\-company"]
+    delete_command = ["xargs", "docker", "stack", "rm"]
+
+    # сначала удаляем компанейские стаки
+    get_stack_process = subprocess.Popen(get_stack_command, stdout=subprocess.PIPE)
+    grep_process = subprocess.Popen(
+        grep_command, stdin=get_stack_process.stdout, stdout=subprocess.PIPE
+    )
+    grep_monolith_process = subprocess.Popen(
+        grep_monolith_command, stdin=grep_process.stdout, stdout=subprocess.PIPE
+    )
+    delete_process = subprocess.Popen(
+        delete_command, stdin=grep_monolith_process.stdout, stdout=subprocess.PIPE
+    )
+    output, _ = delete_process.communicate()
+
+    # ждем, пока все контейнеры удалятся
+    timeout = 600
+    n = 0
+    while n <= timeout:
+        docker_container_list = client.containers.list(filters={"name": stack_name_prefix}, sparse=True, ignore_removed=True)
+
+        if len(docker_container_list) < 1:
+            break
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            scriptutils.die("Не удалось сменить service_label")
+
+    # ждем удаления сетей
+    timeout = 120
+    n = 0
+    while n <= timeout:
+        docker_network_list = client.networks.list(filters={"name": stack_name_prefix})
+
+        if len(docker_network_list) < 1:
+            break
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            scriptutils.die("Не удалось сменить service_label")
+
+    sleep(10)
+
+    # удаляем volumes jitsi
+    jitsi_volume_list = client.volumes.list(filters={"name": "%s_jitsi-custom-" % stack_name})
+    for volume in jitsi_volume_list:
+        try:
+            volume.remove()
+        except docker.errors.NotFound:
+            continue
+        except docker.errors.APIError as e:
+            print("Не удалось удалить один из jitsi volume: ", e)
+
+    need_repair_all_teams = True
 
 print("Разворачиваем приложение")
 command = [
@@ -258,8 +393,6 @@ if install_integration:
         "Ошибка при разворачивании интеграции"
     )
 
-# подключаемся к докеру
-client = docker.from_env()
 # ждем появления monolith
 timeout = 900
 n = 0
@@ -275,7 +408,7 @@ while n <= timeout:
 
     # ждем, пока у сервиса не будет статуса обновления completed
     service_list = client.services.list(filters={
-        "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+        "name": "%s_php-monolith" % (stack_name),
     })
 
     if len(service_list) > 0:
@@ -291,7 +424,7 @@ while n <= timeout:
     # проверяем, что контейнер жив
     healthy_docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+            "name": "%s_php-monolith" % (stack_name),
             "health": "healthy",
         }
     )
@@ -331,7 +464,7 @@ while n <= timeout:
 
     # ждем, пока у сервиса не будет статуса обновления completed
     service_list = client.services.list(filters={
-        "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
+        "name": "%s_nginx" % (stack_name),
     })
 
     if len(service_list) > 0:
@@ -369,7 +502,7 @@ while n <= timeout:
 
     healthy_docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
+            "name": "%s_nginx" % (stack_name),
             "health": "healthy",
         }
     )
@@ -399,6 +532,22 @@ subprocess.run(
         environment,
         "-v",
         values_name,
+        "--service_label",
+        service_label
     ]
 )
 loader.success()
+
+if need_repair_all_teams:
+    subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/replication/repair_all_teams.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--service_label",
+            service_label
+        ]
+    )

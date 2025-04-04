@@ -13,7 +13,6 @@ from utils import scriptutils
 
 script_dir = str(Path(__file__).parent.resolve())
 
-
 parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument(
@@ -66,7 +65,6 @@ yaml.add_representer(str, str_presenter)
 
 
 def start():
-
     values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
 
     if not values_file_path.exists():
@@ -80,7 +78,8 @@ def start():
     root_mount_path = current_values.get("root_mount_path")
 
     if (root_mount_path is None) or (not Path(root_mount_path).exists()):
-        print(scriptutils.error("Не найдена папка root_mount_path, куда развертывается приложение Compass. Запустите скрипт init.py"))
+        print(scriptutils.error(
+            "Не найдена папка root_mount_path, куда развертывается приложение Compass. Запустите скрипт init.py"))
         exit(1)
 
     security_file_path = Path(root_mount_path + "/security.yaml")
@@ -92,7 +91,7 @@ def start():
             "Файл с секретами уже сгенерирован. Добавляем новые значения, если есть",
             "Добавлены новые ключи по следующему пути: %s"
             % str(security_file_path.resolve()),
-            ).start()
+        ).start()
 
         with security_tpl_file_path.open("r") as security_tpl_file_contents:
             security_tpl_values = yaml.safe_load(security_tpl_file_contents)
@@ -132,6 +131,18 @@ def update_security_values(security_tpl_values: dict, security_values: dict = {}
                     security_values["ssl_keys"][ssl_k]["private_key"] = priv
                 continue
 
+            if k == "replication":
+                security_values["replication"] = {}
+
+                current_user = security_values["replication"].get("mysql_user")
+                if not current_user:
+                    security_values["replication"]["mysql_user"] = quoted("replicator_" + generate_random_string(8))
+
+                current_pass = security_values["replication"].get("mysql_pass")
+                if not current_pass:
+                    security_values["replication"]["mysql_pass"] = quoted(generate_random_string(key_size))
+                continue
+
             security_values[k] = update_security_values(v, security_values.get(k, {}))
         else:
             security_values[k] = quoted(generate_random_string(key_size))
@@ -150,13 +161,25 @@ def update_new_security_values_for_exists_file(security_tpl_values: dict, securi
             if k == "ssl_keys":
                 continue
 
+            if k == "replication":
+                if "replication" not in security_values:
+                    security_values["replication"] = {}
+
+                current_user = security_values["replication"].get("mysql_user")
+                if not current_user:
+                    security_values["replication"]["mysql_user"] = quoted("replicator_" + generate_random_string(8))
+
+                current_pass = security_values["replication"].get("mysql_pass")
+                if not current_pass:
+                    security_values["replication"]["mysql_pass"] = quoted(generate_random_string(key_size))
+                continue
+
             # обновляем всю его вложенность
             security_values[k] = update_new_security_values_for_exists_file(v, security_values.get(k, {}))
         else:
 
             # если поле уже существует и оно не равняется дефолтному значению
             if k in security_values and security_values[k] != v:
-
                 # оставляем его как есть
                 security_values[k] = quoted(security_values[k])
                 continue
