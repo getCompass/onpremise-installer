@@ -764,7 +764,7 @@ services:
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
-    image: "{{.registry_service_path}}/manticore:6.3.6-1"
+    image: "{{.registry_service_path}}/manticore:6.3.7"
     environment:
       - EXTRA=0
       - MCL=1
@@ -780,6 +780,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     volumes:
       - "{{$domino.manticore_path}}:/var/lib/manticore/"
     ports:
@@ -795,6 +800,12 @@ services:
       memlock:
         soft: -1
         hard: -1
+    {{- if gt .mysql_server_id 0}}
+    networks:
+      monolith-mysql-shared:
+        aliases:
+          - "manticore-{{.mysql_server_id}}"
+    {{- end}}
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1030,6 +1041,7 @@ services:
       SERVICE_LABEL: {{$service_label}}
       MYSQL_SERVER_ID: {{.mysql_server_id}}
       MONOLITH_MYSQL_NETWORK: {{$mysql_shared_network}}
+      MANTICORE_CLUSTER_NAME: {{.manticore_cluster_name}}
     env_file:
       - ".global.common.env"
       - ".project.domino.common.env"

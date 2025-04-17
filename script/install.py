@@ -462,6 +462,34 @@ else:
         ]
     )
 
+print("Настраиваем репликацию мантикоры")
+if scriptutils.is_replication_master_server(values_dict):
+    subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/replication/start_manticore_replication.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--type",
+            "master"
+        ]
+    )
+else:
+    subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/replication/start_manticore_replication.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--type",
+            "reserve"
+        ]
+    )
+
 # создаем команду
 print("Создаем команду")
 subprocess.run(

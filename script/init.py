@@ -1262,6 +1262,7 @@ def start():
         "domino_mysql_innodb_flush_method": "O_DIRECT",
         "domino_mysql_innodb_flush_log_at_timeout": 1,
         "triggers": {"before": ["triggers/check_security.py"]},
+        "manticore_cluster_name": "compass_cluster",
         "servers_companies_relationship_file": "reserve_servers_companies_relationship.json",
     }
 
@@ -1562,6 +1563,10 @@ def init_replication(new_values: dict):
                 reserve_relationship_str = file.read()
                 reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
 
+                if reserve_relationship_dict.get(service_label) is None:
+                    data = {"master": False}
+                    reserve_relationship_dict[service_label] = data
+
                 master_service_label = ""
                 for label, data in reserve_relationship_dict.items():
 
@@ -1571,7 +1576,8 @@ def init_replication(new_values: dict):
 
                     # если текущий service_label и не master_service_label
                     if label == new_values.get("service_label") and master_service_label != label:
-                        reserve_relationship_dict[label] = {}
+                        data["master"] = False
+                        reserve_relationship_dict[label] = data
 
             # записываем новое содержимое
             f = open(servers_companies_relationship_file_path, "w")

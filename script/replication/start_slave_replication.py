@@ -9,6 +9,7 @@ import docker
 import glob
 import logging
 from typing import Dict
+from time import sleep
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -148,7 +149,7 @@ def start():
             master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label, domino_id, space_config_obj.port)
             change_master_mysql_command = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1;" % (
                 master_host, space_config_obj.port, replicator_user, replicator_pass)
-            mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass)
+            mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass, space_id)
 
         logging.info("End replication for companies")
 
@@ -166,12 +167,12 @@ def start():
         master_host = "%s_mysql-%s" % (stack_name, current_values["projects"]["monolith"]["label"])
         change_master_mysql_command = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1;" % (
             master_host, replicator_user, replicator_pass)
-        mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass)
+        mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass, 0)
 
         logging.info("End replication for monolith")
 
 # запускаем старт репликации в полученном контейнере
-def mysql_start_replication(found_container: docker.models.containers.Container, change_master_mysql_command: str, mysql_host: str, mysql_user: str, mysql_pass: str):
+def mysql_start_replication(found_container: docker.models.containers.Container, change_master_mysql_command: str, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
 
     mysql_command = "SET GLOBAL super_read_only = ON; STOP SLAVE;" + \
                     change_master_mysql_command + \
@@ -186,7 +187,10 @@ def mysql_start_replication(found_container: docker.models.containers.Container,
 
     if result.exit_code == 0:
         if is_logs:
-            print("\nРепликация запущена")
+            if space_id > 0:
+                print("\nРепликация запущена в компании %s" % space_id)
+            else:
+                print("\nРепликация запущена для монолита")
     else:
         print("Ошибка при запуске репликации")
         if result.output:
@@ -210,7 +214,10 @@ def mysql_start_replication(found_container: docker.models.containers.Container,
         ]
     )
     if is_logs:
-        print("\nРепликация завершена")
+        if space_id > 0:
+            print("\nРепликация завершена в компании %s" % space_id)
+        else:
+            print("\nРепликация завершена для монолита")
 
     # отключаем read_only режим
     mysql_command = "SET GLOBAL super_read_only = OFF;" + \

@@ -77,8 +77,9 @@ VIDEO_CONFERENCE_NODE_LIST=[["link"=>"{{$.protocol}}://{{.projects.jitsi.domain}
 PUBLIC_ENTRYPOINT_ELECTRON_UPDATE30=https://update-onpremise.getcompass.ru/last
 PUBLIC_ENTRYPOINT_ELECTRON_UPDATE_CDN=https://update.getcompass.ru/electron/onpremise-compass
 
-RESERVE_SERVER_IP_LIST=[]
 SERVICE_LABEL={{.service_label}}
 HOST_IP={{.host_ip}}
+COMPANIES_RELATIONSHIP_FILE=reserve_servers_companies_relationship.json
+MANTICORE_CLUSTER_NAME={{.manticore_cluster_name}}
 
 IS_PORTABLE_CALLS_DISABLED={{.is_portable_calls_disabled}}

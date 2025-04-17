@@ -7,7 +7,9 @@ sys.dont_write_bytecode = True
 import argparse, yaml, sys, os, subprocess, re, json
 import docker
 import glob
+import logging
 from typing import Dict
+from time import sleep
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -44,14 +46,27 @@ parser.add_argument(
     "-t",
     "--type",
     required=False,
-    default="monolith",
+    default="master",
     type=str,
-    help="тип mysql (monolith|team)",
+    help="тип репликации (master|reserve)",
 )
+
+parser.add_argument(
+    "--master-mysql-server-id",
+    required=False,
+    default=1,
+    type=int,
+    help="server_id мастер сервера",
+)
+
+parser.add_argument('--need-update-company', required=False, default=0, type=int, help='нужно ли обновление для компаний')
+
 args = parser.parse_args()
 environment = args.environment
 values_name = args.values
-mysql_type = args.type.lower()
+replication_type = args.type.lower()
+master_mysql_server_id = args.master_mysql_server_id
+need_update_company = args.need_update_company
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -99,71 +114,98 @@ def start():
     domino_id = domino["label"]
 
     stack_name = current_values["stack_name_prefix"] + "-monolith"
-    master_service_label = current_values["master_service_label"]
-    if master_service_label is None or master_service_label == "":
-        values_file_path = Path("%s/../../src/values.%s.yaml" % (script_dir, values_name))
-        scriptutils.die("Пустое значение master_service_label в файле src/values.%s.yaml" % values_name)
+    service_label = current_values["service_label"]
+    if service_label is None or service_label == "":
+        scriptutils.die("Пустое значение service_label в файле src/values.%s.yaml" % values_name)
 
-    stack_name = stack_name + "-" + master_service_label
+    stack_name = stack_name + "-" + service_label
+
+    manticore_cluster_name = current_values["manticore_cluster_name"]
 
     client = docker.from_env()
 
-    mysql_host = "localhost"
+    # получаем контейнер monolith
+    timeout = 30
+    n = 0
+    while n <= timeout:
 
-    replicator_user = security["replication"]["mysql_user"]
-    replicator_pass = security["replication"]["mysql_pass"]
+        docker_container_list = client.containers.list(
+            filters={
+                "name": "%s_php-monolith" % (stack_name),
+                "health": "healthy",
+            }
+        )
 
-    if mysql_type == "team":
-        mysql_user = "root"
-        mysql_pass = "root"
+        if len(docker_container_list) > 0:
+            found_monolith_container = docker_container_list[0]
+            break
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            scriptutils.die(
+                "Не был найден необходимый docker-контейнер manticore. Убедитесь, что окружение поднялось корректно"
+            )
 
-        # формируем список активных пространств
+    manticore_host = domino["service"]["manticore"]["host"]
+    manticore_external_port = domino["service"]["manticore"]["external_port"]
+
+    # инициализируем кластер в контейнере manticore
+    print("инициализируем кластер в контейнере manticore")
+    if replication_type == "master":
+        mysql_command = "CREATE CLUSTER %s;" % manticore_cluster_name
+    else:
+
+        # пробуем удалить кластер, если ранее в мантикоре тот успел подняться
+        try:
+            mysql_command = "DELETE CLUSTER %s;" % manticore_cluster_name
+            manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 0)
+        except:
+            pass
+        mysql_command = "JOIN CLUSTER %s AT 'manticore-%s:9312';" % (manticore_cluster_name, master_mysql_server_id)
+    manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
+
+    if need_update_company != 1:
+        return
+
+    # формируем список активных пространств
+    timeout = 60
+    n = 0
+    while n <= timeout:
         space_config_obj_dict = get_space_dict(current_values)
-
-        if len(space_config_obj_dict) < 1:
+        if len(space_config_obj_dict) > 0:
+            break
+        n = n + 5
+        sleep(5)
+        if n == timeout:
             scriptutils.die("Не найдено ни одного пространства на сервере. Окружение поднято?")
 
-        # проходимся по каждому пространству
-        for space_id, space_config_obj in space_config_obj_dict.items():
+    print("обновляем компании - прикрепляем созданные ранее таблицы manticore к кластеру")
+    for space_id, space_config_obj in space_config_obj_dict.items():
 
-            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
-            master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label, domino_id, space_config_obj.port)
-            mysql_restart_replication(found_container, mysql_host, mysql_user, mysql_pass, space_id)
+        print("прикрепляем к кластеру для компании %s" % space_id)
+        mysql_command = "ALTER CLUSTER %s ADD main_%s;" % (manticore_cluster_name, space_id)
+        manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
 
-    else:
-        mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
-        mysql_pass = current_values["projects"]["monolith"]["service"]["mysql"]["password"]
 
-        found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id)
-        if not found_container:
-            print("Не удалось найти контейнер pivot mysql.")
-            sys.exit(1)
+# запускаем репликацию мантикоры
+def manticore_replication(found_container: docker.models.containers.Container, mysql_command: str, manticore_host: str, manticore_external_port: int, is_need_log: int):
 
-        master_host = "%s_mysql-%s" % (stack_name, current_values["projects"]["monolith"]["label"])
-        mysql_restart_replication(found_container, mysql_host, mysql_user, mysql_pass, 0)
-
-# выполняем рестарт репликации в полученном контейнере
-def mysql_restart_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
-
-    mysql_command = "STOP SLAVE; RESET SLAVE;" + \
-                    "SET GLOBAL super_read_only = OFF;" + \
-                    "SET GLOBAL read_only = OFF;"
-    cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
+    cmd = "mariadb --skip-ssl -h %s -P %s -e \"%s\"" % (manticore_host, manticore_external_port, mysql_command)
 
     try:
         result = found_container.exec_run(cmd)
     except docker.errors.NotFound:
-        print("\nНе нашли mysql контейнер для space_id %d" % space_id)
+        print("\nНе смогли найти контейнер manticore")
         return
 
-    if result.exit_code == 0:
-        if space_id > 0:
-            print("Рестарт репликации %s выполнен для %s" % (mysql_type, space_id))
+    if is_need_log == 1:
+        if result.exit_code == 0:
+            print("\nЗавершили запуск репликации для manticore")
         else:
-            print("Рестарт репликации %s выполнен" % mysql_type)
-    else:
-        print("Ошибка при рестарте репликации")
-        sys.exit(result.exit_code)
+            print("Ошибка при запуске репликации для manticore")
+            if result.output:
+                print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
+            sys.exit(result.exit_code)
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
