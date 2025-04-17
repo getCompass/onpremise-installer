@@ -170,7 +170,7 @@ def update_host_ip(monolith_container: docker.models.containers.Container, host_
     result = monolith_container.exec_run([
         "bash",
         "-c",
-        f'mysql -h "$MYSQL_HOST" -p"$MYSQL_ROOT_PASS" -D pivot_company_service -e "UPDATE domino_registry SET \`database_host\` = \'{host_ip}\', \`code_host\` = \'{host_ip}\';"'
+        f'mysql -h "$MYSQL_HOST" -p"$MYSQL_ROOT_PASS" -D pivot_company_service --skip-ssl -e "UPDATE domino_registry SET \`database_host\` = \'{host_ip}\', \`code_host\` = \'{host_ip}\';"'
     ])
     if result.exit_code != 0:
 
