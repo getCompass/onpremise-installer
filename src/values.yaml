@@ -360,7 +360,7 @@ projects:
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v5.3.1"
+          tag: "v5.4.0"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:

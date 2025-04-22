@@ -158,7 +158,7 @@ def mysql_restart_replication(found_container: docker.models.containers.Containe
 
     if result.exit_code == 0:
         if space_id > 0:
-            print("Рестарт репликации %s выполнен для %s" % (mysql_type, space_id))
+            print("Рестарт репликации %s выполнен для space_id %s" % (mysql_type, space_id))
         else:
             print("Рестарт репликации %s выполнен" % mysql_type)
     else:
