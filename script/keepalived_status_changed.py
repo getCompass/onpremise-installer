@@ -95,24 +95,22 @@ def start(state):
 
         logging.info("This server is now MASTER")
 
-        # останавливаем репликацию
-        stop_replication_db_list([monolith])
-        stop_replication_db_list(space_config_obj_dict)
-
-        logging.info("Stopped replication on Master")
+        # меняем master_service_label
+        change_master_service_label(current_values, current_values.get("service_label"))
+        logging.info("Changed master_service_label on Master")
 
         # запускаем lsyncd файлов и конфигов
         try:
             subprocess.run(["sudo", "systemctl", "restart", "lsyncd"], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Ошибка при остановке службы lsyncd: {e}")
+            logging.info(f"Ошибка при остановке службы lsyncd: {e}")
 
         logging.info("Restarted lsyncd on Master")
 
-        # меняем master_service_label
-        change_master_service_label(current_values, current_values.get("service_label"))
-
-        logging.info("Changed master_service_label on Master")
+        # останавливаем репликацию
+        stop_replication_db_list([monolith])
+        stop_replication_db_list(space_config_obj_dict)
+        logging.info("Stopped replication on Master")
 
     # действия при переходе в BACKUP
     elif state == "BACKUP":
@@ -123,12 +121,12 @@ def start(state):
         try:
             subprocess.run(["sudo", "systemctl", "stop", "lsyncd"], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"Ошибка при остановке службы lsyncd: {e}")
+            logging.info(f"Ошибка при остановке службы lsyncd: {e}")
 
         logging.info("Stopped lsyncd on Backup")
 
+        # меняем master_service_label
         change_master_service_label(current_values)
-
         logging.info("Changed master_service_label on Backup")
 
     elif state == "FAULT":
@@ -237,11 +235,20 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
 
                 for label, data in reserve_relationship_dict.items():
                     if "master" in data and data["master"] == True and label != current_service_label:
+                        logging.info("set \"master\" = true for %s" % label)
                         master_service_label = label
-                        break
+                        data["master"] = True
+                        reserve_relationship_dict[label] = data
+                    if current_service_label == label and label != master_service_label:
+                        logging.info("set \"master\" = false for %s" % label)
+                        data["master"] = False
+                        reserve_relationship_dict[label] = data
 
             # если определили master_service_label, то останавливаем цикл
             if master_service_label != "":
+                f = open(servers_companies_relationship_file_path, "w")
+                f.write(json.dumps(reserve_relationship_dict))
+                f.close()
                 break
 
             n = n + 5
@@ -264,7 +271,7 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
                 if label == master_service_label and ("master" not in data or data["master"] != True):
                     logging.info("Changed \"master\" = true in current-values for %s" % label)
                     data["master"] = True
-                if "master" in data and data["master"] == True and label != master_service_label:
+                if label != master_service_label:
                     logging.info("Changed \"master\" = false in current-values for %s" % label)
                     data["master"] = False
                 reserve_relationship_dict[label] = data
