@@ -418,7 +418,9 @@ if scriptutils.is_replication_enabled(values_dict) == True:
             "-v",
             values_name,
             "--type",
-            "monolith"
+            "monolith",
+            "--is_logs",
+            str(0)
         ]
     )
 

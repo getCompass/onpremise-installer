@@ -37,9 +37,6 @@ parser.add_argument(
     required=False,
     action='store_true'
 )
-parser.add_argument('--service_label', required=False, default="", type=str,
-                    help='Метка сервиса, к которому закреплён стак')
-
 parser.add_argument("--init", required=False, action="store_true")
 
 args = parser.parse_args()
@@ -363,11 +360,12 @@ if scriptutils.is_replication_master_server(current_values):
         "Не смог создать команду",
     ).start()
 else:
-    loader = Loader(
-        "Начинаем процесс репликации в компании...",
-        "Репликация завершена",
-        "Не смогли завершить репликацию",
-    ).start()
+    if init:
+        loader = Loader(
+            "Начинаем процесс репликации в компании...",
+            "Репликация завершена",
+            "Не смогли завершить репликацию",
+        ).start()
 
 if scriptutils.is_replication_master_server(current_values):
     output = found_pivot_container.exec_run(
@@ -393,12 +391,14 @@ if scriptutils.is_replication_enabled(current_values) == True:
             "-v",
             values_arg,
             "--type",
-            "team"
+            "team",
+            "--is_logs",
+            str(0)
         ]
     )
 
 if scriptutils.is_replication_master_server(current_values):
-    output = found_pivot_container.exec_run(
+    result = found_pivot_container.exec_run(
         user="www-data",
         cmd=[
             "bash",
@@ -407,8 +407,9 @@ if scriptutils.is_replication_master_server(current_values):
             % team_name
         ]
     )
+    print("\n%s" % result.output.decode("utf-8"))
 
-    if output.exit_code == 0:
+    if result.exit_code == 0:
         loader.success()
     else:
         loader.error()
@@ -416,18 +417,19 @@ if scriptutils.is_replication_master_server(current_values):
             "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно"
         )
 else:
-    subprocess.run(
-        [
-            "python3",
-            script_resolved_path + "/replication/start_slave_replication.py",
-            "-e",
-            environment,
-            "-v",
-            values_arg,
-            "--type",
-            "team",
-            "--is_logs",
-            "0"
-        ]
-    )
-    loader.success()
+    if init:
+        subprocess.run(
+            [
+                "python3",
+                script_resolved_path + "/replication/start_slave_replication.py",
+                "-e",
+                environment,
+                "-v",
+                values_arg,
+                "--type",
+                "team",
+                "--is_logs",
+                "0"
+            ]
+        )
+        loader.success()

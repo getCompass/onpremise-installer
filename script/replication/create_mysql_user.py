@@ -50,9 +50,12 @@ parser.add_argument(
     help="тип mysql (monolith|team)",
 )
 parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
+parser.add_argument("--is_logs", required=False, default=1, type=int, help="нужны ли логи при создании mysql-пользователя")
 args = parser.parse_args()
 values_name = args.values
 mysql_type = args.type.lower()
+is_logs = args.is_logs
+is_logs = bool(is_logs == 1)
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -132,6 +135,8 @@ def start():
 
         # проходимся по каждому пространству
         for space_id, space_config_obj in space_config_obj_dict.items():
+            if is_logs:
+                print("Создаём mysql-пользователя для компании %s" % space_id)
             found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
             result = found_container.exec_run(cmd)
     else:
@@ -142,6 +147,8 @@ def start():
         if not found_container:
             print("Не удалось найти контейнер pivot mysql.")
             sys.exit(1)
+        if is_logs:
+            print("Создаём mysql-пользователя для монолита")
         result = found_container.exec_run(cmd)
 
     if result.exit_code != 0:
@@ -149,6 +156,9 @@ def start():
         if result.output:
             print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
         sys.exit(result.exit_code)
+    else:
+        if is_logs:
+            print("Пользователь для mysql успешно создан!")
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:

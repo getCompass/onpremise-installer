@@ -68,7 +68,7 @@ values_file_path = Path("%s/src/values.%s.yaml" % (installer_dir, values_name))
 
 def start(state):
 
-    logging.info(f"Keepalived state changed to: {state}")
+    logging.info(f"--- Keepalived state changed to: {state} ---")
 
     current_values = get_values()
 
@@ -99,11 +99,25 @@ def start(state):
         change_master_service_label(current_values, current_values.get("service_label"))
         logging.info("Changed master_service_label on Master")
 
+        # рестартим nginx
+        try:
+            subprocess.run(["sudo", "nginx", "-s", "reload"], check=True)
+        except subprocess.CalledProcessError as e:
+            logging.info(f"Ошибка при рестарте nginx: {e}")
+
+        logging.info("Restarted nginx on Master")
+
         # запускаем lsyncd файлов и конфигов
         try:
             subprocess.run(["sudo", "systemctl", "restart", "lsyncd"], check=True)
         except subprocess.CalledProcessError as e:
-            logging.info(f"Ошибка при остановке службы lsyncd: {e}")
+            logging.info(f"Ошибка при рестарте службы lsyncd: {e}")
+
+        # отключаем автозапуск lsyncd
+        try:
+            subprocess.run(["sudo", "systemctl", "disable", "lsyncd"], check=True)
+        except subprocess.CalledProcessError as e:
+            logging.info(f"Ошибка при остановке автозапуска lsyncd: {e}")
 
         logging.info("Restarted lsyncd on Master")
 
@@ -124,6 +138,14 @@ def start(state):
             logging.info(f"Ошибка при остановке службы lsyncd: {e}")
 
         logging.info("Stopped lsyncd on Backup")
+
+        # рестартим nginx
+        try:
+            subprocess.run(["sudo", "nginx", "-s", "reload"], check=True)
+        except subprocess.CalledProcessError as e:
+            logging.info(f"Ошибка при рестарте nginx: {e}")
+
+        logging.info("Restarted nginx on Backup")
 
         # меняем master_service_label
         change_master_service_label(current_values)
@@ -281,9 +303,13 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
         f.close()
 
     logging.info("Changed \"master_service_label\" = %s in current-values" % master_service_label)
-    current_values["master_service_label"] = master_service_label
 
-    write_to_file(current_values)
+    with values_file_path.open("r") as values_file:
+        new_values = yaml.safe_load(values_file)
+        new_values = {} if new_values is None else new_values
+    new_values["master_service_label"] = master_service_label
+
+    write_to_file(new_values)
 
 def write_to_file(new_values: Dict):
     new_path = Path(str(values_file_path.resolve()))
