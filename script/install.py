@@ -146,6 +146,15 @@ subprocess.run(
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации ограничений")
 
+print("Валидируем конфигурацию парсинга превью ссылок")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_preview_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации парсинга превью ссылок")
+
 print("Валидируем конфигурацию приложения")
 command = [
     script_resolved_path + "/init.py",
@@ -210,6 +219,11 @@ print("Запускаем скрипт генерации конфигураци
 subprocess.run(
     ["python3", script_resolved_path + "/generate_restrictions_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
+
+print("Запускаем скрипт генерации конфигурации парсинга превью ссылок")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_preview_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации парсинга превью ссылок")
 
 print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]

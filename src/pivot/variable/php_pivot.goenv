@@ -76,3 +76,5 @@ VIDEO_CONFERENCE_NODE_LIST=[["link"=>"{{$.protocol}}://{{.projects.jitsi.domain}
 
 PUBLIC_ENTRYPOINT_ELECTRON_UPDATE30=https://update-onpremise.getcompass.ru/last
 PUBLIC_ENTRYPOINT_ELECTRON_UPDATE_CDN=https://update.getcompass.ru/electron/onpremise-compass
+
+IS_PORTABLE_CALLS_DISABLED={{.is_portable_calls_disabled}}

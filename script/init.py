@@ -641,6 +641,14 @@ required_root_fields = [
         "ask": True,
         "is_required": False,
         "skip_current_value": True,
+    },
+    {
+        "name": "is_portable_calls_disabled",
+        "comment": "Включено ли ограничение на звонки на сервере",
+        "default_value": False,
+        "type": "bool",
+        "ask": True,
+        "is_required": False
     }
 ]
 
