@@ -158,6 +158,12 @@ configs:
   company-restrictions:
     name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
     file: ".project.domino.company_restrictions.php"
+  preview-parsing-conversation:
+    name: "{{.stack_name}}_preview_parsing-{{.config_revisions.project.domino.preview_parsing.php}}"
+    file: ".project.domino.preview_parsing.php"
+  preview-parsing-thread:
+    name: "{{.stack_name}}_preview_parsing-{{.config_revisions.project.domino.preview_parsing.php}}"
+    file: ".project.domino.preview_parsing.php"
 {{if eq .database_connection.driver "host"}}
   predefined-db:
     name: "{{.stack_name}}_predefined_db-{{.config_revisions.project.predefined_db.json}}"
@@ -848,6 +854,10 @@ services:
         target: "/app/src/Compass/Pivot/api/conf/restrictions.php"
       - source: "company-restrictions"
         target: "/app/src/Compass/Company/api/conf/restrictions.php"
+      - source: "preview-parsing-conversation"
+        target: "/app/src/Compass/Conversation/api/conf/preview.php"
+      - source: "preview-parsing-thread"
+        target: "/app/src/Compass/Thread/api/conf/preview.php"
       - source: "pivot-jitsi-node"
         target: "/app/src/Compass/Jitsi/api/conf/jitsi.php"
     {{- if ne .database_encryption.mode "none"}}
