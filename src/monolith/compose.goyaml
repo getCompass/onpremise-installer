@@ -701,7 +701,7 @@ services:
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
-    image: "{{.registry_service_path}}/manticore:6.3.6-1"
+    image: "{{.registry_service_path}}/manticore:6.3.7"
     environment:
       - EXTRA=0
       - MCL=1
@@ -864,6 +864,50 @@ services:
     secrets:
       - "compass_database_encryption_secret_key"
     {{- end}}
+
+  # PHP_MIGRATION
+  php-migration-{{$domino.label}}:
+    image: "{{.registry_compass_path}}/php_migration:{{$domino.service.php_migration.tag}}"
+    depends_on:
+      - "php-monolith-{{$domino.label}}"
+      - "mysql-{{$domino.label}}"
+      - "go-database-controller-{{$domino.label}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.override.env"
+      - ".project.domino.common.env"
+    environment:
+      MYSQL_DOMINO_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_HOST: "{{$domino.mysql_host}}"
+      GO_DATABASE_CONTROLLER_PORT: "{{$domino.go_database_controller_port}}"
+    networks:
+      - "monolith-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    volumes:
+      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+    <<:
+      - *default-deploy
+      - *log-rule-default
+      - *healthcheck-php-9000
+    configs:
+      - source: "domino-hosts-pivot"
+        target: "/app/src/Compass/Migration/api/conf/domino.php"
 
   # GO_COMPANY_CACHE
   go-company-cache-{{$domino.label}}:
