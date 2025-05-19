@@ -32,6 +32,13 @@ environment = "production"
 stack_name_prefix = environment + "-" + values_name
 domino_id = "d1"
 
+
+# класс для сравнения версии инсталлятора
+class Version(tuple):
+    def __new__(cls, text):
+        return super().__new__(cls, tuple(int(x) for x in text.split(".")))
+
+
 # сначала актуализируем инсталлятор
 sb = subprocess.run(
     [
@@ -216,10 +223,34 @@ subprocess.run(
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при создании ключей безопасности")
 
+script_dir = str(Path(__file__).parent.resolve())
+version_path = Path(script_dir + "/../.version")
+
+if not version_path.exists():
+    current_version = 0
+else:
+    current_version = version_path.open("r").read()
+
+# в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
+if Version(current_version) >= Version("6.0.1"):
+
+    # накатываем миграцию на компании
+    sb = subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/companies_database_migrations_up.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+        ]
+    )
+    if sb.returncode == 1:
+        exit(1)
+
 # деплой
 
 # удаляем старые симлинки, только с помощью subproccess, ибо симлинки ведут на удаленные дериктории и unlink/rmtree просто не срабатывает
-script_dir = str(Path(__file__).parent.resolve())
 
 monolith_variable_nginx_path = Path("%s/../src/monolith/variable/nginx" % (script_dir))
 subprocess.run(["rm", "-rf", monolith_variable_nginx_path])
@@ -398,6 +429,23 @@ while n <= timeout:
         scriptutils.die("nginx не поднялся")
 loader.success()
 sleep(10)
+
+# если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
+if Version(current_version) < Version("6.0.1"):
+
+    # накатываем миграцию на компании
+    sb = subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/companies_database_migrations_up.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+        ]
+    )
+    if sb.returncode == 1:
+        exit(1)
 
 # инициализируем приложение
 loader = Loader(

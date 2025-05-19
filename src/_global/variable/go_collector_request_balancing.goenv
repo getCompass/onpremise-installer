@@ -4,6 +4,7 @@
 # настройки для сборщика аналитики
 STAT_COLLECTOR_ITERATION_PERIOD=5
 STAT_COLLECTOR_PER_REQUEST_LIMIT=100
+CLICKHOUSE_COLLECTOR_PER_REQUEST_LIMIT=5000
 
 # настройка балансировки запросов к коллектор-серверу
 COLLECTOR_SERVER_REQUEST_LIMIT=5
