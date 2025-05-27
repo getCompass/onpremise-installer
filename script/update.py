@@ -231,8 +231,17 @@ if not version_path.exists():
 else:
     current_version = version_path.open("r").read()
 
+# подключаемся к докеру
+client = docker.from_env()
+php_migration_container_name = "%s-monolith_php-migration" % stack_name_prefix
+need_update_migrations_after_deploy = True
+
+container_list = client.containers.list(filters={'name': php_migration_container_name, 'health': 'healthy'})
+if len(container_list) > 0:
+    need_update_migrations_after_deploy = False
+
 # в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
-if Version(current_version) >= Version("6.0.1"):
+if Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy:
 
     # накатываем миграцию на компании
     sb = subprocess.run(
@@ -303,8 +312,6 @@ if install_integration:
         "Ошибка при разворачивании интеграции"
     )
 
-# подключаемся к докеру
-client = docker.from_env()
 # ждем появления monolith
 timeout = 900
 n = 0
