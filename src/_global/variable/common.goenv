@@ -53,6 +53,7 @@ ENTRYPOINT_TEST=""
 ENTRYPOINT_ANALYTIC=""
 ENTRYPOINT_ADMIN=""
 ENTRYPOINT_PARTNER=""
+ENTRYPOINT_PREMISE="{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path_premise 0}}"
 
 # ==========================================================
 # адреса и точки входа проектов для запросов извне,

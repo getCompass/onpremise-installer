@@ -436,7 +436,6 @@ services:
       PER_DELIVERY_LIMIT: {{.projects.monolith.service.go_event.per_delivery_limit}}
       DELIVERY_DELAY: {{.projects.monolith.service.go_event.delivery_delay}}
       COURIER_COUNT: {{.projects.monolith.service.go_event.courier_count}}
-      ENTRYPOINT_PREMISE: "{{.protocol}}://{{entrypoint .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path_premise 1}}"
     env_file:
       - ".global.common.env"
       - ".project.pivot.common.env"
@@ -621,7 +620,6 @@ services:
       RABBIT_QUEUE: "{{.projects.pivot.service.go_pusher.rabbit_queue}}"
       RABBIT_EXCHANGE: "{{.projects.pivot.service.go_pusher.rabbit_exchange}}"
       IS_PUSH_MOCK_ENABLE: "{{.projects.pivot.service.go_pusher.is_push_mock_enable}}"
-      ENTRYPOINT_PREMISE: "{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path_premise 0}}"
       PUSH_MONITORING_COMPANY_ID: -1
     depends_on:
       - "rabbit-{{.projects.pivot.label}}"

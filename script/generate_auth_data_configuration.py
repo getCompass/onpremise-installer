@@ -759,7 +759,8 @@ class SsoLdapConfig:
             account_disabling_monitoring_interval: str,
             user_search_page_size: int,
             user_search_filter: str,
-
+            profile_update_enabled: str,
+            profile_update_interval: str,
     ):
         self.server_host = server_host
         self.server_port = server_port
@@ -776,6 +777,8 @@ class SsoLdapConfig:
         self.account_disabling_monitoring_interval = account_disabling_monitoring_interval
         self.user_search_page_size = user_search_page_size
         self.user_search_filter = user_search_filter
+        self.profile_update_enabled = profile_update_enabled
+        self.profile_update_interval = profile_update_interval
 
     def input(self):
 
@@ -975,6 +978,46 @@ class SsoLdapConfig:
             handle_exception("ldap.user_search_page_size",
                              bcolors.WARNING + "Некорректное значение для параметра ldap.user_search_page_size в конфиг-файле auth.yaml" + bcolors.ENDC)
 
+        try:
+            ldap_profile_update_enabled = interactive.InteractiveValue(
+                "ldap.profile_update_enabled",
+                "Включен ли мониторинг обновления учетной записи LDAP для запуска автоматического обновления связанного пользователя в Compass",
+                "bool",
+                config=config, is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_profile_update_enabled = False
+
+        try:
+            ldap_profile_update_interval = interactive.InteractiveValue(
+                "ldap.profile_update_interval",
+                "Временной интервал между проверками обновления пользователя LDAP", "str", config=config,
+                default_value="", is_required=ldap_profile_update_enabled
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_profile_update_interval = ""
+
+        # проверяем, что указано корректное значение
+        if ldap_profile_update_enabled and bool(
+                re.match(r'^\d+[mh]$', ldap_profile_update_interval)) == False:
+            handle_exception("ldap.profile_update_interval",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.profile_update_interval в конфиг-файле auth.yaml" + bcolors.ENDC)
+
+        # проверяем, что значение не меньше 1 минуты
+        if ldap_profile_update_enabled:
+            # извлекаем число и единицу измерения
+            match = re.match(r'^(\d+)([mh])$', ldap_profile_update_interval)
+            if match:
+                number = int(match.group(1))
+                unit = match.group(2)
+                
+                # если значение в минутах меньше 1 или в часах 0, выдаем ошибку
+                if (unit == 'm' and number < 1) or (unit == 'h' and number == 0):
+                    handle_exception("ldap.profile_update_interval",
+                                   bcolors.WARNING + "Значение параметра ldap.profile_update_interval не может быть меньше 1 минуты" + bcolors.ENDC)
+
         return self.init(ldap_server_host,
                          ldap_server_port,
                          ldap_use_ssl,
@@ -989,12 +1032,14 @@ class SsoLdapConfig:
                          ldap_user_search_account_password,
                          ldap_account_disabling_monitoring_interval,
                          ldap_user_search_page_size,
-                         ldap_user_search_filter
+                         ldap_user_search_filter,
+                         ldap_profile_update_enabled,
+                         ldap_profile_update_interval,
                          )
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => "{}",\n\t"profile_update_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
@@ -1010,6 +1055,8 @@ class SsoLdapConfig:
             self.user_search_account_dn,
             self.user_search_account_password,
             self.account_disabling_monitoring_interval,
+            self.profile_update_enabled,
+            self.profile_update_interval,
         )
 
 

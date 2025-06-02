@@ -38,6 +38,37 @@ class Version(tuple):
     def __new__(cls, text):
         return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
+# обновить конфиги пространств
+def update_space_configs(monolith_container: docker.models.containers.Container) -> None:
+
+    loader = Loader("Запускаем пространства...", "Запустили пространства", "Не смогли запустить пространства").start()
+
+    result = monolith_container.exec_run(
+    user="www-data",
+    cmd=[
+        "bash",
+        "-c",
+        "php src/Compass/Pivot/sh/php/domino/force_update_company_db.php",
+        ],
+    )
+
+    # форсированный апдейт конфигов идет каждые 180 секунд
+    sleep(180)
+    if result.exit_code != 0:
+
+        loader.error()
+        scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
+    loader.success()
+
+# получаем текущую версию инсталлятора
+script_dir = str(Path(__file__).parent.resolve())
+version_path = Path(script_dir + "/../.version")
+
+if not version_path.exists():
+    current_version = "0.0.0"
+else:
+    current_version = version_path.open("r").read()
+
 
 # сначала актуализируем инсталлятор
 sb = subprocess.run(
@@ -223,16 +254,17 @@ subprocess.run(
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при создании ключей безопасности")
 
-script_dir = str(Path(__file__).parent.resolve())
-version_path = Path(script_dir + "/../.version")
+# подключаемся к докеру
+client = docker.from_env()
+php_migration_container_name = "%s-monolith_php-migration" % stack_name_prefix
+need_update_migrations_after_deploy = True
 
-if not version_path.exists():
-    current_version = 0
-else:
-    current_version = version_path.open("r").read()
+container_list = client.containers.list(filters={'name': php_migration_container_name, 'health': 'healthy'})
+if len(container_list) > 0:
+    need_update_migrations_after_deploy = False
 
 # в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
-if Version(current_version) >= Version("6.0.1"):
+if Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy:
 
     # накатываем миграцию на компании
     sb = subprocess.run(
@@ -303,8 +335,6 @@ if install_integration:
         "Ошибка при разворачивании интеграции"
     )
 
-# подключаемся к докеру
-client = docker.from_env()
 # ждем появления monolith
 timeout = 900
 n = 0
@@ -430,8 +460,31 @@ while n <= timeout:
 loader.success()
 sleep(10)
 
+# Если версия меньше 4.1.0 - обновляем конфиги пространств
+if Version(current_version) < Version("4.1.0"):
+
+    n = 0
+    update_space_configs(found_monolith_container)
+
+    loader = Loader(
+        "Ждем готовности go_event",
+        "go_event готов",
+        "go_event не может подняться",
+    ).start()
+
+    # обновляем сервис go-event
+    service_list = client.services.list(filters={
+        "name": "%s-monolith_go-event" % (stack_name_prefix),
+    })
+
+    event_service = service_list[0]
+    event_service.force_update()
+    sleep(30)
+    
+    loader.success()
+
 # если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
-if Version(current_version) < Version("6.0.1"):
+if Version(current_version) < Version("6.0.1") or need_update_migrations_after_deploy:
 
     # накатываем миграцию на компании
     sb = subprocess.run(
