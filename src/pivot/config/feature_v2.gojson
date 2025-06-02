@@ -128,42 +128,42 @@
 	"groups": {
 		"electron": {
 			"compass": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			},
 			"comteam": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			}
 		},
 		"iphone": {
 			"compass": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			},
 			"comteam": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			}
 		},
 		"android": {
 			"compass": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			},
 			"comteam": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			}
 		},
 		"ipad": {
 			"compass": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			},
 			"comteam": {
-				"current_version": 2,
-				"supported_version_list": [1, 2]
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
 			}
 		}
 	},
@@ -2576,41 +2576,41 @@
 	"message_read_participants": {
 		"electron": {
 			"compass": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			},
 			"comteam": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
 		},
 		"iphone": {
 			"compass": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			},
 			"comteam": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
 		},
 		"android": {
 			"compass": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			},
 			"comteam": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
 		},
 		"ipad": {
 			"compass": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			},
 			"comteam": {
-				"current_version": 0,
+				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
 		}

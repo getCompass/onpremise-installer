@@ -105,7 +105,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.0.1"
+        tag: "v6.0.2"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -349,7 +349,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.0.1"
+          tag: "v6.0.2"
         php_migration:
           tag: "v6.0.0"
         php_repairer:

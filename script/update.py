@@ -500,6 +500,14 @@ if Version(current_version) < Version("6.0.1") or need_update_migrations_after_d
     if sb.returncode == 1:
         exit(1)
 
+print("Запускаем скрипт проверки занятых компаний")
+subprocess.run([
+    "python3", script_resolved_path + "/check_is_busy_companies.py",
+    "-e",
+    environment,
+    "-v",
+    values_name, ]).returncode == 0 or scriptutils.die("Ошибка при проверке занятых компаний")
+
 # инициализируем приложение
 loader = Loader(
     "Обновляем приложение",
