@@ -4,6 +4,4 @@ ENCRYPT_IV_ACTION={{.encrypt_keys.encrypt_iv_action}}
 ENCRYPT_PASSPHRASE_ACTION={{.encrypt_keys.encrypt_passphrase_action}}
 
 SERVER_ACTIVATION_MESSAGE="sudo python3 script/activate_server.py"
-ONPREMISE_VERSION="6.0.0"
-
-ENTRYPOINT_PREMISE="{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path_premise 0}}"
+ONPREMISE_VERSION="6.0.1"
