@@ -4,4 +4,4 @@ ENCRYPT_IV_ACTION={{.encrypt_keys.encrypt_iv_action}}
 ENCRYPT_PASSPHRASE_ACTION={{.encrypt_keys.encrypt_passphrase_action}}
 
 SERVER_ACTIVATION_MESSAGE="sudo python3 script/activate_server.py"
-ONPREMISE_VERSION="6.0.1"
+ONPREMISE_VERSION="6.0.2"
