@@ -467,19 +467,19 @@ if Version(current_version) < Version("4.1.0"):
     update_space_configs(found_monolith_container)
 
     loader = Loader(
-        "Ждем готовности go_event",
-        "go_event готов",
-        "go_event не может подняться",
+        "Ждем готовности микросервисов",
+        "Микросервисы готовы",
+        "Микросервисы не могут подняться",
     ).start()
 
-    # обновляем сервис go-event
+    # обновляем сервисы
     service_list = client.services.list(filters={
-        "name": "%s-monolith_go-event" % (stack_name_prefix),
+        "name": "%s-monolith_go-" % (stack_name_prefix),
     })
 
-    event_service = service_list[0]
-    event_service.force_update()
-    sleep(30)
+    for service in service_list:
+        service.force_update()
+    sleep(60)
     
     loader.success()
 
