@@ -1039,7 +1039,7 @@ class SsoLdapConfig:
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => "{}",\n\t"profile_update_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
