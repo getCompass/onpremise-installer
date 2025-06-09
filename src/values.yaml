@@ -127,7 +127,7 @@ projects:
       go_sender:
         rabbit_queue: "monolith_go_sender_queue"
         rabbit_exchange: "monolith_go_sender_exchange"
-        tag: "v6.0.0"
+        tag: "v6.0.3-1"
 
   pivot:
     host: "0.0.0.0"
@@ -176,7 +176,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v6.0.0"
+        tag: "v6.0.3-1"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       go_collector_agent:
@@ -225,7 +225,7 @@ projects:
         rabbit_queue: "go_sender_balancer_queue"
         rabbit_exchange: "go_sender_balancer_exchange"
       go_sender:
-        tag: "v6.0.0"
+        tag: "v6.0.3-1"
         rabbit_queue: "go_sender_queue"
         rabbit_exchange: "go_sender_exchange"
       prometheus:
@@ -355,7 +355,7 @@ projects:
         php_repairer:
           tag: "v1.5.0"
         go_sender:
-          tag: "v6.0.0"
+          tag: "v6.0.3-1"
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
