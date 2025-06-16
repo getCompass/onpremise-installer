@@ -1,1 +1,2 @@
 API_PATH="{{.url_path}}"
+NEED_INDEX_WEB={{.is_need_index_web}}

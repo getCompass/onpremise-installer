@@ -11,7 +11,7 @@ unlimited_jids = {
 plugin_paths = { "/prosody-plugins/", "/prosody-custom-plugins" }
 
 muc_mapper_domain_base = "meet.jitsi";
-muc_mapper_domain_prefix = "muc";
+muc_mapper_domain_prefix = "conference";
 
 http_default_host = "meet.jitsi"
 asap_accepted_issuers = { "{{.projects.jitsi.jwt.app_issuer}}" }
@@ -49,9 +49,10 @@ VirtualHost "meet.jitsi"
         "muc_breakout_rooms";
         "av_moderation";
 	"external_services";
+        "visitors";
     }
 
-    main_muc = "muc.meet.jitsi"
+    main_muc = "conference.meet.jitsi"
     room_metadata_component = "metadata.meet.jitsi"
     lobby_muc = "lobby.meet.jitsi"
     breakout_rooms_muc = "breakout.meet.jitsi"
@@ -60,6 +61,13 @@ VirtualHost "meet.jitsi"
     end_conference_component = "endconference.meet.jitsi"
     av_moderation_component = "avmoderation.meet.jitsi"
     c2s_require_encryption = true
+
+Component "visitors.meet.jitsi" "visitors_component"
+    auto_allow_visitor_promotion = false
+    muc_domains = { "conference.meet.jitsi" }
+    main_muc = "conference.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
+    admins = { "focus@auth.meet.jitsi" }
 
 VirtualHost "auth.meet.jitsi"
     ssl = {
@@ -71,7 +79,7 @@ VirtualHost "auth.meet.jitsi"
     }
     authentication = "internal_hashed"
 
-Component "internal-muc.meet.jitsi" "muc"
+Component "internal-conference.meet.jitsi" "muc"
     storage = "memory"
     modules_enabled = {
         }
@@ -83,7 +91,7 @@ Component "internal-muc.meet.jitsi" "muc"
     muc_tombstones = false
     muc_room_allow_persistent = false
 
-Component "muc.meet.jitsi" "muc"
+Component "conference.meet.jitsi" "muc"
     restrict_room_creation = true
     storage = "memory"
     modules_enabled = {
@@ -117,16 +125,16 @@ Component "focus.meet.jitsi" "client_proxy"
     target_address = "focus@auth.meet.jitsi"
 
 Component "speakerstats.meet.jitsi" "speakerstats_component"
-    muc_component = "muc.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
 
 Component "conferenceduration.meet.jitsi" "conference_duration_component"
-    muc_component = "muc.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
 
 Component "endconference.meet.jitsi" "end_conference"
-    muc_component = "muc.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
 
 Component "avmoderation.meet.jitsi" "av_moderation_component"
-    muc_component = "muc.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
 
 Component "lobby.meet.jitsi" "muc"
     storage = "memory"
@@ -153,7 +161,7 @@ Component "breakout.meet.jitsi" "muc"
         }
 
 Component "metadata.meet.jitsi" "room_metadata_component"
-    muc_component = "muc.meet.jitsi"
+    muc_component = "conference.meet.jitsi"
     breakout_rooms_component = "breakout.meet.jitsi"
 
 

@@ -1,0 +1,11 @@
+PROSODY_MODE="visitors"
+XMPP_MUC_MODULES=jitsi_user_context_parser
+COMPASS_APP_ID={{.projects.jitsi.jwt.app_id}}
+COMPASS_APP_SECRET={{.projects.jitsi.jwt.app_secret}}
+TURN_CREDENTIALS="{{.projects.jitsi.service.turn.secret}}"
+TURN_ENABLE_UDP={{if contains .projects.jitsi.service.turn.use_protocols "udp" }}1{{else}}0{{end}}
+TURN_ENABLE_TCP={{if contains .projects.jitsi.service.turn.use_protocols "tcp" }}1{{else}}0{{end}}
+TURN_HOST="{{.projects.jitsi.service.turn.host}}"
+TURN_PORT={{.projects.jitsi.service.turn.port}}
+TURN_TLS_PORT={{.projects.jitsi.service.turn.tls_port}}
+GLOBAL_MODULES="bosh,secure_interfaces,websocket"

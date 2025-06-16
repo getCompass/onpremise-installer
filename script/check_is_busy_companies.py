@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# pip3 install pyyaml pyopenssl docker mysql-connector-python python-dotenv psutil
+# pip3 install pyyaml pyopenssl docker python-dotenv psutil
 
 import sys
 
@@ -38,86 +38,33 @@ for user in ('www-data',):
 # docker-клиент
 client = docker.from_env()
 
-# ищем healthy MySQL-контейнер
+# ищем healthy php-monolith контейнер
 timeout = 30
 interval = 5
 elapsed = 0
-found_mysql = None
+found_monolith = None
 
 while elapsed < timeout:
     containers = client.containers.list(
         filters={
-            'name': f'{stack_name_prefix}-monolith_mysql-monolith',
+            'name': f'{stack_name_prefix}-monolith_php-monolith',
             'health': 'healthy'
         }
     )
     if containers:
-        found_mysql = containers[0]
+        found_monolith = containers[0]
         break
     sleep(interval)
     elapsed += interval
 
-if not found_mysql:
+if not found_monolith:
     scriptutils.die(
-        'Не был найден необходимый docker-контейнер для MySQL. '
+        'Не был найден необходимый docker-контейнер для php-monolith. '
         'Убедитесь, что сервис поднят и контейнер помечен как healthy.'
     )
 
-# загружаем values.yaml
-script_dir = Path(__file__).parent.resolve()
-default_vals = script_dir / '..' / 'src' / 'values.yaml'
-env_vals = script_dir / '..' / 'src' / f'values.{values_arg}.yaml'
-if not env_vals.exists():
-    scriptutils.die("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
-
-
-def merge(a: dict, b: dict):
-    for k, v in b.items():
-        if k in a and isinstance(a[k], dict) and isinstance(v, dict):
-            merge(a[k], v)
-        else:
-            a[k] = v
-    return a
-
-
-with open(default_vals) as f:
-    defaults = yaml.safe_load(f) or {}
-with open(env_vals) as f:
-    current = yaml.safe_load(f) or {}
-
-vals = merge(defaults, current)
-try:
-    svc = vals["projects"]["monolith"]["service"]["mysql"]
-    mysql_user = svc["user"]
-    mysql_password = svc["password"]
-except KeyError:
-    scriptutils.die("Не удалось прочитать данные для MySQL из values-файла")
-
-# делаем запрос только тех компаний, у которых is_busy = 1
-query = (
-    "SELECT company_id, is_busy "
-    "FROM pivot_company_service.company_registry_d1 "
-    "WHERE is_busy = 1;"
-)
-cmd = [
-    "mysql",
-    f"-u{mysql_user}",
-    f"-p{mysql_password}",
-    "-N",  # убираем заголовки столбцов
-    "-e", query
-]
-
-exit_code, streams = found_mysql.exec_run(cmd=cmd, demux=True)
-stdout, stderr = streams if isinstance(streams, tuple) else (streams, b'')
-
-out_text = (stdout or b'').decode('utf-8', errors='ignore').strip()
-err_text = (stderr or b'').decode('utf-8', errors='ignore').strip()
-
-# если mysql вернул ошибку — сразу фатал
-if exit_code != 0:
-    print("Не смогли проверить компании")
-    exit(1)
-
-# если в stdout есть хоть что-то — это реальные строки
-if out_text:
+output = found_monolith.exec_run(user='www-data', cmd=['bash', '-c',
+                                                       'php /app/src/Compass/Pivot/sh/php/domino/check_is_busy_companies.php'])
+if output.exit_code != 0:
+    print(output.output.decode("utf-8"))
     exit(1)

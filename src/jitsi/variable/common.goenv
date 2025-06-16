@@ -6,9 +6,7 @@ JVB_ADVERTISE_IPS={{if not .projects.jitsi.service.jvb.media_advertise_ips}}{{.p
 DOCKER_HOST_ADDRESS={{if not .projects.jitsi.service.jvb.media_advertise_ips}}{{.projects.jitsi.host}}{{else}}{{make_enum .projects.jitsi.service.jvb.media_advertise_ips}}{{end}}
 JVB_STUN_SERVERS="onpremise-turn.getcompass.ru:443"
 
-XMPP_MUC_MODULES=token_moderation,rest_api,persistent_lobby,token_lobby_bypass
-
-ENABLE_AUTH=1
+ENABLE_AUTH=0
 ENABLE_GUESTS=0
 AUTH_TYPE=jwt
 ENABLE_P2P=false
@@ -20,6 +18,8 @@ JWT_ACCEPTED_AUDIENCES={{.projects.jitsi.jwt.app_audience}}
 
 JICOFO_AUTH_PASSWORD={{.projects.jitsi.secrets.jicofo_auth_password}}
 JVB_AUTH_PASSWORD={{.projects.jitsi.secrets.jvb_auth_password}}
+XMPP_INTERNAL_MUC_DOMAIN="internal-conference.meet.jitsi"
+XMPP_MUC_DOMAIN="conference.meet.jitsi"
 
 JVB_COLIBRI_PORT=8080
 JVB_PORT={{.projects.jitsi.service.jvb.media_port}}
@@ -31,6 +31,19 @@ ENABLE_SCTP=1
 ENABLE_COLIBRI_WEBSOCKET=0
 ENABLE_XMPP_WEBSOCKET=0
 
+# jicofo
 ENABLE_CODEC_VP9=1
 ENABLE_CODEC_AV1=0
 ENABLE_CODEC_H264=1
+VISITORS_MAX_PARTICIPANTS=100
+VISITORS_MAX_VISITORS_PER_NODE=250
+JICOFO_VISITORS_REQUIRE_MUC_CONFIG=0
+
+# prosody
+ENABLE_VISITORS=1
+PROSODY_ENABLE_S2S=1
+VISITORS_XMPP_SERVER="prosody-jitsi-v0,prosody-jitsi-v1,prosody-jitsi-v2"
+PROSODY_VISITORS_MUC_PREFIX="conference"
+VISITORS_XMPP_DOMAIN="meet.jitsi"
+MAIN_XMPP_SERVER="prosody-jitsi"
+MAIN_S2S_PORT=5269
