@@ -68,7 +68,7 @@ services:
 
   # Frontend
   web-{{.projects.jitsi.label}}:
-    image: "{{.registry_service_path}}/web:web-1.0.8187-1"
+    image: "{{.registry_service_path}}/jitsi_web_wrap:{{.projects.jitsi.service.web.wrap_tag}}"
     ports:
       - '{{.projects.jitsi.service.web.https_port}}:443'
     env_file:
@@ -97,17 +97,17 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
         parallelism: 0
         order: "stop-first"
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf -o /dev/null http://xmpp.meet.jitsi:5280/http-bind || exit 1"]
-      interval: "2s"
-      timeout: "6s"
-      retries: 3
+      test: "nc -z jicofo-jitsi 8888 && curl -sf -o /dev/null http://xmpp.meet.jitsi:5280/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52800/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52801/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52802/http-bind || exit 1"
+      interval: "4s"
+      timeout: "8s"
+      retries: 2
     depends_on:
       - jvb-{{.projects.jitsi.label}}
       - jitsi-custom-{{.projects.jitsi.label}}
@@ -138,6 +138,18 @@ services:
       interval: "15s"
       timeout: "25s"
       retries: 20
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
     networks:
       monolith-private:
 
@@ -175,7 +187,7 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
@@ -220,7 +232,7 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
@@ -267,7 +279,7 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
@@ -315,7 +327,7 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
@@ -349,17 +361,17 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "continue"
         delay: "10s"
       rollback_config:
         parallelism: 0
         order: "stop-first"
     healthcheck:
-      test: "nc -z 127.0.0.1 8888"
+      test: "nc -z 127.0.0.1 8888 && nc -z -w5 prosody-jitsi 5222 && nc -z -w5 prosody-jitsi-v0 52220 && nc -z -w5 prosody-jitsi-v1 52221 && nc -z -w5 prosody-jitsi-v2 52222"
       interval: "5s"
-      timeout: "25s"
-      retries: 20
+      timeout: "15s"
+      retries: 3
     networks:
         monolith-private:
 

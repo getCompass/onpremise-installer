@@ -555,6 +555,7 @@ projects:
     service:
       web:
         https_port: 20109
+        wrap_tag: "v6.0.4"
       jvb:
         media_port: 10000
         media_advertise_ips: ""
