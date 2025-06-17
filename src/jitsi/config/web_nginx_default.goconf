@@ -1,0 +1,54 @@
+map $arg_vnode $prosody_upstream {
+    default prosody;
+    v0      v0;
+    v1      v1;
+    v2      v2;
+}
+
+upstream prosody {
+    zone upstreams 64K;
+    server xmpp.meet.jitsi:5280;
+    keepalive 2;
+}
+
+upstream v0 {
+    zone upstreams 64K;
+    server xmpp.meet.jitsi:52800;
+    keepalive 2;
+}
+
+upstream v1 {
+    zone upstreams 64K;
+    server xmpp.meet.jitsi:52801;
+    keepalive 2;
+}
+
+upstream v2 {
+    zone upstreams 64K;
+    server xmpp.meet.jitsi:52802;
+    keepalive 2;
+}
+
+server {
+        listen 80 default_server;
+
+
+        listen [::]:80 default_server;
+
+
+
+        return 301 https://$host$request_uri;
+
+}
+
+
+server {
+        listen 443 ssl http2;
+
+
+        listen [::]:443 ssl http2;
+
+
+        include /config/nginx/ssl.conf;
+        include /config/nginx/meet.conf;
+}

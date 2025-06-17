@@ -254,6 +254,15 @@ configs:
   prosody-esync-plugin-cfg:
     name: "{{.stack_name}}_prosody-esync-plugin-{{.config_revisions.project.jitsi.prosody_esync_plugin.cfg.lua}}"
     file: ".project.jitsi.prosody_esync_plugin.cfg.lua"
+  prosody-esync-plugin-cfg-v0:
+    name: "{{.stack_name}}_prosody-esync-plugin-v0-{{.config_revisions.project.jitsi.prosody_esync_plugin_v0.cfg.lua}}"
+    file: ".project.jitsi.prosody_esync_plugin_v0.cfg.lua"
+  prosody-esync-plugin-cfg-v1:
+    name: "{{.stack_name}}_prosody-esync-plugin-v1-{{.config_revisions.project.jitsi.prosody_esync_plugin_v1.cfg.lua}}"
+    file: ".project.jitsi.prosody_esync_plugin_v1.cfg.lua"
+  prosody-esync-plugin-cfg-v2:
+    name: "{{.stack_name}}_prosody-esync-plugin-v2-{{.config_revisions.project.jitsi.prosody_esync_plugin_v2.cfg.lua}}"
+    file: ".project.jitsi.prosody_esync_plugin_v2.cfg.lua"
 
   # конфиг плагина rest api
   prosody-rest-api-plugin-cfg:
@@ -277,6 +286,9 @@ configs:
   web-nginx-meet-conf:
     name: "{{.stack_name}}_web-nginx-meet-conf-{{.config_revisions.project.jitsi.web_nginx_meet.conf}}"
     file: ".project.jitsi.web_nginx_meet.conf"
+  web-nginx-default-conf:
+    name: "{{.stack_name}}_web-nginx-default-conf-{{.config_revisions.project.jitsi.web_nginx_default.conf}}"
+    file: ".project.jitsi.web_nginx_default.conf"
 
   # конфигурация nginx ВКС
   jitsi-web-nginx-sites:

@@ -1146,22 +1146,22 @@
 		},
 		"iphone": {
 			"compass": {
-				"current_version": 0,
-				"supported_version_list": [0]
+				"current_version": 1,
+				"supported_version_list": [0,1]
 			},
 			"comteam": {
-				"current_version": 0,
-				"supported_version_list": [0]
+				"current_version": 1,
+				"supported_version_list": [0,1]
 			}
 		},
 		"android": {
 			"compass": {
-				"current_version": 0,
-				"supported_version_list": [0]
+				"current_version": 1,
+				"supported_version_list": [0,1]
 			},
 			"comteam": {
-				"current_version": 0,
-				"supported_version_list": [0]
+				"current_version": 1,
+				"supported_version_list": [0,1]
 			}
 		},
 		"ipad": {
@@ -2492,42 +2492,42 @@
 	"message_actions": {
 		"electron": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			}
 		},
 		"iphone": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			}
 		},
 		"android": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0, 1]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			}
 		},
 		"ipad": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0]
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
 			}
 		}
 	},

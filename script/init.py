@@ -643,6 +643,14 @@ required_root_fields = [
         "skip_current_value": True,
     },
     {
+        "name": "is_need_index_web",
+        "comment": "Разрешено ли поисковикам индексировать страницу авторизации",
+        "default_value": False,
+        "type": "bool",
+        "ask": True,
+        "is_required": False
+    },
+    {
         "name": "is_portable_calls_disabled",
         "comment": "Включено ли ограничение на звонки на сервере",
         "default_value": False,

@@ -115,11 +115,15 @@ class AuthMainConfig:
             captcha_enabled: int,
             require_after: int,
             available_method_list: list,
+            available_guest_method_list: list,
     ):
         self.captcha_enabled = captcha_enabled
         self.require_after = require_after
         self.available_methods = "[%s]" % (", ").join(map(lambda s: '"%s"' % s, available_method_list)) if len(
             available_method_list) > 0 else "[]"
+        self.available_guest_methods = "[%s]" % (", ").join(
+            map(lambda s: '"%s"' % s, available_guest_method_list)) if len(
+            available_guest_method_list) > 0 else "[]"
 
     def input(self):
 
@@ -153,16 +157,29 @@ class AuthMainConfig:
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
-        return self.init(captcha_enabled, require_after, available_method_list)
+        # получаем значение доступных методов для гостей из конфига
+        try:
+            available_guest_method_list = interactive.InteractiveValue(
+                "available_guest_methods", "Доступные способы аутентификации гостей", "arr", config=config,
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+
+        return self.init(captcha_enabled, require_after, available_method_list, available_guest_method_list)
 
     # заполняем содержимым
     def make_output(self):
         available_method_list_output = '"available_method_list" => %s' % (self.available_methods)
+        available_guest_method_list_output = '"available_guest_method_list" => %s' % (self.available_guest_methods)
         captcha_enabled_output = '"captcha_enabled" => %s' % (str(self.captcha_enabled).lower())
         captcha_require_after_output = '"captcha_require_after" => %d' % (self.require_after)
 
-        output = "\n%s,\n %s,\n %s\n" % (
-            available_method_list_output, captcha_enabled_output, captcha_require_after_output)
+        output = "\n%s,\n %s,\n %s,\n %s\n" % (
+            available_method_list_output,
+            available_guest_method_list_output,
+            captcha_enabled_output,
+            captcha_require_after_output
+        )
         return output.encode().decode()
 
 
@@ -261,9 +278,15 @@ class AuthSsoConfig:
             is_required=False
         ).from_config()
 
+        # получаем значение доступных методов для авторизации гостей
+        available_guest_methods = interactive.InteractiveValue(
+            "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
         # если указан sso в качестве доступного метода авторизации, то данные должны быть заполнены
         is_required = False
-        if "sso" in available_methods:
+        if "sso" in available_methods or "sso" in available_guest_methods:
             is_required = True
 
         try:
@@ -392,9 +415,15 @@ class MailSmtpConfig:
             is_required=False
         ).from_config()
 
+        # получаем значение доступных методов для авторизации гостей
+        available_guest_methods = interactive.InteractiveValue(
+            "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
         # если указан mail в качестве доступного метода авторизации, то данные для smtp должны быть заполнены
         is_mail_smtp_required = False
-        if "mail" in available_methods:
+        if "mail" in available_methods or "mail" in available_guest_methods:
             is_mail_smtp_required = True
 
         try:
@@ -495,19 +524,27 @@ class SsoOidcConfig:
             is_required=False
         ).from_config()
 
+        # получаем значение доступных методов для авторизации гостей
+        available_guest_methods = interactive.InteractiveValue(
+            "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
         # получаем протокол sso
         sso_protocol = interactive.InteractiveValue(
             "sso.protocol", "Получаем доступные методы для авторизации", "str", config=config, is_required=False
         ).from_config()
 
         # проверяем, что указано корректное значение
-        if "sso" in available_methods and sso_protocol not in ["oidc", "ldap"]:
+        if ("sso" in available_methods and sso_protocol not in ["oidc", "ldap"]) or (
+                "sso" in available_guest_methods and sso_protocol not in ["oidc", "ldap"]):
             handle_exception("sso.protocol",
                              bcolors.WARNING + "Некорректное значение для параметра sso.protocol в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         # если указан sso в качестве доступного метода авторизации и протокол OIDC, то данные должны быть заполнены
         is_required = False
-        if "sso" in available_methods and sso_protocol == "oidc":
+        if ("sso" in available_methods and sso_protocol == "oidc") or (
+                "sso" in available_guest_methods and sso_protocol == "oidc"):
             is_required = True
 
         try:
@@ -646,9 +683,15 @@ class SsoCompassMappingConfig:
             is_required=False
         ).from_config()
 
+        # получаем значение доступных методов для авторизации гостей
+        available_guest_methods = interactive.InteractiveValue(
+            "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
         # если указан sso в качестве доступного метода авторизации, то некоторые данные должны быть заполнены
         is_required = False
-        if "sso" in available_methods:
+        if "sso" in available_methods or "sso" in available_guest_methods:
             is_required = True
 
         try:
@@ -788,6 +831,12 @@ class SsoLdapConfig:
             is_required=False
         ).from_config()
 
+        # получаем значение доступных методов для авторизации гостей
+        available_guest_methods = interactive.InteractiveValue(
+            "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+            is_required=False
+        ).from_config()
+
         # получаем протокол sso
         sso_protocol = interactive.InteractiveValue(
             "sso.protocol", "Получаем доступные методы для авторизации", "str", config=config, is_required=False
@@ -795,7 +844,8 @@ class SsoLdapConfig:
 
         # если указан sso в качестве доступного метода авторизации и протокол LDAP, то данные должны быть заполнены
         is_required = False
-        if "sso" in available_methods and sso_protocol == "ldap":
+        if ("sso" in available_methods and sso_protocol == "ldap") or (
+                "sso" in available_guest_methods and sso_protocol == "ldap"):
             is_required = True
 
         try:
@@ -824,7 +874,9 @@ class SsoLdapConfig:
 
         try:
             ldap_require_cert_strategy = interactive.InteractiveValue(
-                "ldap.require_cert_strategy", "Стратегия проверки сертификатов SSL/TLS при установлении безопасного соединения с LDAP-сервером", "string", config=config,
+                "ldap.require_cert_strategy",
+                "Стратегия проверки сертификатов SSL/TLS при установлении безопасного соединения с LDAP-сервером",
+                "string", config=config,
                 is_required=is_required
             ).from_config()
         except interactive.IncorrectValueException as e:
@@ -839,7 +891,8 @@ class SsoLdapConfig:
 
         # если ldap.use_ssl = false, то ожидается что ldap.require_cert_strategy будет never
         if ldap_use_ssl == False and ldap_require_cert_strategy != "never":
-            print(bcolors.WARNING + "В случае ldap.use_ssl: false, рекомендованное значение для параметра ldap.require_cert_strategy: \"never\"" + bcolors.ENDC)
+            print(
+                bcolors.WARNING + "В случае ldap.use_ssl: false, рекомендованное значение для параметра ldap.require_cert_strategy: \"never\"" + bcolors.ENDC)
 
         try:
             ldap_user_search_base = interactive.InteractiveValue(

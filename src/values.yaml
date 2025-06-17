@@ -20,6 +20,7 @@ is_call_analytics_enabled: false
 is_crm_web_enabled: false
 url_path: ""
 subdomain_enabled: 0
+is_need_index_web: false
 is_portable_calls_disabled: false
 
 # настройки mysql конфига для всех домино
@@ -105,7 +106,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.0.3"
+        tag: "v6.0.4"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -292,7 +293,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v6.0.0"
+          tag: "v6.0.4"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -349,7 +350,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.0.3"
+          tag: "v6.0.4"
         php_migration:
           tag: "v6.0.0"
         php_repairer:
@@ -510,7 +511,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v6.0.0"
+        tag: "v6.0.4"
         external_port: 43100
 
   integration:
@@ -538,7 +539,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.0.1"
+    tag: "v6.0.4"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -554,14 +555,16 @@ projects:
     service:
       web:
         https_port: 20109
+        wrap_tag: "v6.0.4"
       jvb:
         media_port: 10000
         media_advertise_ips: ""
-        wrap_tag: "v5.2.1"
+        wrap_tag: "v6.0.4"
       jicofo:
+        tag: "v6.0.4"
         port: 20111
       prosody:
-        tag: "v5.3.1"
+        tag: "v6.0.4"
         serve_port: 20112
       turn:
         host: ""
@@ -577,5 +580,5 @@ projects:
       subnet: "172.20.11.0/24"
     service:
       jitsi_web:
-        tag: "v5.3.1"
+        tag: "v6.0.4"
         external_port: 20113

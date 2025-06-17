@@ -68,7 +68,7 @@ services:
 
   # Frontend
   web-{{.projects.jitsi.label}}:
-    image: "{{.registry_service_path}}/web:web-1.0.8187-1"
+    image: "{{.registry_service_path}}/jitsi_web_wrap:{{.projects.jitsi.service.web.wrap_tag}}"
     ports:
       - '{{.projects.jitsi.service.web.https_port}}:443'
     env_file:
@@ -80,6 +80,8 @@ services:
         target: "/config/interface_config.js"
       - source: "web-nginx-meet-conf"
         target: "/config/nginx/meet.conf"
+      - source: "web-nginx-default-conf"
+        target: "/config/nginx/site-confs/default"
     volumes:
       - type: "volume"
         source: "jitsi-custom-web-{{.projects.jitsi.tag}}"
@@ -89,9 +91,31 @@ services:
       - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.crt:/config/keys/cert.crt"
     networks:
       - "monolith-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z jicofo-jitsi 8888 && curl -sf -o /dev/null http://xmpp.meet.jitsi:5280/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52800/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52801/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52802/http-bind || exit 1"
+      interval: "4s"
+      timeout: "8s"
+      retries: 2
     depends_on:
       - jvb-{{.projects.jitsi.label}}
       - jitsi-custom-{{.projects.jitsi.label}}
+      - jicofo-{{.projects.jitsi.label}}
+      - prosody-{{.projects.jitsi.label}}
+      - prosody-{{.projects.jitsi.label}}-v0
+      - prosody-{{.projects.jitsi.label}}-v1
+      - prosody-{{.projects.jitsi.label}}-v2
 
   # Video bridge
   jvb-{{.projects.jitsi.label}}:
@@ -105,6 +129,27 @@ services:
       - ".project.jitsi.common.env"
     depends_on:
       - prosody-{{.projects.jitsi.label}}
+      - prosody-{{.projects.jitsi.label}}-v0
+      - prosody-{{.projects.jitsi.label}}-v1
+      - prosody-{{.projects.jitsi.label}}-v2
+      - jicofo-{{.projects.jitsi.label}}
+    healthcheck:
+      test: "nc -z 127.0.0.1 8080"
+      interval: "15s"
+      timeout: "25s"
+      retries: 20
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
     networks:
       monolith-private:
 
@@ -129,8 +174,170 @@ services:
         target: "/config/conf.d/persistent-lobby.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
+      - ".project.jitsi.prosody_main.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}-v0
+      - prosody-{{.projects.jitsi.label}}-v1
+      - prosody-{{.projects.jitsi.label}}-v2
     volumes:
       - "{{.root_mount_path}}/nginx/ssl/:/tmp/ssl:ro"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 5269"
+      interval: "5s"
+      timeout: "25s"
+      retries: 20
+    networks:
+      monolith-private:
+        aliases:
+           - xmpp.meet.jitsi
+
+  # XMPP server
+  prosody-{{.projects.jitsi.label}}-v0:
+    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    expose:
+      - '52220'
+      - '52690'
+      - '53470'
+      - '52800'
+    ports:
+      - '35003:52800'
+    configs:
+      - source: "prosody-esync-plugin-cfg-v0"
+        target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
+    env_file:
+      - ".project.jitsi.common.env"
+      - ".project.jitsi.prosody_visitors.env"
+    environment:
+      PROSODY_HTTP_PORT: 52800
+      XMPP_PORT: 52220
+      PROSODY_S2S_PORT: 52690
+      PROSODY_VISITOR_INDEX: 0
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl/:/tmp/ssl:ro"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 52690"
+      interval: "5s"
+      timeout: "25s"
+      retries: 20
+    networks:
+      monolith-private:
+        aliases:
+           - xmpp.meet.jitsi
+
+  # XMPP server
+  prosody-{{.projects.jitsi.label}}-v1:
+    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    expose:
+      - '52221'
+      - '52691'
+      - '53471'
+      - '52801'
+    ports:
+      - '35004:52801'
+    configs:
+      - source: "prosody-esync-plugin-cfg-v1"
+        target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
+    env_file:
+      - ".project.jitsi.common.env"
+      - ".project.jitsi.prosody_visitors.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}-v0
+    environment:
+      PROSODY_HTTP_PORT: 52801
+      XMPP_PORT: 52221
+      PROSODY_S2S_PORT: 52691
+      PROSODY_VISITOR_INDEX: 1
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl/:/tmp/ssl:ro"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 52691"
+      interval: "5s"
+      timeout: "25s"
+      retries: 20
+    networks:
+      monolith-private:
+        aliases:
+           - xmpp.meet.jitsi
+
+  # XMPP server
+  prosody-{{.projects.jitsi.label}}-v2:
+    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    expose:
+      - '52222'
+      - '52692'
+      - '53472'
+      - '52802'
+    ports:
+      - '35005:52802'
+    configs:
+      - source: "prosody-esync-plugin-cfg-v2"
+        target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
+    env_file:
+      - ".project.jitsi.common.env"
+      - ".project.jitsi.prosody_visitors.env"
+    depends_on:
+      - prosody-{{.projects.jitsi.label}}-v0
+      - prosody-{{.projects.jitsi.label}}-v1
+    environment:
+      PROSODY_HTTP_PORT: 52802
+      XMPP_PORT: 52222
+      PROSODY_S2S_PORT: 52692
+      PROSODY_VISITOR_INDEX: 2
+    volumes:
+      - "{{.root_mount_path}}/nginx/ssl/:/tmp/ssl:ro"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 52692"
+      interval: "5s"
+      timeout: "25s"
+      retries: 20
     networks:
       monolith-private:
         aliases:
@@ -138,13 +345,33 @@ services:
 
   # Focus component
   jicofo-{{.projects.jitsi.label}}:
-    image: "{{.registry_service_path}}/jicofo:stable-9753"
+    image: "{{.registry_compass_path}}/jitsi_jicofo:{{.projects.jitsi.service.jicofo.tag}}"
     ports:
       - '{{.projects.jitsi.service.jicofo.port}}:8888'
     env_file:
       - ".project.jitsi.common.env"
     depends_on:
       - prosody-{{.projects.jitsi.label}}
+      - prosody-{{.projects.jitsi.label}}-v0
+      - prosody-{{.projects.jitsi.label}}-v1
+      - prosody-{{.projects.jitsi.label}}-v2
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "continue"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 8888 && nc -z -w5 prosody-jitsi 5222 && nc -z -w5 prosody-jitsi-v0 52220 && nc -z -w5 prosody-jitsi-v1 52221 && nc -z -w5 prosody-jitsi-v2 52222"
+      interval: "5s"
+      timeout: "15s"
+      retries: 3
     networks:
         monolith-private:
 

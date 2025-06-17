@@ -11,7 +11,7 @@ location /http-bind {
 
 location /api/room {
 
-	proxy_set_header Host "muc.meet.jitsi";
+	proxy_set_header Host "conference.meet.jitsi";
 	proxy_pass  http://$upstream_jitsi_prosody;
 }
 

@@ -50,7 +50,16 @@ location = /http-bind {
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header Host meet.jitsi;
 
-    proxy_pass http://xmpp.meet.jitsi:5280/http-bind?prefix=$prefix&$args;
+    proxy_pass http://$prosody_upstream/http-bind?prefix=$prefix&$args;
+}
+
+location ~ ^/conference-request/v1(\/.*)?$ {
+    proxy_pass http://jicofo-{{.projects.jitsi.label}}:8888/conference-request/v1$1;
+    add_header "Cache-Control" "no-cache, no-store";
+    add_header 'Access-Control-Allow-Origin' '*';
+}
+location ~ ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ {
+    rewrite ^/([^/?&:'"]+)/conference-request/v1(\/.*)?$ /conference-request/v1$2;
 }
 
 location ~ ^/([^/?&:'"]+)$ {
@@ -83,7 +92,6 @@ location ~ ^/([^/?&:'"]+)/http-bind {
 
     rewrite ^/(.*)$ /http-bind;
 }
-
 # Anything that didn't match above, and isn't a real file, assume it's a room name and redirect to /
 location ~ ^/([^/?&:'"]+)/(.*)$ {
     set $subdomain "$1.";

@@ -1,0 +1,2 @@
+PROSODY_MODE="client"
+XMPP_MUC_MODULES=token_moderation,rest_api,persistent_lobby,token_lobby_bypass

@@ -14,8 +14,9 @@ if (subdir.startsWith('<!--')) {
 if (subdomain) {
 	subdomain = subdomain.substring(0, subdomain.length - 1).split('.').join('_').toLowerCase() + '.';
 }
-config.hosts.muc = 'muc.' + subdomain + 'meet.jitsi';
+config.hosts.muc = 'conference.' + subdomain + 'meet.jitsi';
 config.bosh = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'http-bind';
+config.conferenceRequestUrl = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'conference-request/v1';
 
 // Video configuration.
 //

@@ -8,6 +8,7 @@ from pathlib import Path
 from utils import scriptutils
 import argparse
 
+
 # -------------------------------------------------------
 # константы
 # -------------------------------------------------------
@@ -158,19 +159,19 @@ help_message = (
 )
 
 generate_conf_message = (
-    bcolors.OKGREEN
-    + "Конфигурационный файл сгенерирован и находится по следующему пути: \r\n"
-    + conf_generated_values["path"]
-    + "\r\n"
-    + bcolors.ENDC
+        bcolors.OKGREEN
+        + "Конфигурационный файл сгенерирован и находится по следующему пути: \r\n"
+        + conf_generated_values["path"]
+        + "\r\n"
+        + bcolors.ENDC
 )
 
 exist_conf_message = (
-    bcolors.OKGREEN
-    + "Конфигурационный файл находится по следующему пути: \r\n"
-    + conf_generated_values["path"]
-    + "\r\n"
-    + bcolors.ENDC
+        bcolors.OKGREEN
+        + "Конфигурационный файл находится по следующему пути: \r\n"
+        + conf_generated_values["path"]
+        + "\r\n"
+        + bcolors.ENDC
 )
 
 main_template_start = (
@@ -212,18 +213,18 @@ def check_config_file():
 
     return True
 
-def handle_exception(field, message: str):
 
+def handle_exception(field, message: str):
     if validate_only:
         validation_errors.append(message)
         return
-    
+
     print(message)
     exit(1)
 
+
 # генерируем конфигурационный файл по шаблону
 def generate_template_config(conf_values: dict):
-
     # проверяем, что есть шаблон, по которому генерируем конфигурационный файл
     if not os.path.isfile(conf_values["template"]):
         print(
@@ -265,17 +266,21 @@ def generate_template_config(conf_values: dict):
 
 # получаем провайдеров для конфигурации
 def get_config_provider(conf_values: dict, main_template=""):
-
     available_methods = InteractiveValue(
         "available_methods", "Получаем доступные методы для авторизации", "arr", [], config=config, is_required=False
     ).from_config()
 
-    if available_methods == "[]":
+    available_guest_methods = InteractiveValue(
+        "available_guest_methods", "Получаем доступные методы для авторизации гостей", "arr", [], config=config,
+        is_required=False
+    ).from_config()
+
+    if available_methods == "[]" and available_guest_methods == "[]":
         return main_template
 
     # если указан номер телефона, то смс провайдер должен быть заполнен
     is_sms_provider_required = False
-    if "phone_number" in available_methods:
+    if "phone_number" in available_methods or "phone_number" in available_guest_methods:
         is_sms_provider_required = True
 
     uncompleted_provider_list = []
@@ -291,8 +296,8 @@ def get_config_provider(conf_values: dict, main_template=""):
         # для каждого значения присваиваем значение в конфигурации
         for key, conf_value in conf_values["values"].items():
             if (
-                conf_value["default_value"] is None
-                and conf_value.get("value_function") is not None
+                    conf_value["default_value"] is None
+                    and conf_value.get("value_function") is not None
             ):
                 conf_value["default_value"] = conf_value["value_function"](
                     current_provider
