@@ -4,3 +4,17 @@ API_PATH="{{.projects.pivot.url_path}}"
 ELECTRON_DEEPLINK_URL_SCHEME=getcompassonpremise://
 IOS_DEEPLINK_URL_SCHEME=getcompassonpremise://
 ANDROID_DEEPLINK_URL_SCHEME=getcompassonpremise://
+DESKTOP_DOWNLOAD_LINK_MAC_OS_INTEL=https://getcompass.ru/on-premise/app/macos-intel
+DESKTOP_DOWNLOAD_LINK_MAC_OS_ARM=https://getcompass.ru/on-premise/app/macos-silicon
+DESKTOP_DOWNLOAD_LINK_WINDOWS_10_EXE=https://getcompass.ru/on-premise/app/windows-10-exe
+DESKTOP_DOWNLOAD_LINK_WINDOWS_10_MSI=https://getcompass.ru/on-premise/app/windows-10-msi
+DESKTOP_DOWNLOAD_LINK_WINDOWS_7_EXE=https://getcompass.ru/on-premise/app/windows-7-exe
+DESKTOP_DOWNLOAD_LINK_WINDOWS_7_MSI=https://getcompass.ru/on-premise/app/windows-7-msi
+DESKTOP_DOWNLOAD_LINK_LINUX_DEB=https://getcompass.ru/on-premise/app/linux-deb
+DESKTOP_DOWNLOAD_LINK_LINUX_TAR=https://getcompass.ru/on-premise/app/linux-tar
+DESKTOP_DOWNLOAD_LINK_LINUX_RPM=https://getcompass.ru/on-premise/app/linux-rpm
+DESKTOP_DOWNLOAD_LINK_LINUX_ASTRA=https://getcompass.ru/on-premise/app/linux-astra
+MOBILE_DOWNLOAD_LINK_APP_STORE=https://apps.apple.com/ru/app/compass-on-premise/id6469516890
+MOBILE_DOWNLOAD_LINK_GOOGLE_PLAY=https://play.google.com/store/apps/details?id=com.getcompass.android.enterprise
+MOBILE_DOWNLOAD_LINK_APP_GALLERY=https://appgallery.huawei.com/app/C109414583
+DOWNLOAD_LINK_ANOTHER_PLATFORMS=https://getcompass.ru/on-premise/download
