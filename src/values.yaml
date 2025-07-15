@@ -564,7 +564,7 @@ projects:
         tag: "v6.0.4"
         port: 20111
       prosody:
-        tag: "v6.0.4"
+        tag: "v6.0.4-1"
         serve_port: 20112
       turn:
         host: ""
