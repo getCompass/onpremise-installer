@@ -8,4 +8,5 @@ TURN_ENABLE_TCP={{if contains .projects.jitsi.service.turn.use_protocols "tcp" }
 TURN_HOST="{{.projects.jitsi.service.turn.host}}"
 TURN_PORT={{.projects.jitsi.service.turn.port}}
 TURN_TLS_PORT={{.projects.jitsi.service.turn.tls_port}}
-GLOBAL_MODULES="bosh,secure_interfaces,websocket"
+GLOBAL_MODULES=""
+GC_INC_TH=105
