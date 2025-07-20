@@ -1136,42 +1136,42 @@
 	"extended_employeecard": {
 		"electron": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			}
 		},
 		"iphone": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0,1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0,1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			}
 		},
 		"android": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [0,1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [0,1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			}
 		},
 		"ipad": {
 			"compass": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			},
 			"comteam": {
-				"current_version": 1,
-				"supported_version_list": [1]
+				"current_version": 0,
+				"supported_version_list": [0]
 			}
 		}
 	},
