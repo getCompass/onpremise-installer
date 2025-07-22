@@ -12,6 +12,9 @@ secrets:
 ## Такая же ситуация с домино — работаем только с домино по умолчанию
 {{$domino := index .projects.domino .domino_id}}
 
+{{$service_label := ""}}{{if ne .service_label ""}}{{$service_label = printf "%s" .service_label}}{{end}}
+{{$node_label_role := ""}}{{if ne .service_label ""}}{{$node_label_role = .service_label}}{{end}}
+
 # --- EXTENSIONS ---
 # правила дефолтного деплоя для сервисов
 # если нужно что-то поменять, то только через override-файл
@@ -28,6 +31,11 @@ x-default-deploy: &default-deploy
     rollback_config:
       parallelism: 0
       order: "stop-first"
+    {{- if ne $node_label_role "" }}
+    placement:
+      constraints:
+        - node.labels.role == {{$node_label_role}}
+    {{- end}}
 
 # правила логирования для сервисов по умолчанию
 # дефолтно просто пишем лог и ограничиваем его размер
@@ -56,17 +64,27 @@ x-healthcheck-go-2000: &healthcheck-go-2000
     timeout: "25s"
     retries: 10
 
-{{$network := concatne  "-" .stack_name_prefix "monolith-private" }}
+{{$network := concatne  "-" .stack_name "private" }}
+{{$mysql_shared_network := "monolith-mysql-shared" }}
 # --- DEFINES ---
 # единая сеть монолита
 networks:
-  monolith-private:
+  monolith-{{$service_label}}-private:
     name: "{{$network}}"
     driver: "overlay"
     attachable: true
     ipam:
       config:
         - subnet: "{{.projects.monolith.network.subnet}}"
+  {{- if ne .service_label ""}}
+  monolith-mysql-shared:
+    name: "{{$mysql_shared_network}}"
+    driver: "overlay"
+    attachable: true
+    {{- if gt .mysql_server_id 1}}
+    external: true
+    {{- end}}
+  {{- end}}
 # логика файлов по умолчанию
 volumes:
   default-file-{{.projects.pivot.service.default_file.tag}}:
@@ -80,7 +98,7 @@ configs:
     name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
     file: ".global.nginx.conf"
   nginx-sites-enabled:
-    name: "{{.stack_name}}_nginx_nginx_sites_enabled-{{.config_revisions.project.nginx_sites_enabled.conf}}"
+    name: "{{.stack_name}}_nginx_sites_enabled-{{.config_revisions.project.nginx_sites_enabled.conf}}"
     file: ".project.nginx_sites_enabled.conf"
 
   # настройки пушера
@@ -150,13 +168,13 @@ configs:
     name: "{{.stack_name}}_federation_ldap-{{.config_revisions.project.federation.ldap.php}}"
     file: ".project.federation.ldap.php"
   pivot-restrictions:
-    name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.pivot.restrictions.php}}"
+    name: "{{.stack_name}}_pivot_restrictions-{{.config_revisions.project.pivot.restrictions.php}}"
     file: ".project.pivot.restrictions.php"
   pivot-jitsi-node:
     name: "{{.stack_name}}_jitsi_node-{{.config_revisions.project.pivot.jitsi_node.php}}"
     file: ".project.pivot.jitsi_node.php"
   company-restrictions:
-    name: "{{.stack_name}}_integration_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
+    name: "{{.stack_name}}_company_restrictions-{{.config_revisions.project.domino.company_restrictions.php}}"
     file: ".project.domino.company_restrictions.php"
   preview-parsing-conversation:
     name: "{{.stack_name}}_preview_parsing-{{.config_revisions.project.domino.preview_parsing.php}}"
@@ -251,27 +269,27 @@ configs:
     file: ".project.jitsi.prosody_main.cfg.lua"
 
   # конфиг плагина отправки событий с jitsi ноды на backend
-  prosody-esync-plugin-cfg:
-    name: "{{.stack_name}}_prosody-esync-plugin-{{.config_revisions.project.jitsi.prosody_esync_plugin.cfg.lua}}"
+  prosody-eplugin-cfg:
+    name: "{{.stack_name}}_eplugin-{{.config_revisions.project.jitsi.prosody_esync_plugin.cfg.lua}}"
     file: ".project.jitsi.prosody_esync_plugin.cfg.lua"
-  prosody-esync-plugin-cfg-v0:
-    name: "{{.stack_name}}_prosody-esync-plugin-v0-{{.config_revisions.project.jitsi.prosody_esync_plugin_v0.cfg.lua}}"
+  prosody-eplugin-cfg-v0:
+    name: "{{.stack_name}}_prosody-eplugin-v0-{{.config_revisions.project.jitsi.prosody_esync_plugin_v0.cfg.lua}}"
     file: ".project.jitsi.prosody_esync_plugin_v0.cfg.lua"
-  prosody-esync-plugin-cfg-v1:
-    name: "{{.stack_name}}_prosody-esync-plugin-v1-{{.config_revisions.project.jitsi.prosody_esync_plugin_v1.cfg.lua}}"
+  prosody-eplugin-cfg-v1:
+    name: "{{.stack_name}}_prosody-eplugin-v1-{{.config_revisions.project.jitsi.prosody_esync_plugin_v1.cfg.lua}}"
     file: ".project.jitsi.prosody_esync_plugin_v1.cfg.lua"
-  prosody-esync-plugin-cfg-v2:
-    name: "{{.stack_name}}_prosody-esync-plugin-v2-{{.config_revisions.project.jitsi.prosody_esync_plugin_v2.cfg.lua}}"
+  prosody-eplugin-cfg-v2:
+    name: "{{.stack_name}}_prosody-eplugin-v2-{{.config_revisions.project.jitsi.prosody_esync_plugin_v2.cfg.lua}}"
     file: ".project.jitsi.prosody_esync_plugin_v2.cfg.lua"
 
   # конфиг плагина rest api
   prosody-rest-api-plugin-cfg:
-    name: "{{.stack_name}}_prosody-rest-api-plugin-{{.config_revisions.project.jitsi.prosody_rest_api_plugin.cfg.lua}}"
+    name: "{{.stack_name}}_rest-api-plugin-{{.config_revisions.project.jitsi.prosody_rest_api_plugin.cfg.lua}}"
     file: ".project.jitsi.prosody_rest_api_plugin.cfg.lua"
 
   # конфиг плагина persistent lobby
   prosody-persistent-lobby-cfg:
-    name: "{{.stack_name}}_prosody-persistent-lobby-{{.config_revisions.project.jitsi.prosody_persistent_lobby.cfg.lua}}"
+    name: "{{.stack_name}}_persistent-lobby-{{.config_revisions.project.jitsi.prosody_persistent_lobby.cfg.lua}}"
     file: ".project.jitsi.prosody_persistent_lobby.cfg.lua"
 
   # config.js с web контейнера
@@ -280,22 +298,22 @@ configs:
     file: ".project.jitsi.web_config.js"
   # interface_config.js с web контейнера
   web-interface-config-js:
-    name: "{{.stack_name}}_web-interface-config-js-{{.config_revisions.project.jitsi.web_interface_config.js}}"
+    name: "{{.stack_name}}_interface-config-js-{{.config_revisions.project.jitsi.web_interface_config.js}}"
     file: ".project.jitsi.web_interface_config.js"
   # nginx конфиг для jitsi-meet
   web-nginx-meet-conf:
     name: "{{.stack_name}}_web-nginx-meet-conf-{{.config_revisions.project.jitsi.web_nginx_meet.conf}}"
     file: ".project.jitsi.web_nginx_meet.conf"
-  web-nginx-default-conf:
-    name: "{{.stack_name}}_web-nginx-default-conf-{{.config_revisions.project.jitsi.web_nginx_default.conf}}"
+  web-nginx-dflt-conf:
+    name: "{{.stack_name}}_web-nginx-dflt-conf-{{.config_revisions.project.jitsi.web_nginx_default.conf}}"
     file: ".project.jitsi.web_nginx_default.conf"
 
   # конфигурация nginx ВКС
   jitsi-web-nginx-sites:
-    name: "{{.stack_name}}_jitsi_web_nginx_sites-{{.config_revisions.project.jitsi_web.nginx_sites.conf}}"
+    name: "{{.stack_name}}_jitsi_nginx_sites-{{.config_revisions.project.jitsi_web.nginx_sites.conf}}"
     file: ".project.jitsi_web.nginx_sites.conf"
   jitsi-web-nginx-conf:
-    name: "{{.stack_name}}_jitsi_web_nginx_conf-{{.config_revisions.project.jitsi_web.nginx.conf}}"
+    name: "{{.stack_name}}_jitsi_nginx_conf-{{.config_revisions.project.jitsi_web.nginx.conf}}"
     file: ".project.jitsi_web.nginx.conf"
 
 # файл композиции монолита
@@ -309,7 +327,7 @@ services:
   nginx-{{.projects.monolith.label}}:
     image: "{{.registry_service_path}}/nginx:1.27.4"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "nginx-{{.projects.pivot.label}}"
           - "nginx-{{.projects.announcement.label}}"
@@ -323,6 +341,11 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 80"
       interval: "5s"
@@ -349,7 +372,7 @@ services:
         target: "/etc/nginx/includes/jitsi.nginx"
     volumes:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
-      - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+      - "{{get_trusted_cert_path_by_os}}/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/home/files/"
     <<: *log-rule-default
@@ -358,7 +381,7 @@ services:
   rabbit-{{.projects.monolith.label}}:
     image: "{{.registry_service_path}}/rabbitmq:4.0.3-1"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "rabbit-{{.projects.pivot.label}}"
           - "rabbit-{{.projects.announcement.label}}"
@@ -373,13 +396,18 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     <<: *log-rule-default
 
   # MEMCACHE
   memcached-{{.projects.monolith.label}}:
     image: "{{.registry_service_path}}/memcached:3.21"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "memcached-{{.projects.pivot.label}}"
           - "memcached-{{.projects.announcement.label}}"
@@ -394,6 +422,11 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 11211"
       interval: "5s"
@@ -403,10 +436,11 @@ services:
 
   {{- if eq .database_connection.driver "docker"}}
   # MYSQL
+  {{$mysql_cert_prefix := "master"}}{{if gt .mysql_server_id 1}}{{$mysql_cert_prefix = "replica"}}{{end}}
   mysql-{{.projects.monolith.label}}:
     image: "{{.registry_service_path}}/mysql:8.0.28"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "mysql-{{.projects.pivot.label}}"
           - "mysql-{{.projects.announcement.label}}"
@@ -414,12 +448,50 @@ services:
           - "mysql-{{.projects.userbot.label}}"
           - "mysql-{{$file_node.label}}"
           - "mysql-{{$domino.label}}"
+      {{- if gt .mysql_server_id 0}}
+      monolith-mysql-shared:
+        aliases:
+          - "mysql-{{.projects.pivot.label}}"
+          - "mysql-{{.projects.announcement.label}}"
+          - "mysql-{{.projects.federation.label}}"
+          - "mysql-{{.projects.userbot.label}}"
+          - "mysql-{{$file_node.label}}"
+          - "mysql-{{$domino.label}}"
+      {{- end}}
     environment:
       MYSQL_ROOT_PASSWORD: "{{.projects.pivot.service.mysql.root_password}}"
+    {{- if gt .mysql_server_id 0}}
+    command: >
+      mysqld
+        --log_bin=/var/lib/mysql/log-bin.log
+        --server-id={{.mysql_server_id}}
+        --replicate-ignore-table=pivot_company_service.port_registry_{{$domino.label}}
+        --replicate-ignore-table=pivot_company_service.domino_registry
+        --replicate-ignore-table=domino_service.port_registry
+        --replicate-ignore-table=mysql.user
+        --replicate-ignore-table=mysql.db
+        --replicate-ignore-table=mysql.tables_priv
+        --gtid-mode=ON
+        --enforce-gtid-consistency=ON
+        --slave_skip_errors=1007,1032,1050,1054,1060,1061,1062,1091,1396
+        --max_binlog_cache_size=10485760
+        --ssl=ON
+        --ssl-ca="/etc/mysql/ssl/mysqlRootCA.crt"
+        --ssl-cert="/etc/mysql/ssl/mysql-{{$mysql_cert_prefix}}-cert.pem"
+        --ssl-key="/etc/mysql/ssl/mysql-{{$mysql_cert_prefix}}-key.pem"
+        --tls-version="TLSv1.2,TLSv1.3"
+    volumes:
+      - "{{.root_mount_path}}/mysql_ssl:/etc/mysql/ssl"
+    {{- end}}
     deploy:
       restart_policy:
         condition: "any"
         window: "10s"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     healthcheck:
       test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.pivot.service.mysql.root_password}}"
       interval: "5s"
@@ -454,12 +526,12 @@ services:
       - ".project.monolith.env"
       - ".project.override.env"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "go-event-{{$domino.label}}"
           - "go-event-{{.projects.pivot.label}}"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -482,7 +554,7 @@ services:
       - ".project.monolith.env"
       - ".project.override.env"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "go-sender-balancer-{{.projects.pivot.label}}"
           - "go-sender-balancer-{{.projects.announcement.label}}"
@@ -491,7 +563,7 @@ services:
       - *log-rule-default
       - *healthcheck-go-2000
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_SENDER
   go-sender-{{.projects.monolith.label}}:
@@ -515,7 +587,7 @@ services:
       - ".project.monolith.env"
       - ".project.override.env"
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "go-sender-{{.projects.announcement.label}}"
           - "go-sender-{{.projects.pivot.label}}"
@@ -525,17 +597,17 @@ services:
       - *log-rule-default
       - *healthcheck-go-2000
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
 
   ## WEBJOIN PROJECT
-  join_web:
+  join_web-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/onpremise_join_web:{{.projects.join_web.service.join_web.tag}}"
     env_file:
       - ".project.join_web.common.env"
       - ".project.join_web.join_web.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     healthcheck:
       test: "nc -z 127.0.0.1 80"
       interval: "10s"
@@ -558,6 +630,11 @@ services:
      replicas: 1
      restart_policy:
        condition: "none"
+     {{- if ne $node_label_role "" }}
+     placement:
+       constraints:
+         - node.labels.role == {{$node_label_role}}
+     {{- end}}
 
   # GO_PIVOT_CACHE
   go-pivot-cache-{{.projects.pivot.label}}:
@@ -578,7 +655,7 @@ services:
       - ".project.pivot.go_pivot_cache.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
@@ -588,7 +665,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_ACTIVITY
   go-activity-{{.projects.pivot.label}}:
@@ -609,7 +686,7 @@ services:
       - ".project.pivot.go_activity.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000"
       interval: "5s"
@@ -619,7 +696,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_PUSHER
   go-pusher-{{.projects.pivot.label}}:
@@ -642,7 +719,7 @@ services:
       - ".project.pivot.go_pusher.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     configs:
       - source: "go-pusher-firebase-compass-key"
         target: "/app/private/firebase_compass_key.json"
@@ -657,7 +734,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_USERBOT_CACHE
   go-userbot-cache-{{.projects.userbot.label}}:
@@ -676,13 +753,13 @@ services:
       - ".project.userbot.common.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     <<:
       - *default-deploy
       - *healthcheck-go-2000
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   ## FILE-NODE PROJECT
   # FILE_NODE
@@ -698,15 +775,16 @@ services:
       - ".project.file.php_file_node.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     <<:
       - *default-deploy
       - *log-rule-default
       - *healthcheck-php-9000
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/app/www/files"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   ## DOMINO 1
   # MANTICORE
@@ -727,6 +805,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     volumes:
       - "{{$domino.manticore_path}}:/var/lib/manticore/"
     ports:
@@ -742,6 +825,12 @@ services:
       memlock:
         soft: -1
         hard: -1
+    {{- if gt .mysql_server_id 0}}
+    networks:
+      monolith-mysql-shared:
+        aliases:
+          - "manticore-{{.mysql_server_id}}"
+    {{- end}}
     <<:
       - *default-deploy
       - *log-rule-default
@@ -785,7 +874,7 @@ services:
       GO_EVENT_GLOBAL_EVENT_QUEUE: {{.projects.monolith.service.go_event.rabbit_queue}}
       GO_EVENT_SERVICE_EVENT_EXCHANGE: {{.projects.monolith.service.go_event.rabbit_service_exchange}}
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
           - "php-pivot-{{.projects.pivot.label}}"
           - "php-file-balancer-{{.projects.pivot.label}}"
@@ -799,7 +888,7 @@ services:
           - "php-userbot-{{.projects.userbot.label}}"
           - "php-jitsi-{{.projects.pivot.label}}"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.company_config_mount_path}}:/pivot_config"
       - "{{$domino.company_config_dir}}/:/config"
       - type: "volume"
@@ -891,7 +980,7 @@ services:
       GO_DATABASE_CONTROLLER_HOST: "{{$domino.mysql_host}}"
       GO_DATABASE_CONTROLLER_PORT: "{{$domino.go_database_controller_port}}"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     deploy:
       replicas: 1
       restart_policy:
@@ -904,13 +993,18 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     logging:
       driver: "json-file"
       options:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -938,9 +1032,9 @@ services:
       - ".project.domino.go_company_cache.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -962,10 +1056,10 @@ services:
       - ".project.domino.common.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     volumes:
       - "{{$domino.company_config_dir}}/:/config"
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -988,9 +1082,9 @@ services:
       - ".project.domino.common.env"
       - ".project.override.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -1022,6 +1116,10 @@ services:
       BACKUP_SSH_KEY_FILE_PATH: {{$domino.service}}
       DOMINO_MYSQL_INNODB_FLUSH_METHOD: {{.domino_mysql_innodb_flush_method}}
       DOMINO_MYSQL_INNODB_FLUSH_LOG_AT_TIMEOUT: {{.domino_mysql_innodb_flush_log_at_timeout}}
+      SERVICE_LABEL: {{$service_label}}
+      MYSQL_SERVER_ID: {{.mysql_server_id}}
+      MONOLITH_MYSQL_NETWORK: {{$mysql_shared_network}}
+      MANTICORE_CLUSTER_NAME: {{.manticore_cluster_name}}
     env_file:
       - ".global.common.env"
       - ".project.domino.common.env"
@@ -1031,11 +1129,12 @@ services:
     ports:
       - "{{$domino.go_database_controller_port}}:{{$domino.go_database_controller_port}}"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
+      - "{{.root_mount_path}}/mysql_ssl:/etc/mysql/ssl"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1059,7 +1158,7 @@ services:
       - ".project.file.common.env"
       - ".project.file.go_file_auth.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     environment:
       TCP_PORT: 1000
       GRPC_PORT: 2000
@@ -1075,6 +1174,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 1000"
       interval: "5s"

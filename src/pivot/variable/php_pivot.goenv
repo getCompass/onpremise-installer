@@ -79,3 +79,8 @@ PUBLIC_ENTRYPOINT_ELECTRON_UPDATE_CDN=https://update.getcompass.ru/electron/onpr
 
 LAST_CLIENT_FORCE_RELOAD_AT=1746702611
 IS_PORTABLE_CALLS_DISABLED={{.is_portable_calls_disabled}}
+
+SERVICE_LABEL={{.service_label}}
+HOST_IP={{.host_ip}}
+COMPANIES_RELATIONSHIP_FILE=reserve_servers_companies_relationship.json
+MANTICORE_CLUSTER_NAME={{.manticore_cluster_name}}

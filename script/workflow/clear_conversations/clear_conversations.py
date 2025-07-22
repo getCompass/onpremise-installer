@@ -2,17 +2,69 @@ import json
 import subprocess
 import os
 import sys
+import argparse, yaml
+from pathlib import Path
 
 # получаем путь до файла conversation_key_list.json
 script_dir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 json_file_path = os.path.join(script_dir, "conversation_key_list.json")
 
-# искомый контейнер
-partial_name = "production-compass-monolith_php-monolith"
+# ---АГРУМЕНТЫ СКРИПТА---#
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str, help='Окружение, в котором развернут проект')
+
+args = parser.parse_args()
+
+values_name = args.values
+environment = args.environment
+
+# путь до директории с инсталятором
+installer_dir = str(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+
+default_values_file_path = Path("%s/src/values.yaml" % (installer_dir))
+values_file_path = Path("%s/src/values.%s.yaml" % (installer_dir, values_name))
 
 # задача для запуска скрипта кроном
 script_path = os.path.abspath(sys.modules[__name__].__file__)
 cron_job_command = f"python3 {script_path} auto"
+
+# получить данные окружения из values
+def get_values() -> dict:
+
+    print(values_file_path)
+    if not values_file_path.exists():
+        print("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
+        exit(1)
+
+    with values_file_path.open("r") as values_file:
+        current_values = yaml.safe_load(values_file)
+        current_values = {} if current_values is None else current_values
+
+    with default_values_file_path.open("r") as values_file:
+        default_values = yaml.safe_load(values_file)
+        default_values = {} if default_values is None else default_values
+
+    current_values = merge(default_values, current_values)
+
+    if current_values.get("projects") is None or current_values["projects"].get("domino") is None:
+        print("Файл со значениями невалиден. Окружение было ранее развернуто?")
+        exit(1)
+
+    return current_values
+
+def merge(a: dict, b: dict, path=[]):
+
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] != b[key]:
+                a[key] = b[key]
+        else:
+            a[key] = b[key]
+    return a
 
 # получаем контейнер монолита
 def find_container_by_name(partial_name):
@@ -255,6 +307,16 @@ def schedule_or_run_php_script(container_name, command):
 
 # выполняем скрипт
 if __name__ == "__main__":
+
+    current_values = get_values()
+
+    # собираем имя искомого контейнера
+    partial_name = "%s-%s-monolith" % (environment, values_name)
+    service_label = current_values.get("service_label") if current_values.get("service_label") else ""
+    if service_label != "":
+        partial_name = partial_name + "-" + service_label
+    partial_name = partial_name + "_php-monolith"
+
     # получаем ключи из json
     keys = load_keys_from_json(json_file_path)
 

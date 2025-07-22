@@ -6,13 +6,13 @@ import mysql.connector.errorcode
 
 sys.dont_write_bytecode = True
 
-import subprocess, yaml, os, shutil
+import subprocess, yaml, os, shutil, argparse
 
 from utils import scriptutils
 from pathlib import Path
 from loader import Loader
 from time import sleep
-import docker
+import docker, json
 import mysql.connector
 
 scriptutils.assert_root()
@@ -44,12 +44,52 @@ config.update(config_values)
 script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="Окружение, в котором разворачиваем")
+# ВНИМАНИЕ - в data передается json
+parser.add_argument(
+    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+)
+args = parser.parse_args()
+override_data = args.data if args.data else {}
+if not override_data:
+    override_data = {}
+product_type = override_data.get("product_type", "") if override_data else ""
+
+environment = args.environment
+
 # пишем константы
 values_name = "compass"
-environment = "production"
 stack_name_prefix = environment + "-" + values_name
+stack_name_monolith = stack_name_prefix + "-monolith"
+
+if Path("src/values." + environment + "." + values_name + ".yaml").exists():
+    specified_values_file_name = str(
+        Path("src/values." + environment + "." + values_name + ".yaml").resolve()
+    )
+elif (
+        product_type
+        and Path("src/values." + values_name + "." + product_type + ".yaml").exists()
+):
+    specified_values_file_name = str(
+        Path("src/values." + values_name + "." + product_type + ".yaml").resolve()
+    )
+elif (Path("src/values." + values_name + ".yaml").exists()):
+    specified_values_file_name = str(Path("src/values." + values_name + ".yaml").resolve())
+else:
+    specified_values_file_name = str(Path("src/values.yaml").resolve())
+
+with open(specified_values_file_name, "r") as values_file:
+    values_dict = yaml.safe_load(values_file)
 
 scriptutils.assert_root()
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+stack_name_company = stack_name_prefix
+service_label = values_dict.get("service_label") if values_dict.get("service_label") else ""
+if service_label != "":
+    stack_name_monolith = stack_name_monolith + "-" + service_label
+    stack_name_company = stack_name_prefix + "-" + service_label
 
 try:
     if input("Удаляем приложение Compass, продолжить? [y/N]\n").lower() != "y":
@@ -58,18 +98,41 @@ except UnicodeDecodeError as e:
     print("Не смогли декодировать ответ. Error: ", e)
     exit(0)
 
-# удаляем стаки докера
+# удаляем стаки компаний
 get_stack_command = ["docker", "stack", "ls"]
-grep_command = ["grep", stack_name_prefix]
+grep_command = ["grep", stack_name_company]
+grep_company_command = ["grep", r"\-company"]
 delete_command = ["xargs", "docker", "stack", "rm"]
 
-# Удаляем стаки
+# сначала удаляем компанейские стаки
 get_stack_process = subprocess.Popen(get_stack_command, stdout=subprocess.PIPE)
 grep_process = subprocess.Popen(
     grep_command, stdin=get_stack_process.stdout, stdout=subprocess.PIPE
 )
+grep_company_process = subprocess.Popen(
+    grep_company_command, stdin=grep_process.stdout, stdout=subprocess.PIPE
+)
 delete_process = subprocess.Popen(
-    delete_command, stdin=grep_process.stdout, stdout=subprocess.PIPE
+    delete_command, stdin=grep_company_process.stdout, stdout=subprocess.PIPE
+)
+output, _ = delete_process.communicate()
+
+# удаляем остальные стаки
+get_stack_command = ["docker", "stack", "ls"]
+grep_command = ["grep", stack_name_monolith]
+grep_monolith_command = ["grep", "-v", r"\-company"]
+delete_command = ["xargs", "docker", "stack", "rm"]
+
+# сначала удаляем компанейские стаки
+get_stack_process = subprocess.Popen(get_stack_command, stdout=subprocess.PIPE)
+grep_process = subprocess.Popen(
+    grep_command, stdin=get_stack_process.stdout, stdout=subprocess.PIPE
+)
+grep_monolith_process = subprocess.Popen(
+    grep_monolith_command, stdin=grep_process.stdout, stdout=subprocess.PIPE
+)
+delete_process = subprocess.Popen(
+    delete_command, stdin=grep_monolith_process.stdout, stdout=subprocess.PIPE
 )
 output, _ = delete_process.communicate()
 
@@ -90,10 +153,10 @@ def drop_all_databases(host: str, port: str, user: str, password: str, need_drop
     ]
 
     mydb = mysql.connector.connect(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
+        host=host,
+        port=port,
+        user=user,
+        password=password,
     )
 
     drop_users = "DROP USER 'user'@'%';DROP USER 'backup_user'@'127.0.0.1';FLUSH PRIVILEGES;"
@@ -119,9 +182,9 @@ def drop_all_databases(host: str, port: str, user: str, password: str, need_drop
         my_cursor.execute('%s' % (drop_users))
     mydb.close()
 
+
 # чистим базы
 def clear_mysql_instances(database_config: dict):
-
     if database_config["database_connection"]["driver"] != "host":
         return
 
@@ -150,13 +213,14 @@ def clear_mysql_instances(database_config: dict):
 
     loader.success()
 
+
 client = docker.from_env()
 
 # ждем, пока все контейнеры удалятся
 timeout = 600
 n = 0
 while n <= timeout:
-    docker_container_list = client.containers.list(filters={"name": stack_name_prefix}, sparse=True, ignore_removed=True)
+    docker_container_list = client.containers.list(filters={"name": stack_name_monolith}, sparse=True, ignore_removed=True)
 
     if len(docker_container_list) < 1:
         break
@@ -169,7 +233,7 @@ while n <= timeout:
 timeout = 120
 n = 0
 while n <= timeout:
-    docker_network_list = client.networks.list(filters={"name": stack_name_prefix})
+    docker_network_list = client.networks.list(filters={"name": stack_name_monolith})
 
     if len(docker_network_list) < 1:
         break
@@ -178,10 +242,20 @@ while n <= timeout:
     if n == timeout:
         scriptutils.die("Приложение не было удалено")
 
+# удаляем network mysql-shared
+shared_network_list = client.networks.list(filters={"name": "monolith-mysql-shared"})
+for network in shared_network_list:
+    try:
+        network.remove()
+    except docker.errors.NotFound:
+        continue
+    except docker.errors.APIError as e:
+        continue
+
 sleep(10)
 
 # удаляем volumes jitsi
-jitsi_volume_list = client.volumes.list(filters={"name": "production-compass-monolith_jitsi-custom-"})
+jitsi_volume_list = client.volumes.list(filters={"name": "%s_jitsi-custom-" % stack_name_monolith})
 for volume in jitsi_volume_list:
     try:
         volume.remove()
@@ -209,11 +283,11 @@ if not root_mount_path.exists():
 
 try:
     if (
-        input(
-            "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
-            % str(root_mount_path.resolve())
-        ).lower()
-        != "y"
+            input(
+                "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
+                % str(root_mount_path.resolve())
+            ).lower()
+            != "y"
     ):
         scriptutils.die("Удаление данных было отменено")
 except UnicodeDecodeError as e:
@@ -233,19 +307,19 @@ for item in root_mount_path.glob("*"):
 
 # спрашиваем, удалять ли базы
 try:
-    
+
     database_config_file_path = Path("%s/../configs/database.yaml" % (script_dir))
 
     if database_config_file_path.exists():
-        
+
         with database_config_file_path.open() as database_config_file:
             database_config = yaml.load(database_config_file, Loader=yaml.BaseLoader)
 
-        if ( database_config["database_connection"]["driver"] == "host" and
-            input(
-                "Очищаем инстансы mysql, которые использовались для приложения, продолжить? [y/N]\n"
+        if (database_config["database_connection"]["driver"] == "host" and
+                input(
+                    "Очищаем инстансы mysql, которые использовались для приложения, продолжить? [y/N]\n"
                 ).lower()
-            == "y"
+                == "y"
         ):
             clear_mysql_instances(database_config)
 except UnicodeDecodeError as e:
@@ -257,3 +331,8 @@ values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
 
 if values_file_path.exists():
     values_file_path.unlink()
+
+# проверяем также файл для service_label, если имеется
+service_label_file_path = Path("%s/../.service_label" % script_dir)
+if service_label_file_path.exists():
+    service_label_file_path.unlink()

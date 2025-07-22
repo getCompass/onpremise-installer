@@ -209,6 +209,7 @@ script_path = Path(__file__).parent
 script_dir = str(script_path.resolve())
 root_path = str(Path(script_dir + "/../").resolve())
 tmp_path = str(Path(root_path + "/tmp/").resolve())
+service_label_path = Path(script_dir + "/../.service_label")
 
 # создаем папку для временных файлов и очищаем старые файлы оттуда
 tmp_path_obj = Path(tmp_path)
@@ -240,10 +241,6 @@ atexit.register(cleanup)
 for sig in catchable_sigs:
     signal.signal(signal.SIGINT, cleanup)
 
-
-if not stack_name_prefix:
-    stack_name_prefix = environment + "-" + values
-
 values_file_name = str(Path("src/values.yaml").resolve())
 product_type = override_data.get("product_type", "") if override_data else ""
 
@@ -261,6 +258,9 @@ elif (
 else:
     specified_values_file_name = str(Path("src/values." + values + ".yaml").resolve())
 
+with open(specified_values_file_name, "r") as values_file:
+    values_dict = yaml.safe_load(values_file)
+
 if environment not in ["local", "tes"] and project != "search" and project != "integration":
     # инициализируем конфиг
     exec_cmd = [script_dir + "/init.py", "-e", environment, "-v", values, "-p", project]
@@ -277,8 +277,9 @@ if environment not in ["local", "tes"] and project != "search" and project != "i
         print(scriptutils.error("Ошибка при сверке конфигурации приложения"))
         exit(1)
 
-with open(specified_values_file_name, "r") as values_file:
-    values_dict = yaml.safe_load(values_file)
+
+if not stack_name_prefix:
+    stack_name_prefix = environment + "-" + values
 
 root_mount_path = values_dict["root_mount_path"]
 
@@ -302,12 +303,15 @@ if environment not in ["local", "tes"] and project != "search":
     ssl_path.mkdir(exist_ok=True, parents=True)
     shutil.copytree(cert_path.resolve(), ssl_path.resolve(), dirs_exist_ok=True)
 
+service_label = values_dict.get("service_label")
 if project_name_override:
     stack_name = stack_name_prefix + "-" + project_name_override
     label = project_name_override
 elif values_dict["projects"].get(project, {}).get("label", {}) != {}:
     stack_name = stack_name_prefix + "-" + values_dict["projects"][project]["label"]
     label = values_dict["projects"][project]["label"]
+    if service_label is not None and service_label != "":
+        stack_name = stack_name + "-" + service_label
 else:
     first_key = list(values_dict["projects"][project])[0]
     stack_name = (
@@ -553,3 +557,8 @@ if (args.project == "domino") and (environment not in ["local", "tes"]):
         ]
     )
     p.wait()
+
+# записываем актуальный service_label в файл
+f = open(service_label_path, "w")
+f.write(service_label)
+f.close()

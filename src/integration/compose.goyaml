@@ -103,7 +103,7 @@ services:
         target: "/etc/nginx/includes/integration.nginx"
     volumes:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
-      - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<: *log-rule-default
 
   # PHP_INTEGRATION
@@ -119,7 +119,7 @@ services:
     networks:
       monolith-private:
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<:
       - *default-deploy
       - *log-rule-default

@@ -28,6 +28,25 @@ values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
 stack_name_prefix = environment + '-' + values_arg
 
+stack_name = stack_name_prefix + "-monolith"
+
+if Path("src/values." + environment + "." + values_arg + ".yaml").exists():
+    values_file_path = str(
+        Path("src/values." + environment + "." + values_arg + ".yaml").resolve()
+    )
+elif (Path("src/values." + values_arg + ".yaml").exists()):
+    values_file_path = str(Path("src/values." + values_arg + ".yaml").resolve())
+else:
+    values_file_path = str(Path("src/values.yaml").resolve())
+
+with open(values_file_path, "r") as values_file:
+    current_values = yaml.safe_load(values_file)
+    current_values = {} if current_values is None else current_values
+
+service_label = current_values.get("service_label") if current_values.get("service_label") else ""
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
+
 # проверка нужных системных пользователей
 for user in ('www-data',):
     try:
@@ -47,7 +66,7 @@ found_monolith = None
 while elapsed < timeout:
     containers = client.containers.list(
         filters={
-            'name': f'{stack_name_prefix}-monolith_php-monolith',
+            'name': f'{stack_name}_php-monolith',
             'health': 'healthy'
         }
     )

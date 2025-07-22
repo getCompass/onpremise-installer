@@ -138,7 +138,7 @@ services:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
 networks:
   federation-private:

@@ -15,3 +15,6 @@ SOCKET_KEY_GO_COLLECTOR_AGENT={{.security_keys.analytic.socket_key_go_collector_
 SOCKET_KEY_INTERCOM={{.security_keys.intercom.socket_key_intercom}}
 INTERCOM_PROXY=""
 IS_NEED_LOG_POST_UPLOAD_DOCUMENTS=false
+
+SERVICE_LABEL={{.service_label}}
+COMPANIES_RELATIONSHIP_FILE=reserve_servers_companies_relationship.json

@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')
 parser.add_argument('-e', '--environment', required=False, type=str, help='Окружение, в котором развернут проект')
+parser.add_argument('--service_label', required=False, default="", type=str, help='Метка сервиса, к которому закреплён стак')
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -31,7 +32,12 @@ scriptutils.assert_root()
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
+service_label = args.service_label if args.service_label else ''
 stack_name_prefix = environment + '-' + values_arg
+stack_name = stack_name_prefix + "-monolith"
+
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
 
 # необходимые пользователи для окржуения
 required_user_list = ['www-data']
@@ -51,7 +57,7 @@ timeout = 30
 n = 0
 while n <= timeout:
 
-    docker_container_list = client.containers.list(filters={'name': '%s-monolith_php-monolith' % (stack_name_prefix), 'health': 'healthy'})
+    docker_container_list = client.containers.list(filters={'name': '%s_php-monolith' % (stack_name), 'health': 'healthy'})
 
     if len(docker_container_list) > 0:
         found_php_monolith_container = docker_container_list[0]
@@ -73,14 +79,11 @@ exec_script_list = [
     'php src/Compass/Pivot/sh/php/update/replace_preview_for_welcome_video.php',
 ]
 
-
-
 for script in exec_script_list:
 
     output = found_php_monolith_container.exec_run(user='www-data', cmd=['bash', '-c', script])
 
     if output.exit_code != 0:
-
         print(output.output.decode("utf-8"))
         scriptutils.error('Что-то пошло не так. Выполнение одного из скриптов завершилось неудачей')
         exit(1)
