@@ -119,3 +119,14 @@ for item in config_files:
     new_config_file = open(str(config_path) + "/" + new_config_file_name, "w")
     new_config_file.write(new_config_text)
     new_config_file.close()
+
+    # миграции с 1.6.1
+    if new_config.get("captcha.enabled") is None:
+        # папка, где находятся конфиги
+        config_path = Path(script_dir + "/../../configs/captcha.yaml")
+
+        # папка, где находятся шаблоны конфигов
+        config_tpl_path = Path(script_dir + "/../../yaml_template/configs/captcha.tpl.yaml")
+
+        # копируем конфиг
+        shutil.copy2(str(config_tpl_path.resolve()), str(config_path.resolve()))

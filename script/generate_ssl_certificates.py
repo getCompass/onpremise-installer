@@ -32,7 +32,8 @@ config_path = Path(str(script_path) + "/../configs/global.yaml")
 config = {}
 
 if not config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(config_path.resolve())) +  "Запустите скрипт create_configs.py и заполните конфигурацию")
+    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(
+        config_path.resolve())) + "Запустите скрипт create_configs.py и заполните конфигурацию")
     exit(1)
 
 with config_path.open("r") as config_file:
@@ -94,10 +95,12 @@ if values_file_path.exists():
 if current_values.get("host_ip") is not None:
     host = current_values["host_ip"]
 
-def start():
 
+def start():
     if config.get("host_ip") is None:
-        print(scriptutils.error("Отсутствует значение у поля host_ip в конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
+        print(scriptutils.error(
+            "Отсутствует значение у поля host_ip в конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
+                config_path.resolve())))
         exit(1)
 
     if validate_only:
@@ -111,6 +114,7 @@ def start():
         ca_pubkey_path, ca_privkey_path = create_root_certificate()
 
     create_host_certificate(config.get("host_ip"), ca_pubkey_path, ca_privkey_path)
+
 
 def get_root_certificate_path() -> Tuple[Path, Path]:
     CN = "compassRootCA"
@@ -182,11 +186,20 @@ def create_root_certificate() -> Tuple[Path, Path]:
         "Сгенерирован корневой сертификат для проекта. Он должен быть добавлен в доверенные сертификаты серверов, где развернуто приложение"
     )
     try:
-        shutil.copy2(pubkey_path, "/usr/local/share/ca-certificates/%s" % pubkey)
-        subprocess.run(["update-ca-certificates"])
+        if scriptutils.is_rpm_os():
+            shutil.copy2(pubkey_path, "/etc/pki/ca-trust/source/anchors/%s" % pubkey)
+            subprocess.run(["update-ca-trust"])
+        else:
+            shutil.copy2(pubkey_path, "/usr/local/share/ca-certificates/%s" % pubkey)
+            subprocess.run(["update-ca-certificates"])
 
     except:
-        print(scriptutils.error("Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Ubuntu"))
+        if scriptutils.is_rpm_os():
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на RPM"))
+        else:
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Debian"))
 
     print(
         "Корневой сертификат сохранен по следующему пути: "
@@ -200,12 +213,12 @@ def create_root_certificate() -> Tuple[Path, Path]:
 
 
 def generate_host_certificates(host: str, ca_pubkey_path: Path, ca_privkey_path: Path):
-
     while True:
 
         value = interactive.InteractiveValue("host",
-            "Введите ip хоста, для которого генерируем сертификат: ", "str", host, "ip",
-        ).input()
+                                             "Введите ip хоста, для которого генерируем сертификат: ", "str", host,
+                                             "ip",
+                                             ).input()
         value = value.strip()
 
         create_host_certificate(value, ca_pubkey_path, ca_privkey_path)
@@ -225,8 +238,8 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     if pubkey_path.exists() and privkey_path.exists() and not force:
         return pubkey_path, privkey_path
 
-    ca_cert = x509.load_pem_x509_certificate(ca_pubkey_path.open(mode="rb").read(),backend=default_backend())
-    ca_key = load_pem_private_key(ca_privkey_path.open(mode="rb").read(), password=None,backend=default_backend())
+    ca_cert = x509.load_pem_x509_certificate(ca_pubkey_path.open(mode="rb").read(), backend=default_backend())
+    ca_key = load_pem_private_key(ca_privkey_path.open(mode="rb").read(), password=None, backend=default_backend())
 
     loader = Loader(
         "Генерируем сертификат и ключ для хоста %s" % host,
@@ -238,7 +251,6 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, host)])
     basic_contraints = x509.BasicConstraints(ca=False, path_length=None)
 
-
     key_usage = x509.KeyUsage(
         key_encipherment=True,
         digital_signature=True,
@@ -249,7 +261,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
         decipher_only=False,
         key_cert_sign=False,
         crl_sign=False
-        )
+    )
 
     now = datetime.now(timezone.utc)
     alt_names_list = [x509.IPAddress(ipaddress.ip_address(host))]
@@ -287,6 +299,14 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     pubkey_path.open("wt").write(pub.decode("utf-8") + ca_pub.decode("utf-8"))
     privkey_path.open("wt").write(priv.decode("utf-8"))
     loader.success()
+
+    if scriptutils.is_rpm_os():
+        try:
+            shutil.copy2(pubkey_path, "/etc/pki/ca-trust/source/anchors/%s" % pubkey)
+            subprocess.run(["update-ca-trust"])
+        except:
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на RPM"))
 
     print(
         "Сертификат сохранен по следующему пути: "

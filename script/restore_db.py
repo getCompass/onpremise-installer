@@ -170,7 +170,12 @@ def update_host_ip(monolith_container: docker.models.containers.Container, host_
     result = monolith_container.exec_run([
         "bash",
         "-c",
-        f'mysql -h "$MYSQL_HOST" -p"$MYSQL_ROOT_PASS" -D pivot_company_service --skip-ssl -e "UPDATE domino_registry SET \`database_host\` = \'{host_ip}\', \`code_host\` = \'{host_ip}\';"'
+        f"""mysql -h "$MYSQL_HOST" \\
+        -p"$MYSQL_ROOT_PASS" \\
+        -D pivot_company_service --skip-ssl \\
+        -e "UPDATE domino_registry \\
+        SET \\`database_host\\` = '{host_ip}', \\`code_host\\` = '{host_ip}';"
+    """
     ])
     if result.exit_code != 0:
 
@@ -310,12 +315,18 @@ def start_space_restore(current_values: dict, backup_path: str, space_backup_inf
     # начинаем восстановление пространств
     restore_db_list(backup_path, need_backup_space_obj_list)
 
+def safe_extract(tar_obj: tarfile.TarFile, path: str) -> None:
+    try:
+        tar_obj.extractall(path, filter=lambda tarinfo, target_path: tarinfo)
+    except TypeError:
+        tar_obj.extractall(path)
+
 # восстанавливаем конфиги
 def start_config_restore(current_values: dict, backup_path: str, config_archive_name: str):
 
     file = tarfile.open("%s/%s" % (backup_path, config_archive_name)) 
-    print(file.getnames()) 
-    file.extractall(current_values["root_mount_path"]) 
+    print(file.getnames())
+    safe_extract(file, current_values["root_mount_path"])
     file.close()
 
     if Path(current_values["root_mount_path"] + "/security.yaml").exists():
@@ -328,6 +339,7 @@ def choose_backup(current_values: dict) -> str:
 
     backup_path_str = "%s/backups" % (current_values["root_mount_path"])
 
+    backup_archive_path = ""
     for backup_archive_path in glob.glob("%s/*" % backup_path_str):
 
         backup_name = os.path.basename(os.path.normpath(backup_archive_path))
@@ -403,7 +415,7 @@ def restore_db_list(backup_path: str, db_list: list[DbConfig]):
 
         loader = Loader("Разархивируем бэкап...", "Успешно разархивировали бэкап", "Не смогли разархивировать бэкап").start()
         file = tarfile.open("%s/%s" % (backup_path, db.archive_backup_name))
-        file.extractall(backup_path) 
+        safe_extract(file, backup_path)
         file.close()
         #recursive_chown(backup_path, "lxd", "docker")
         loader.success()

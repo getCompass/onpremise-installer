@@ -416,11 +416,19 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
     path = Path(value)
     path.mkdir(exist_ok=True, parents=True)
 
+    # проверяем, что указанный пользователь существует
     if owner is not None:
-        user = pwd.getpwnam(owner)
-
-        path.owner()
-        os.chown(str(path.resolve()), user.pw_uid, user.pw_gid)
+        try:
+            user = pwd.getpwnam(owner)
+            # проверяем существование UID и GID, если они есть
+            if user.pw_uid is not None and user.pw_gid is not None:
+                path.owner()
+                os.chown(str(path.resolve()), user.pw_uid, user.pw_gid)
+        except KeyError:
+            if scriptutils.is_rpm_os():
+                print(f"Пользователь '{owner}' не существует, пропускаем смену владельца.")
+            else:
+                raise KeyError(f"Пользователь '{owner}' не существует и это система RPM.")
 
     os.chmod(str(path.resolve()), mode)
 

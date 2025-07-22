@@ -22,9 +22,11 @@ parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
+parser.add_argument("--docker-prune", required=False, action="store_true")
 args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
+docker_prune = args.docker_prune
 
 # пишем константы
 values_name = "compass"
@@ -188,6 +190,12 @@ subprocess.run(
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации данных команды")
 
+if docker_prune:
+    print("Очищаем неиспользуемые docker контейнеры")
+    subprocess.run(
+        ["docker", "system", "prune", "--force"]
+    ).returncode == 0 or scriptutils.die("Ошибка при очистке неиспользуемых docker контейнеров")
+
 print("Запускаем скрипт генерации конфигурации известных БД")
 if subprocess.run(["python3", script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
     scriptutils.die("Ошибка при создании конфигурации известных БД")
@@ -281,6 +289,10 @@ if Version(current_version) >= Version("6.0.1") and not need_update_migrations_a
         exit(1)
 
 # деплой
+
+if scriptutils.is_rpm_os():
+    subprocess.run(["cp", '/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem',
+                    '/etc/pki/ca-trust/extracted/pem/ca-certificates.crt'])
 
 # удаляем старые симлинки, только с помощью subproccess, ибо симлинки ведут на удаленные дериктории и unlink/rmtree просто не срабатывает
 
@@ -480,7 +492,7 @@ if Version(current_version) < Version("4.1.0"):
     for service in service_list:
         service.force_update()
     sleep(60)
-    
+
     loader.success()
 
 # если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
