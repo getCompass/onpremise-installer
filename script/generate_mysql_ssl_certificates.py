@@ -187,11 +187,20 @@ def create_root_certificate(output_dir: Path) -> Tuple[Path, Path]:
     loader.success()
     print("Сгенерирован корневой сертификат для mysql")
     try:
-        shutil.copy2(pubkey_path, "/usr/local/share/ca-certificates/%s" % pubkey)
-        subprocess.run(["update-ca-certificates"])
+        if scriptutils.is_rpm_os():
+            shutil.copy2(pubkey_path, "/etc/pki/ca-trust/source/anchors/%s" % pubkey)
+            subprocess.run(["update-ca-trust"])
+        else:
+            shutil.copy2(pubkey_path, "/usr/local/share/ca-certificates/%s" % pubkey)
+            subprocess.run(["update-ca-certificates"])
 
     except:
-        print(scriptutils.error("Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Ubuntu"))
+        if scriptutils.is_rpm_os():
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на RPM"))
+        else:
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Debian"))
 
     print(
         "Корневой сертификат для mysql сохранен по следующему пути: "

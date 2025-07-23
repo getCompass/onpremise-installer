@@ -118,7 +118,7 @@ def start():
     monolith_backup_name, space_backup_info_list, config_archive_name = validate_backup_contents(current_values, backup_path)
 
     # останавливаем окружение
-    stop_environment(stack_name)
+    stop_environment(stack_name if service_label != "" else stack_name_prefix)
 
     # восстанавливаем конфигурацию
     if "production" in current_values["server_tag_list"]:
