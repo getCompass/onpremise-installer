@@ -288,7 +288,7 @@ def should_generate_cert(cert_path: str, key_path: str, min_valid_days: int = 30
             cert = x509.load_pem_x509_certificate(f.read())
 
         # получаем дату окончания сертификата
-        not_valid_after = cert.not_valid_after
+        not_valid_after = cert.not_valid_after_utc
 
         # вычисляем оставшееся время
         time_left = not_valid_after.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)

@@ -161,7 +161,7 @@ for p in pipe_list:
     p.wait()
 
 # nginx.conf копируем только на rpm, на остальных удаляем перед копированием
-if not scriptutils.is_rpm_os():
+if not scriptutils.is_rpm_os() and Path('/src/nginx/nginx.conf').exists():
     p = Popen(['rm', root_path + '/src/nginx/nginx.conf'])
     p.wait()
 
