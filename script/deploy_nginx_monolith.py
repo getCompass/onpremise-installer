@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+
 sys.dont_write_bytecode = True
 
 import os, argparse, json, yaml
@@ -11,7 +12,7 @@ import shutil
 from typing import Union
 from loader import Loader
 
-#---АГРУМЕНТЫ СКРИПТА---#
+# ---АГРУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-e', '--environment', required=True, type=str, help='окружение, на котором разворачиваем')
@@ -19,25 +20,26 @@ parser.add_argument('-v', '--values', required=True, type=str, help='файл с
 parser.add_argument('-n', '--name', required=False, type=str, help='оверрайд для префикса имени развертывания')
 parser.add_argument('--data', required=False, type=json.loads, help='дополнительные данные для развертывания')
 args = parser.parse_args()
-#---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
-#---ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ---#
 
-def var_path_list_to_string(var_path_list:list) -> str:
+# ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
+# ---ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ---#
+
+def var_path_list_to_string(var_path_list: list) -> str:
     output = ''
     for var_path in var_path_list:
-
-        output+= var_path + ' '
+        output += var_path + ' '
 
     if len(output) > 0:
         output = output[:-1]
 
     return output
 
-# генерируем nginx конфигурацию для проекта
-def generate_nginx_conf(project:str,project_values:dict, default_project_values:dict, parent_project: str = '', layer:int = 0) -> Union[Popen, None]:
 
+# генерируем nginx конфигурацию для проекта
+def generate_nginx_conf(project: str, project_values: dict, default_project_values: dict, parent_project: str = '',
+                        layer: int = 0) -> Union[Popen, None]:
     layer = layer + 1
 
     # пока что у нас два слоя подпроектов, незачем искать дальше
@@ -56,7 +58,8 @@ def generate_nginx_conf(project:str,project_values:dict, default_project_values:
     if (project_values.get('subdomain') is None) and (default_project_values.get('subdomain') is None):
 
         for project, nested_project_values in project_values.items():
-            return generate_nginx_conf(project, nested_project_values, default_project_values.get(project, {}), parent_project, layer)
+            return generate_nginx_conf(project, nested_project_values, default_project_values.get(project, {}),
+                                       parent_project, layer)
 
     add_args = []
 
@@ -71,11 +74,14 @@ def generate_nginx_conf(project:str,project_values:dict, default_project_values:
 
     if not Path(root_path + '/nginx_template/' + parent_project + '.tmpl').exists():
         return None
-    return Popen([template_bin, root_path + '/nginx_template/' + parent_project + '.tmpl', var_path_list_to_string(var_path_list), nginx_home_path + '/' + subdomain + '.' + domain + '.nginx'] + add_args)
+    return Popen([template_bin, root_path + '/nginx_template/' + parent_project + '.tmpl',
+                  var_path_list_to_string(var_path_list),
+                  nginx_home_path + '/' + subdomain + '.' + domain + '.nginx'] + add_args)
 
-#---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#
 
-#---СКРИПТ---#
+# ---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#
+
+# ---СКРИПТ---#
 
 environment = args.environment
 values_name = args.values
@@ -90,7 +96,7 @@ template_bin = str(Path(script_dir + '/template.py').resolve())
 
 var_path_list = []
 product_type = data.get('product_type', '') if data else ''
-default_values_path=Path('src/values.yaml')
+default_values_path = Path('src/values.yaml')
 environment_values_path = Path('src/values.' + environment + '.' + values_name + '.yaml')
 product_values_path = Path('src/values.' + values_name + '.' + product_type + '.yaml')
 values_path = Path('src/values.' + values_name + '.yaml')
@@ -104,8 +110,8 @@ elif product_values_path.exists():
 else:
     var_path_list.append(str(values_path.resolve()))
 
-compose_file_name='.compose.yaml'
-compose_override_file_name='.compose.override.yaml'
+compose_file_name = '.compose.yaml'
+compose_override_file_name = '.compose.override.yaml'
 
 default_values_file_path = str(default_values_path.resolve())
 
@@ -139,11 +145,23 @@ p = Popen([template_bin, root_path + '/nginx_template/monolith.tmpl',
            nginx_home_path + '/star.' + values_name + '.nginx'])
 p.wait()
 
+# nginx.conf копируем только на rpm, на остальных удаляем перед копированием
+if not scriptutils.is_rpm_os():
+    p = Popen(['rm', root_path + '/src/nginx/nginx.conf'])
+    p.wait()
+
 # копируем все
 shutil.copytree(root_path + '/src/nginx/', '/etc/nginx/', dirs_exist_ok=True)
 
-p = Popen(['rm', '-r', '/etc/nginx/sites-enabled'])
-p.wait()
+try:
+    p = Popen(['rm', '-r', '/etc/nginx/sites-enabled'])
+    p.wait()
+except Exception as e:
+    # на rpm ее может не быть - это ок
+    if not scriptutils.is_rpm_os():
+        print(scriptutils.error("Не смогли удалить папку /etc/nginx/sites-enabled"))
+        exit(1)
+
 p = Popen(['ln', '-s', nginx_home_path, '/etc/nginx/sites-enabled'])
 p.wait()
 

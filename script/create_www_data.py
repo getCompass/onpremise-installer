@@ -6,7 +6,6 @@ sys.dont_write_bytecode = True
 
 import pwd, getpass
 from subprocess import Popen, PIPE
-from loader import Loader
 
 from utils import scriptutils
 
@@ -16,12 +15,13 @@ exec_user_uid = 33
 # проверяем, что запустили от рута
 scriptutils.assert_root()
 
-
 def add_user(name: str, uid: int):
-    password = getpass.getpass("Введите пароль для пользователя %s: " % (name))
 
     # запускаем процесс
-    p = Popen(["groupadd", "-g", str(uid), name], stdout=PIPE, stderr=PIPE)
+    if scriptutils.is_rpm_os():
+        p = Popen(["groupadd", name], stdout=PIPE, stderr=PIPE)
+    else:
+        p = Popen(["groupadd", "-g", str(uid), name], stdout=PIPE, stderr=PIPE)
     p.wait()
 
     if p.returncode != 0:
@@ -29,11 +29,19 @@ def add_user(name: str, uid: int):
         print(scriptutils.error(p.stdout.read().decode()))
         exit(1)
 
-    p = Popen(
-        ["useradd", "-M", "-u", str(uid), "-g", name, "-p", password, name],
-        stdout=PIPE,
-        stderr=PIPE,
-    )
+    if scriptutils.is_rpm_os():
+        p = Popen(
+            ["useradd", "-u", str(uid), "-r", "-s", "/usr/sbin/nologin", "-d", "/var/www", "-g", name, name],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+    else:
+        password = getpass.getpass("Введите пароль для пользователя %s: " % name)
+        p = Popen(
+            ["useradd", "-M", "-u", str(uid), "-g", name, "-p", password, name],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
     p.wait()
 
     if p.returncode != 0:

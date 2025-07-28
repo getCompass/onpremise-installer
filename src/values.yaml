@@ -106,7 +106,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.0.4"
+        tag: "v6.0.5"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -350,7 +350,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.0.4"
+          tag: "v6.0.5"
         php_migration:
           tag: "v6.0.0"
         php_repairer:
@@ -511,7 +511,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v6.0.4"
+        tag: "v6.0.5"
         external_port: 43100
 
   integration:
@@ -539,7 +539,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.0.4"
+    tag: "v6.0.5"
     jwt:
       app_id: "compass"
       app_secret: ""

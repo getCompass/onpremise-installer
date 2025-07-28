@@ -123,7 +123,7 @@ services:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
@@ -171,7 +171,7 @@ services:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   {{- if eq .file_access_restriction_mode "auth"}}
   # GO_FILE_AUTH

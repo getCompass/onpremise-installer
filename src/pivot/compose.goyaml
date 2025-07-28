@@ -266,7 +266,7 @@ services:
         source: "default-file-{{.projects.pivot.service.default_file.tag}}"
         target: "/app/www/default_file/"
         read_only: false
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.company_config_mount_path}}:/pivot_config"
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
@@ -331,7 +331,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
   # GO_PIVOT_CACHE
   go-pivot-cache-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_pivot_cache:{{.projects.pivot.service.go_pivot_cache.tag}}"
@@ -385,7 +385,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
   # GO_PUSHER
   go-pusher-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_pusher:{{.projects.pivot.service.go_pusher.tag}}"
@@ -420,7 +420,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
   # GO_SENDER_BALANCER
   go-sender-balancer-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_sender_balancer:{{.projects.pivot.service.go_sender_balancer.tag}}"
@@ -446,7 +446,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_SENDER
   go-sender-{{.projects.pivot.label}}:
@@ -478,7 +478,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_COLLECTOR_AGENT
   go-collector-agent-{{.projects.pivot.label}}:
@@ -506,7 +506,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_EVENT
   go-event-{{.projects.pivot.label}}:
@@ -539,7 +539,7 @@ services:
       timeout: "10s"
       retries: 3
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
   ## PHP_PREMISE
   php-premise-{{.projects.pivot.label}}:
     image: "{{.registry_compass_onpremise_path}}/php_premise:{{.projects.pivot.service.php_premise.tag}}"
@@ -562,6 +562,6 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 volumes:
   default-file-{{.projects.pivot.service.default_file.tag}}:

@@ -349,7 +349,7 @@ services:
         target: "/etc/nginx/includes/jitsi.nginx"
     volumes:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
-      - "/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+      - "{{get_trusted_cert_path_by_os}}/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/home/files/"
     <<: *log-rule-default
@@ -459,7 +459,7 @@ services:
           - "go-event-{{$domino.label}}"
           - "go-event-{{.projects.pivot.label}}"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -491,7 +491,7 @@ services:
       - *log-rule-default
       - *healthcheck-go-2000
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_SENDER
   go-sender-{{.projects.monolith.label}}:
@@ -525,7 +525,7 @@ services:
       - *log-rule-default
       - *healthcheck-go-2000
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
 
   ## WEBJOIN PROJECT
@@ -588,7 +588,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_ACTIVITY
   go-activity-{{.projects.pivot.label}}:
@@ -619,7 +619,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_PUSHER
   go-pusher-{{.projects.pivot.label}}:
@@ -657,7 +657,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # GO_USERBOT_CACHE
   go-userbot-cache-{{.projects.userbot.label}}:
@@ -682,7 +682,7 @@ services:
       - *healthcheck-go-2000
       - *log-rule-default
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   ## FILE-NODE PROJECT
   # FILE_NODE
@@ -704,7 +704,7 @@ services:
       - *log-rule-default
       - *healthcheck-php-9000
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/app/www/files"
 
@@ -799,7 +799,7 @@ services:
           - "php-userbot-{{.projects.userbot.label}}"
           - "php-jitsi-{{.projects.pivot.label}}"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.company_config_mount_path}}:/pivot_config"
       - "{{$domino.company_config_dir}}/:/config"
       - type: "volume"
@@ -910,7 +910,7 @@ services:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -940,7 +940,7 @@ services:
     networks:
       - "monolith-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -965,7 +965,7 @@ services:
       - "monolith-private"
     volumes:
       - "{{$domino.company_config_dir}}/:/config"
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -990,7 +990,7 @@ services:
     networks:
       - "monolith-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     <<:
       - *default-deploy
@@ -1033,7 +1033,7 @@ services:
     networks:
       - "monolith-private"
     volumes:
-      - "/etc/ssl/certs:/etc/ssl/certs:ro"
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
     <<:

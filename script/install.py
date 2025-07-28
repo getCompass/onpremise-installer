@@ -162,7 +162,7 @@ command = [
     environment,
     "-v",
     values_name,
-    "-p", 
+    "-p",
     "monolith",
     "--validate-only",
 ]
@@ -265,6 +265,10 @@ subprocess.run(
 ).returncode == 0 or scriptutils.die("Ошибка при создании ключей безопасности")
 
 # деплой
+
+if scriptutils.is_rpm_os():
+    subprocess.run(["cp", '/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem',
+                    '/etc/pki/ca-trust/extracted/pem/ca-certificates.crt'])
 
 # удаляем старые симлинки, только с помощью subproccess, ибо симлинки ведут на удаленные дериктории и unlink/rmtree просто не срабатывает
 monolith_variable_nginx_path = Path("%s/../src/monolith/variable/nginx" % (script_dir))

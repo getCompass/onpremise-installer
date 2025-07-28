@@ -138,6 +138,7 @@ class AuthMainConfig:
 
         # получаем значение количества попыток из конфига
         try:
+            require_after = 0
             require_after = interactive.InteractiveValue(
                 "captcha.require_after",
                 "Кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.",
@@ -151,16 +152,18 @@ class AuthMainConfig:
 
         # получаем значение доступных методов из конфига
         try:
+            available_method_list = []
             available_method_list = interactive.InteractiveValue(
-                "available_methods", "Доступные способы аутентификации", "arr", config=config,
+                "available_methods", "Доступные способы аутентификации", "arr", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
         # получаем значение доступных методов для гостей из конфига
         try:
+            available_guest_method_list = []
             available_guest_method_list = interactive.InteractiveValue(
-                "available_guest_methods", "Доступные способы аутентификации гостей", "arr", config=config,
+                "available_guest_methods", "Доступные способы аутентификации гостей", "arr", config=config
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -1065,11 +1068,11 @@ class SsoLdapConfig:
             if match:
                 number = int(match.group(1))
                 unit = match.group(2)
-                
+
                 # если значение в минутах меньше 1 или в часах 0, выдаем ошибку
                 if (unit == 'm' and number < 1) or (unit == 'h' and number == 0):
                     handle_exception("ldap.profile_update_interval",
-                                   bcolors.WARNING + "Значение параметра ldap.profile_update_interval не может быть меньше 1 минуты" + bcolors.ENDC)
+                                     bcolors.WARNING + "Значение параметра ldap.profile_update_interval не может быть меньше 1 минуты" + bcolors.ENDC)
 
         return self.init(ldap_server_host,
                          ldap_server_port,

@@ -143,7 +143,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -191,7 +191,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -246,7 +246,7 @@ services:
         max-size: "15m"
         max-file: "3"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
 
   # PHP_REPAIRER
   php-repairer-{{$domino.label}}:
@@ -262,7 +262,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -308,7 +308,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -352,7 +352,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -395,7 +395,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -437,7 +437,7 @@ services:
       - "domino-private"
     volumes:
       - "{{$domino.company_config_dir}}/:/config"
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
     deploy:
       replicas: 1
       restart_policy:
@@ -480,7 +480,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -520,7 +520,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     configs:
       - source: "go-collector-agent-sharding-conf"
@@ -566,7 +566,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -614,7 +614,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
     deploy:
       replicas: 1
@@ -669,7 +669,7 @@ services:
     networks:
       - "domino-private"
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - /var/run/docker.sock:/var/run/docker.sock
       - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
     deploy:
