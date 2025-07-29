@@ -42,7 +42,8 @@
     - МСВСфера 9.6+;
     - ALT Linux 11.0+;
 - Docker + Docker Swarm;
-- Python 3.
+- Python 3.8+;
+- Nginx.
 
 ### Требования к серверу
 
