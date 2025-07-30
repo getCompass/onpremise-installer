@@ -313,6 +313,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52691"
       interval: "5s"

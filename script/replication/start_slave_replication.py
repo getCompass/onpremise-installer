@@ -138,7 +138,10 @@ def start():
                 found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
                 master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label, domino_id, space_config_obj.port)
                 mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-                change_master_mysql_command = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
+                change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
+                    "pivot_company_service.domino_registry,domino_service.port_registry,mysql.user,mysql.db,mysql.tables_priv)," + \
+                    "REPLICATE_WILD_IGNORE_TABLE = ('pivot_company_service.port_registry_%');"
+                change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
                     master_host, space_config_obj.port, replicator_user, replicator_pass) + \
                     "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
                     f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
@@ -151,7 +154,10 @@ def start():
             found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
             master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label, domino_id, space_config_obj.port)
             mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-            change_master_mysql_command = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
+            change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
+                "pivot_company_service.domino_registry,domino_service.port_registry,mysql.user,mysql.db,mysql.tables_priv)," + \
+                "REPLICATE_WILD_IGNORE_TABLE = ('pivot_company_service.port_registry_%');"
+            change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
                 master_host, space_config_obj.port, replicator_user, replicator_pass) + \
                 "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
                 f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
@@ -173,7 +179,10 @@ def start():
 
         master_host = "%s_mysql-%s" % (stack_name, current_values["projects"]["monolith"]["label"])
         mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-        change_master_mysql_command = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
+        change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
+            "pivot_company_service.domino_registry,domino_service.port_registry,mysql.user,mysql.db,mysql.tables_priv)," + \
+            "REPLICATE_WILD_IGNORE_TABLE = ('pivot_company_service.port_registry_%');"
+        change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
             master_host, replicator_user, replicator_pass) + \
             "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
             f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \

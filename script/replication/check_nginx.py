@@ -24,7 +24,7 @@ def check_nginx():
             stdout=subprocess.PIPE
         ).returncode == 0
 
-        return systemd_check or pgrep_check
+        return systemd_check and pgrep_check
     except Exception as e:
         log_error(f"Nginx check failed: {str(e)}")
         return False
