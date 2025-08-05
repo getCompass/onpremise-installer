@@ -55,7 +55,7 @@ class Version(tuple):
         return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
 # обновить конфиги пространств
-def update_space_configs(monolith_container: docker.models.containers.Container) -> None:
+def update_space_configs(monolith_container: docker.models.containers.Container):
 
     result = monolith_container.exec_run(
     user="www-data",
@@ -65,11 +65,10 @@ def update_space_configs(monolith_container: docker.models.containers.Container)
         "php src/Compass/Pivot/sh/php/domino/force_update_company_db.php",
         ],
     )
-
     # форсированный апдейт конфигов идет каждые 180 секунд
     sleep(180)
-    if result.exit_code != 0:
-        scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
+
+    return result
 
 def wait_go_database():
 
@@ -444,34 +443,6 @@ if service_label_path.exists():
 if service_label == "" and current_service_label != "":
     stack_name = stack_name + f"-{current_service_label}"
 
-# подключаемся к докеру
-client = docker.from_env()
-php_migration_container_name = "%s_php-migration" % stack_name
-need_update_migrations_after_deploy = True
-
-container_list = client.containers.list(filters={'name': php_migration_container_name, 'health': 'healthy'})
-if len(container_list) > 0:
-    need_update_migrations_after_deploy = False
-
-# в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
-if Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy and not is_restore_db:
-
-    # накатываем миграцию на компании
-    sb = subprocess.run(
-        [
-            "python3",
-            script_resolved_path + "/companies_database_migrations_up.py",
-            "-e",
-            environment,
-            "-v",
-            values_name,
-            "--service-label",
-            current_service_label,
-        ]
-    )
-    if sb.returncode == 1:
-        exit(1)
-
 # деплой
 
 if scriptutils.is_rpm_os():
@@ -580,6 +551,34 @@ if need_delete_old_stack and ((current_service_label != "" and current_service_l
             print("Не удалось удалить один из jitsi volume при смене service_label: ", e)
 
     need_repair_all_teams = True
+
+# подключаемся к докеру
+client = docker.from_env()
+php_migration_container_name = "%s_php-migration" % stack_name
+need_update_migrations_after_deploy = True
+
+container_list = client.containers.list(filters={'name': php_migration_container_name, 'health': 'healthy'})
+if len(container_list) > 0:
+    need_update_migrations_after_deploy = False
+
+# в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
+if Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy and not is_restore_db:
+
+    # накатываем миграцию на компании
+    sb = subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/companies_database_migrations_up.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--service-label",
+            current_service_label,
+        ]
+    )
+    if sb.returncode == 1:
+        exit(1)
 
 print("Разворачиваем приложение")
 command = [
@@ -753,22 +752,28 @@ while n <= timeout:
     if n == timeout:
         loader.error()
         scriptutils.die("nginx не поднялся")
-sleep(30)
+sleep(60)
 loader.success()
 
 # Если версия меньше 4.1.0 - обновляем конфиги пространств
 if Version(current_version) < Version("4.1.0"):
 
     wait_go_database()
-    sleep(20)
+    sleep(30)
 
     loader = Loader("Запускаем пространства...", "Запустили пространства", "Не смогли запустить пространства").start()
 
     try:
-        update_space_configs(found_monolith_container)
+        result = update_space_configs(found_monolith_container)
+        if result.exit_code != 0:
+            found_monolith_container = get_monolith_container()
+            result = update_space_configs(found_monolith_container)
     except APIError as e:
         found_monolith_container = get_monolith_container()
-        update_space_configs(found_monolith_container)
+        result = update_space_configs(found_monolith_container)
+
+    if result.exit_code != 0:
+        scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
 
     loader.success()
 

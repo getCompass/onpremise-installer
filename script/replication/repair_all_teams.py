@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 
 sys.dont_write_bytecode = True
 
@@ -59,6 +60,34 @@ def get_values() -> dict:
         scriptutils.die("Файл со значениями невалиден. Окружение было ранее развернуто?")
 
     return current_values
+
+def update_company_configs_timestamp(current_values):
+
+    company_config_mount_path = current_values.get("company_config_mount_path")
+    company_config_mount_file = company_config_mount_path + "/.timestamp.json"
+    with open(company_config_mount_file, "r") as file:
+        json_str = file.read()
+        mount_json_dict = json.loads(json_str) if json_str != "" else {}
+
+    keys_list = list(current_values["projects"]["domino"].keys())
+    domino = current_values["projects"]["domino"][keys_list[0]]
+    space_config_dir = domino["company_config_dir"]
+    domino_id = domino["label"]
+
+    mount_json_dict[domino_id] = int(time.time())
+
+    with open(company_config_mount_file, "w") as file:
+        file.write(json.dumps(mount_json_dict))
+
+    space_config_dir_file = space_config_dir + "/.timestamp.json"
+    with open(space_config_dir_file, "r") as dir_file:
+        json_str = dir_file.read()
+        dir_json_dict = json.loads(json_str) if json_str != "" else {}
+
+    dir_json_dict[domino_id] = int(time.time())
+
+    with open(space_config_dir_file, "w") as dir_file:
+        dir_file.write(json.dumps(dir_json_dict))
 
 
 current_values = get_values()
@@ -138,11 +167,12 @@ for space_config in glob.glob("%s/*_company.json" % space_config_dir):
         )
         if output.exit_code != 0:
             print(output.output.decode("utf-8", errors="ignore"))
-            is_success = False
             print(scriptutils.error("Не смог восстановить команду %s" % space_id))
             scriptutils.die(
                 "Что то пошло не так. Не смогли восстановить команду %s. Проверьте, что окружение поднялось корректно" % space_id
             )
 
-if is_success:
-    print(scriptutils.success("Команды восстановлены"))
+print(scriptutils.success("Команды восстановлены"))
+
+# обновляем timestamp для конфигов компаний
+update_company_configs_timestamp(current_values)

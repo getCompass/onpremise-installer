@@ -464,6 +464,10 @@ services:
     command: >
       mysqld
         --log_bin=/var/lib/mysql/log-bin.log
+        --binlog-format=ROW
+        --expire-logs-days=5
+        --max-binlog-size=500M
+        --sync-binlog=1
         --server-id={{.mysql_server_id}}
         --replicate-ignore-table=pivot_company_service.port_registry_{{$domino.label}}
         --replicate-ignore-table=pivot_company_service.domino_registry

@@ -17,12 +17,14 @@ def check_nginx():
             capture_output=True,
             text=True
         ).stdout.strip() == "active"
+        log_entry(f"is active nginx check: {systemd_check}")
 
         # через поиск процесса
         pgrep_check = subprocess.run(
             ["pgrep", "-x", "nginx"],
             stdout=subprocess.PIPE
         ).returncode == 0
+        log_entry(f"pgrep nginx check: {pgrep_check}")
 
         return systemd_check and pgrep_check
     except Exception as e:

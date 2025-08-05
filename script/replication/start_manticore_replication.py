@@ -119,7 +119,7 @@ def start():
     manticore_external_port = domino["service"]["manticore"]["external_port"]
 
     # инициализируем кластер в контейнере manticore
-    print("инициализируем кластер в контейнере manticore")
+    print("Инициализируем кластер в контейнере manticore")
     if replication_type == "master":
         mysql_command = "CREATE CLUSTER %s;" % manticore_cluster_name
     else:
@@ -148,10 +148,10 @@ def start():
         if n == timeout:
             scriptutils.die("Не найдено ни одного пространства на сервере. Окружение поднято?")
 
-    print("обновляем команды - прикрепляем созданные ранее таблицы manticore к кластеру")
+    print("Обновляем команды - прикрепляем созданные ранее таблицы manticore к кластеру")
     for space_id, space_config_obj in space_config_obj_dict.items():
 
-        print("прикрепляем к кластеру команду %s" % space_id)
+        print("Прикрепляем к кластеру команду %s" % space_id)
         mysql_command = "ALTER CLUSTER %s ADD main_%s;" % (manticore_cluster_name, space_id)
         manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
 
