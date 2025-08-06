@@ -18,4 +18,5 @@ src/pivot/config/pivot_mail.gophp
 configs/
 !yaml_template/configs
 .version
+.service_label
 .venv

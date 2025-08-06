@@ -1122,6 +1122,7 @@ services:
       DOMINO_MYSQL_INNODB_FLUSH_LOG_AT_TIMEOUT: {{.domino_mysql_innodb_flush_log_at_timeout}}
       SERVICE_LABEL: {{$service_label}}
       MYSQL_SERVER_ID: {{.mysql_server_id}}
+      MYSQL_SSL_PATH: "{{.root_mount_path}}/mysql_ssl"
       MONOLITH_MYSQL_NETWORK: {{$mysql_shared_network}}
       MANTICORE_CLUSTER_NAME: {{.manticore_cluster_name}}
     env_file:
