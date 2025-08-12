@@ -424,6 +424,9 @@ ldap.user_search_base:
 # Тип данных: строка, пример:
 # Для Active Directory – "sAMAccountName"
 # Для FreeIPA – "uid"
+#
+# Если используется несколько контроллеров домена через глобальный каталог, то необходимо использовать userPrincipalName для AD или krbPrincipalName для FreeIPA,
+# так как логин должен быть уникальным в обоих доменах.
 ldap.user_unique_attribute:
 
 # Фильтр для поиска учетной записи LDAP в момент авторизации пользователя в приложении.
@@ -516,3 +519,24 @@ ldap.profile_update_enabled: true
 # Минимальное значение - 1m
 # Пример: 5m – интервал каждые 5 минут
 ldap.profile_update_interval: "5m"
+
+# Фильтр для поиска учетных записей LDAP при обновлении данных пользователей.
+# Параметр НЕ должен содержать уникальный атрибут.
+#
+# Необязательный параметр. Используйте его при необходимости фильтрации пользователей по критериям.
+#
+# В случае заполнения фильтр должен быть идентичным с ldap.user_search_filter, но не включать уникальный атрибут.
+#
+# Например:
+# Для Active Directory: "(objectClass=person)"
+#
+# Для Active Directory с проверкой на принадлежность учетной записи к группе CompassUsers:
+# "(&(objectClass=person)(memberOf:1.2.840.113556.1.4.1941:CN=CompassUsers,DC=example,DC=com))"
+#
+# Для FreeIPA: "(objectClass=person)"
+#
+# Для FreeIPA с проверкой на принадлежность учетной записи к группе CompassUsers:
+# "(&(objectClass=person)(memberOf=cn=CompassUsers,cn=groups,cn=accounts,dc=example,dc=com))"
+#
+# Тип данных: строка
+ldap.user_profile_update_filter:
