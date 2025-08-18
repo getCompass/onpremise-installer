@@ -807,6 +807,7 @@ class SsoLdapConfig:
             user_search_filter: str,
             profile_update_enabled: str,
             profile_update_interval: str,
+            user_profile_update_filter: str
     ):
         self.server_host = server_host
         self.server_port = server_port
@@ -823,6 +824,7 @@ class SsoLdapConfig:
         self.account_disabling_monitoring_interval = account_disabling_monitoring_interval
         self.user_search_page_size = user_search_page_size
         self.user_search_filter = user_search_filter
+        self.user_profile_update_filter = user_profile_update_filter
         self.profile_update_enabled = profile_update_enabled
         self.profile_update_interval = profile_update_interval
 
@@ -926,6 +928,33 @@ class SsoLdapConfig:
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             ldap_user_search_filter = ""
+
+        if len(ldap_user_search_filter) > 0:
+            # ищем любую пару "ключ={0}"
+            if not re.search(r'\b\w+\s*=\s*\{0\}', ldap_user_search_filter):
+                handle_exception(
+                    "ldap.user_search_filter",
+                    "В поле ldap.user_search_filter отсутствует уникальный аттрибут"
+                )
+
+        try:
+            ldap_user_profile_update_filter = interactive.InteractiveValue(
+                "ldap.user_profile_update_filter",
+                "Фильтр для поиска учетных записей LDAP при обновлении данных пользователей", "str",
+                config=config, default_value="",
+                is_required=False
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_profile_update_filter = ""
+
+        if len(ldap_user_profile_update_filter) > 0:
+            # ищем любую пару "ключ={0}"
+            if re.search(r'\b\w+\s*=\s*\{0\}', ldap_user_profile_update_filter):
+                handle_exception(
+                    "ldap.ldap_user_profile_update_filter",
+                    "В поле ldap.ldap_user_profile_update_filter присутствует уникальный аттрибут"
+                )
 
         try:
             ldap_user_search_account_dn = interactive.InteractiveValue(
@@ -1091,11 +1120,12 @@ class SsoLdapConfig:
                          ldap_user_search_filter,
                          ldap_profile_update_enabled,
                          ldap_profile_update_interval,
+                         ldap_user_profile_update_filter,
                          )
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t"user_profile_update_filter" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
@@ -1113,6 +1143,7 @@ class SsoLdapConfig:
             self.account_disabling_monitoring_interval,
             self.profile_update_enabled,
             self.profile_update_interval,
+            self.user_profile_update_filter,
         )
 
 
