@@ -524,6 +524,8 @@ services:
       PER_DELIVERY_LIMIT: {{.projects.monolith.service.go_event.per_delivery_limit}}
       DELIVERY_DELAY: {{.projects.monolith.service.go_event.delivery_delay}}
       COURIER_COUNT: {{.projects.monolith.service.go_event.courier_count}}
+      SERVICE_LABEL: {{$service_label}}
+      COMPANIES_RELATIONSHIP_FILE: "reserve_servers_companies_relationship.json"
     env_file:
       - ".global.common.env"
       - ".project.pivot.common.env"
@@ -537,6 +539,7 @@ services:
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
+      - "{{.company_config_mount_path}}:/pivot_config"
     <<:
       - *default-deploy
       - *log-rule-default
