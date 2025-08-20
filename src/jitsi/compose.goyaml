@@ -5,8 +5,8 @@ version: '3.8'
 configs:
 
   # конфиг плагина отправки событий с jitsi ноды на backend
-  prosody-esync-plugin-cfg:
-    name: "{{.stack_name}}_prosody-esync-plugin-{{.config_revisions.project.prosody_esync_plugin.cfg.lua}}"
+  prosody-eplugin-cfg:
+    name: "{{.stack_name}}_prosody-eplugin-{{.config_revisions.project.prosody_esync_plugin.cfg.lua}}"
     file: ".project.prosody_esync_plugin.cfg.lua"
 
   # конфиг плагина rest api
@@ -91,7 +91,7 @@ services:
     ports:
       - '{{.projects.jitsi.service.prosody.serve_port}}:5280'
     configs:
-      - source: "prosody-esync-plugin-cfg"
+      - source: "prosody-eplugin-cfg"
         target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
       - source: "prosody-rest-api-plugin-cfg"
         target: "/config/conf.d/rest-api.jitsi-meet.cfg.lua"

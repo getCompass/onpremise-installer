@@ -8,16 +8,16 @@ import subprocess, argparse
 
 from utils import scriptutils
 from pathlib import Path
-import docker, yaml
+import docker, yaml, json
 from time import sleep
 from loader import Loader
 from utils.scriptutils import bcolors
 
 scriptutils.assert_root()
 
+
 # функция проверки наличия предыдущей установки
 def check_previous_install(global_file_path: Path):
-
     with global_file_path.open("r") as global_file:
         global_values = yaml.safe_load(global_file)
         global_values = {} if global_values is None else global_values
@@ -25,7 +25,7 @@ def check_previous_install(global_file_path: Path):
     # если у нас нет информации по root_mount_path, не проверяем и проходим на установку
     if global_values == {}:
         return
-    
+
     root_mount_path_str = global_values.get("root_mount_path")
     if root_mount_path_str is None:
         return
@@ -36,11 +36,13 @@ def check_previous_install(global_file_path: Path):
     if root_mount_path.exists() and any(root_mount_path.iterdir()):
 
         confirm = input(
-            scriptutils.warning("Обнаружены данные Compass в директории root_mount_path. Для предотвращения ошибок рекомендуем удалить эти данные перед продолжением установки. Продолжить установку? [Y/n]\n")
-            )
+            scriptutils.warning(
+                "Обнаружены данные Compass в директории root_mount_path. Для предотвращения ошибок рекомендуем удалить эти данные перед продолжением установки. Продолжить установку? [Y/n]\n")
+        )
 
         if confirm.lower() != "y":
             scriptutils.die("Установка прервана")
+
 
 # получаем папку, где находится скрипт
 script_path = Path(__file__).parent
@@ -50,14 +52,26 @@ parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
+parser.add_argument("-e", "--environment", required=False, default="production", type=str,
+                    help="Окружение, в котором разворачиваем")
+# ВНИМАНИЕ - в data передается json
+parser.add_argument(
+    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+)
 args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
+override_data = args.data if args.data else {}
+if not override_data:
+    override_data = {}
+product_type = override_data.get("product_type", "") if override_data else ""
+
+environment = args.environment
 
 # пишем константы
 values_name = "compass"
-environment = "production"
 stack_name_prefix = environment + "-" + values_name
+stack_name = stack_name_prefix + "-monolith"
 domino_id = "d1"
 
 # пользователь должен подтвердить согласие с условиями публичной оферты
@@ -170,6 +184,20 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
     "Ошибка при валидации конфигурации приложения"
 )
 
+print("Валидируем конфигурацию отказоустойчивости и бд")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/replication/validate_db_docker.py",
+    ]
+).returncode == 0 or scriptutils.die("Отказоустойчивость можно настроить только для docker драйвера баз данных")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/replication/validate_os.py",
+    ]
+).returncode == 0 or scriptutils.die("В данной версии приложения отказоустойчивость нельзя включить в RPM-системах")
+
 subprocess.run(
     [
         "python3",
@@ -234,6 +262,30 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
     "Ошибка при сверке конфигурации приложения"
 )
 
+if Path("src/values." + environment + "." + values_name + ".yaml").exists():
+    specified_values_file_name = str(
+        Path("src/values." + environment + "." + values_name + ".yaml").resolve()
+    )
+elif (
+        product_type
+        and Path("src/values." + values_name + "." + product_type + ".yaml").exists()
+):
+    specified_values_file_name = str(
+        Path("src/values." + values_name + "." + product_type + ".yaml").resolve()
+    )
+elif (Path("src/values." + values_name + ".yaml").exists()):
+    specified_values_file_name = str(Path("src/values." + values_name + ".yaml").resolve())
+else:
+    specified_values_file_name = str(Path("src/values.yaml").resolve())
+
+with open(specified_values_file_name, "r") as values_file:
+    values_dict = yaml.safe_load(values_file)
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+service_label = values_dict.get("service_label")
+if service_label is not None and service_label != "":
+    stack_name = stack_name + "-" + service_label
+
 print("Запускаем скрипт генерации конфигурации известных БД")
 if subprocess.run(["python3", script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
     scriptutils.die("Ошибка при создании конфигурации известных БД")
@@ -251,6 +303,17 @@ subprocess.run(
         values_name,
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при генерации сертификатов")
+
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_mysql_ssl_certificates.py",
+        "-e",
+        environment,
+        "-v",
+        values_name,
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при генерации сертификатов для mysql")
 
 print("Проводим генерацию ключей безопасности")
 subprocess.run(
@@ -314,7 +377,7 @@ if install_integration:
         "integration",
         "--project-name-override",
         "integration",
-        ]
+    ]
     if use_default_values:
         command.append("--use-default-values")
     command.append("--install-integration")
@@ -336,7 +399,7 @@ loader.start()
 while n <= timeout:
     docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_php-monolith" % (stack_name_prefix),
+            "name": "%s_php-monolith" % (stack_name),
             "health": "healthy",
         }
     )
@@ -372,7 +435,7 @@ loader.start()
 while n <= timeout:
     docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_nginx-monolith" % (stack_name_prefix),
+            "name": "%s_nginx" % (stack_name),
             "health": "healthy",
         }
     )
@@ -387,27 +450,88 @@ while n <= timeout:
 loader.success()
 sleep(10)
 
-# инициализируем приложение
-loader = Loader(
-    "Инициализируем приложение",
-    "Приложение инициализировано",
-    "Приложение не может инициализироваться",
-).start()
-subprocess.run(
-    [
-        "python3",
-        script_resolved_path + "/init_pivot.py",
-        "-e",
-        environment,
-        "-v",
-        values_name,
-    ]
-)
-loader.success()
+# настраиваем репликацию на основном mysql
+if scriptutils.is_replication_enabled(values_dict) == True:
+    subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/replication/create_mysql_user.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--type",
+            "monolith",
+            "--is_logs",
+            str(0)
+        ]
+    )
 
-# создаем первого пользователя
-print("Создаем первого пользователя")
-subprocess.run(["python3", script_resolved_path + "/create_root_user.py"])
+if scriptutils.is_replication_master_server(values_dict):
+    # инициализируем приложение
+    loader = Loader(
+        "Инициализируем приложение",
+        "Приложение инициализировано",
+        "Приложение не может инициализироваться",
+    ).start()
+    subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/init_pivot.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+            "--service_label",
+            service_label
+        ]
+    )
+    loader.success()
+
+    # создаем первого пользователя
+    print("Создаем первого пользователя")
+    subprocess.run(
+        ["python3", script_resolved_path + "/create_root_user.py", "-e", environment, "--service_label", service_label])
+else:
+    print("Запускаем репликацию mysql в monolith")
+    subprocess.run(
+        [
+            "python3", script_resolved_path + "/replication/start_slave_replication.py",
+            "-e", environment,
+            "-v", values_name,
+            "--type", "monolith",
+            "--is-choice-space", "0"
+        ]
+    )
+
+if scriptutils.is_replication_enabled(values_dict) == True:
+    print("Настраиваем репликацию мантикоры")
+    if scriptutils.is_replication_master_server(values_dict):
+        subprocess.run(
+            [
+                "python3",
+                script_resolved_path + "/replication/start_manticore_replication.py",
+                "-e",
+                environment,
+                "-v",
+                values_name,
+                "--type",
+                "master"
+            ]
+        )
+    else:
+        subprocess.run(
+            [
+                "python3",
+                script_resolved_path + "/replication/start_manticore_replication.py",
+                "-e",
+                environment,
+                "-v",
+                values_name,
+                "--type",
+                "reserve"
+            ]
+        )
 
 # создаем команду
 print("Создаем команду")
@@ -419,6 +543,6 @@ subprocess.run(
         environment,
         "-v",
         values_name,
-        "--init",
+        "--init"
     ]
 )

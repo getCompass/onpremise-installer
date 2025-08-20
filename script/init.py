@@ -8,7 +8,7 @@ from pathlib import Path
 from utils import scriptutils
 from loader import Loader
 import collections.abc, shutil
-import re, socket, yaml, argparse, readline, string, random, pwd, os
+import re, socket, yaml, argparse, readline, string, random, pwd, os, json
 from utils.interactive import InteractiveValue, IncorrectValueException
 import uuid
 from base64 import b64encode
@@ -20,24 +20,38 @@ script_dir = str(Path(__file__).parent.resolve())
 # загружаем конфиги
 config_path = Path(script_dir + "/../configs/global.yaml")
 database_config_path = Path(script_dir + "/../configs/database.yaml")
+replication_config_path = Path(script_dir + "/../configs/replication.yaml")
 team_config_path = Path(script_dir + "/../configs/team.yaml")
 
 validation_errors = []
 config = {}
 protected_config = {}
 database_config = {}
+replication_config = {}
 team_config = {}
 
 if not config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            config_path.resolve())))
     exit(1)
 
 if not database_config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(database_config_path.resolve())))
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            database_config_path.resolve())))
+    exit(1)
+
+if not replication_config_path.exists():
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            replication_config_path.resolve())))
     exit(1)
 
 if not team_config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(team_config_path.resolve())))
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            team_config_path.resolve())))
     exit(1)
 
 with config_path.open("r") as config_file:
@@ -46,17 +60,22 @@ with config_path.open("r") as config_file:
 with database_config_path.open("r") as database_config_file:
     database_config_values = yaml.load(database_config_file, Loader=yaml.BaseLoader)
 
+with replication_config_path.open("r") as replication_config_file:
+    replication_config_values = yaml.load(replication_config_file, Loader=yaml.BaseLoader)
+
 with team_config_path.open("r") as team_config_file:
     team_config_values = yaml.load(team_config_file, Loader=yaml.BaseLoader)
 
 config.update(config_values)
 config.update(team_config_values)
 database_config.update(database_config_values)
+replication_config.update(replication_config_values)
 team_config.update(team_config_values)
 
 protected_config_path = Path(script_dir + "/../configs/global.protected.yaml")
 
-if (config.get("root_mount_path") is not None) and Path(config.get("root_mount_path") + "/deploy_configs/global.protected.yaml").exists():
+if (config.get("root_mount_path") is not None) and Path(
+        config.get("root_mount_path") + "/deploy_configs/global.protected.yaml").exists():
     protected_config_path = Path(config.get("root_mount_path") + "/deploy_configs/global.protected.yaml")
 
 if protected_config_path.exists():
@@ -116,6 +135,9 @@ jitsi_ports = {
     "service.jvb.media_port": 10000,
     "service.jicofo.port": 35001,
     "service.prosody.serve_port": 35002,
+    "service.prosody.v0.serve_port": 35003,
+    "service.prosody.v1.serve_port": 35004,
+    "service.prosody.v2.serve_port": 35005,
 }
 
 database_driver_data_fields = {
@@ -166,6 +188,7 @@ parser.add_argument(
     action='store_true'
 )
 args = parser.parse_args()
+
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
@@ -223,6 +246,8 @@ else:
 hostname = socket.gethostname()
 local_ip = socket.gethostbyname(hostname)
 unique_dict = {}
+
+
 def deep_get(dictionary: dict, keys: str, default={}):
     keys = keys.split(".")
     my_dict = dictionary.get(keys[0], default)
@@ -248,14 +273,15 @@ def nested_set(dic, keys, value, create_missing=True):
         d[keys[-1]] = value
     return dic
 
-def handle_exception(field, message: str):
 
+def handle_exception(field, message: str):
     if validate_only:
         validation_errors.append(message)
         return
 
     print(message)
     exit(1)
+
 
 ### VALUE FUNCTIONS ###
 
@@ -264,15 +290,16 @@ def server_uid(
 ):
     return str(uuid.uuid4())
 
+
 def project_port(
-    project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict
 ) -> int:
     return project_ports[project_name]
+
 
 def get_domino_template(
         project_name: str, label: str, project_values: dict, global_values: dict
 ) -> str:
-
     subdomain_enabled = global_values.get("subdomain_enabled")
     ''
     if bool(subdomain_enabled):
@@ -280,8 +307,9 @@ def get_domino_template(
 
     return domino_template_path
 
+
 def random_string(
-    project_name: str, label: str, project_values: dict, global_values: dict, size: int
+        project_name: str, label: str, project_values: dict, global_values: dict, size: int
 ) -> int:
     characters = (string.ascii_letters + string.digits).translate(
         {
@@ -310,7 +338,7 @@ def get_subnet_number(subnet_mask: str) -> int:
 
 
 def get_free_subnet(
-    project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict
 ) -> int:
     min_subnet_number = global_values["start_octet"] + 1
     max_subnet_number = 254
@@ -346,9 +374,8 @@ def get_free_subnet(
 
 
 def copy(
-    project_name: str, label: str, project_values: dict, global_values: dict, keys: str
+        project_name: str, label: str, project_values: dict, global_values: dict, keys: str
 ):
-
     keys = keys.split(".", 1)
 
     if keys[0] == "_project":
@@ -356,20 +383,20 @@ def copy(
     else:
         return deep_get(global_values, ".".join(keys[1:]))
 
-def secret_key(
-    project_name: str, label: str, project_values: dict, global_values: dict, size: int
-):
 
+def secret_key(
+        project_name: str, label: str, project_values: dict, global_values: dict, size: int
+):
     return b64encode(os.urandom(size)).decode('utf-8')
 
 
 def copy_with_postfix(
-    project_name: str,
-    label: str,
-    project_values: dict,
-    global_values: dict,
-    keys: str,
-    postfix: str,
+        project_name: str,
+        label: str,
+        project_values: dict,
+        global_values: dict,
+        keys: str,
+        postfix: str,
 ):
     keys = keys.split(".", 1)
 
@@ -382,12 +409,12 @@ def copy_with_postfix(
 
 
 def copy_with_custom_postfix(
-    project_name: str,
-    label: str,
-    project_values: dict,
-    global_values: dict,
-    keys: str,
-    postfix: str,
+        project_name: str,
+        label: str,
+        project_values: dict,
+        global_values: dict,
+        keys: str,
+        postfix: str,
 ):
     keys = keys.split(".", 1)
     if keys[0] == "_project":
@@ -399,13 +426,13 @@ def copy_with_custom_postfix(
 
 
 def get_project_name(
-    project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict
 ):
     return label
 
 
 def get_project_subdomain(
-    project_name: str, label: str, project_values: dict, global_values: dict
+        project_name: str, label: str, project_values: dict, global_values: dict
 ):
     return label.replace("_", "-")
 
@@ -434,13 +461,16 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
 
     return str(path.resolve())
 
+
 def convert_idn(value: str):
     return value.strip().encode("idna").decode()
+
 
 def onpremise_domain(
         project_name: str, label: str, project_values: dict, global_values: dict, _4=None
 ):
     return global_values.get("domain")
+
 
 ### END POST FUNCTIONS ###
 ### SKIP FUNCTIONS ###
@@ -449,10 +479,13 @@ def skip_subdomain(
 ):
     return not bool(global_values.get("subdomain_enabled"))
 
+
 def skip_url_path(
         project_name: str, label: str, project_values: dict, global_values: dict, _4=None
 ):
     return bool(global_values.get("subdomain_enabled"))
+
+
 ### END SKIP FUNCTIONS ###
 nginx_fields = [
     {
@@ -1050,6 +1083,27 @@ required_specific_project_fields = {
             "ask": True,
         },
         {
+            "name": "service.prosody.v0.serve_port",
+            "comment": "Укажите порт для компонента prosody",
+            "default_value": jitsi_ports["service.prosody.v0.serve_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.prosody.v1.serve_port",
+            "comment": "Укажите порт для компонента prosody",
+            "default_value": jitsi_ports["service.prosody.v1.serve_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
+            "name": "service.prosody.v2.serve_port",
+            "comment": "Укажите порт для компонента prosody",
+            "default_value": jitsi_ports["service.prosody.v2.serve_port"],
+            "type": "int",
+            "ask": True,
+        },
+        {
             "name": "service.turn.host",
             "comment": "Укажите адрес TURN сервера, который будет использоваться для соединения в ВКС",
             "default_value": None,
@@ -1107,8 +1161,8 @@ required_specific_project_fields = {
 
 found_external_ports = {}
 
-def process_post_value(value, field: dict):
 
+def process_post_value(value, field: dict):
     post_value = None
     if field.get("post_function") is not None:
         post_value = field["post_function"](value, *field["post_args"])
@@ -1118,10 +1172,10 @@ def process_post_value(value, field: dict):
 
     return value
 
-def process_field(
-    field: dict, project: str, label: str, project_values: dict, new_values: dict
-):
 
+def process_field(
+        field: dict, project: str, label: str, project_values: dict, new_values: dict
+):
     use_default = use_default_values
 
     # если для этого проекта не надо - пропускаем
@@ -1130,7 +1184,7 @@ def process_field(
 
     if field.get("skip_function") is not None:
         if field["skip_function"](
-            project, label, {}, new_values, field["skip_args"] if field.get("skip_args") is not None else []
+                project, label, {}, new_values, field["skip_args"] if field.get("skip_args") is not None else []
         ):
             return None, None
 
@@ -1141,7 +1195,6 @@ def process_field(
     if (value := protected_config.get(prefix + field["name"])) is not None:
         process_post_value(value, field)
         return value, field
-
 
     if field["ask"]:
         if field.get("value_function") is not None:
@@ -1159,14 +1212,14 @@ def process_field(
 
         try:
             new_value = InteractiveValue(
-                    prefix + field["name"],
-                    "[%s] " % project + field["comment"],
-                    field["type"],
-                    field["default_value"],
-                    validation=field.get("validation"),
-                    force_default=use_default,
-                    config=config,
-                    is_required=is_required
+                prefix + field["name"],
+                "[%s] " % project + field["comment"],
+                field["type"],
+                field["default_value"],
+                validation=field.get("validation"),
+                force_default=use_default,
+                config=config,
+                is_required=is_required
             ).from_config()
         except IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -1187,8 +1240,8 @@ def process_field(
 
     return new_value, field["name"]
 
-def write_to_file(new_values: dict):
 
+def write_to_file(new_values: dict):
     if validate_only:
         if len(validation_errors) > 0:
             print("Ошибка в конфигурации %s" % str(config_path.resolve()))
@@ -1221,6 +1274,7 @@ def write_to_file(new_values: dict):
 
     print("Файл с секретами обновлен: " + scriptutils.warning(str(protected_config_path.resolve())))
 
+
 def start():
     values_initial_dict = {
         "protocol": "https",
@@ -1240,6 +1294,8 @@ def start():
         "domino_mysql_innodb_flush_method": "O_DIRECT",
         "domino_mysql_innodb_flush_log_at_timeout": 1,
         "triggers": {"before": ["triggers/check_security.py"]},
+        "manticore_cluster_name": "compass_cluster",
+        "servers_companies_relationship_file": "reserve_servers_companies_relationship.json",
     }
 
     # если имеется флаг установки интеграции, то добавляем тег integration
@@ -1249,6 +1305,7 @@ def start():
     new_values = init_global(values_initial_dict, values_file_path, environment)
     new_values = init_nginx(new_values)
     new_values = init_database(new_values)
+    new_values = init_replication(new_values)
     new_values = init_team(new_values)
 
     if not project:
@@ -1305,21 +1362,22 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
 
     for required_root_field in required_root_fields:
         if (value := protected_config.get(required_root_field["name"])) is not None:
-
-            new_value = process_post_value(value, required_root_field)
             new_values[required_root_field["name"]] = value
             continue
 
         if required_root_field.get("skip_function") is not None:
             if required_root_field["skip_function"](
-                    project, "", {}, new_values, required_root_field["skip_args"] if required_root_field.get("skip_args") is not None else []
+                    project, "", {}, new_values,
+                    required_root_field["skip_args"] if required_root_field.get("skip_args") is not None else []
             ):
                 continue
 
         if new_values != values_initial_dict:
             required_root_field["default_value"] = (
                 current_values[required_root_field["name"]]
-                if current_values.get(required_root_field["name"]) is not None and (required_root_field.get("skip_current_value") is None or required_root_field["skip_current_value"] == False)
+                if current_values.get(required_root_field["name"]) is not None and (
+                        required_root_field.get("skip_current_value") is None or required_root_field[
+                    "skip_current_value"] == False)
                 else required_root_field["default_value"]
             )
 
@@ -1357,7 +1415,6 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
                 )
             )
 
-
             if required_root_field.get("is_protected"):
                 protected_config[required_root_field["name"]] = new_value
         if new_value is not None:
@@ -1385,7 +1442,6 @@ def init_nginx(new_values: dict):
 
 
 def init_team(new_values: dict):
-
     """инициализируем конфигурацию команды"""
 
     file_access_restriction_mode = team_config.get("file.access_restriction_mode", None)
@@ -1405,7 +1461,7 @@ def init_team(new_values: dict):
     try:
         max_file_size_mb = int(max_file_size_mb)
     except:
-        scriptutils.die("Параметр max_file_size_mb в team,yaml должен быть числом от 20 до 2048")
+        scriptutils.die("Параметр max_file_size_mb в team.yaml должен быть числом от 20 до 2048")
     if max_file_size_mb is None:
         scriptutils.die("Не заполнен параметр max_file_size_mb в team.yaml")
 
@@ -1419,7 +1475,6 @@ def init_team(new_values: dict):
 
 
 def init_database(new_values: dict):
-
     """инициализируем конфигурацию БД"""
 
     # первый делом вольем конфиг БД в обычный конфиг —
@@ -1467,6 +1522,102 @@ def init_database(new_values: dict):
             continue
 
         new_values = nested_set(new_values, "database_encryption.%s" % field_name, new_value)
+
+    return new_values
+
+
+def init_replication(new_values: dict):
+    """инициализируем конфигурацию репликаций"""
+
+    service_label = replication_config.get("service_label", None)
+    if service_label is None:
+        scriptutils.die("Не заполнен параметр service_label")
+
+    if service_label != "" and len(service_label) > 8:
+        scriptutils.die("Параметр service_label не должен быть длинее 12 символов")
+
+    mysql_server_id = replication_config.get("mysql_server_id", None)
+    try:
+        mysql_server_id = int(mysql_server_id)
+    except:
+        scriptutils.die("Параметр mysql_server_id в replication.yaml должен быть числом")
+    if mysql_server_id is None:
+        scriptutils.die("Не заполнен параметр mysql_server_id")
+
+    if mysql_server_id < 0:
+        scriptutils.die("Параметр mysql_server_id не должен быть меньше 0")
+
+    if service_label != "" and mysql_server_id == 0:
+        scriptutils.die("Параметр mysql_server_id не должен быть равен 0, если заполнен service_label")
+
+    start_octet = replication_config.get("start_octet", None)
+    try:
+        start_octet = int(start_octet)
+    except:
+        scriptutils.die("Параметр start_octet в replication.yaml должен быть числом")
+    if start_octet is None:
+        scriptutils.die("Не заполнен параметр start_octet")
+
+    if (start_octet == 17 or start_octet == 18):
+        scriptutils.die("Параметр start_octet не должен быть равен 17 или 18")
+
+    if start_octet < 1:
+        scriptutils.die("Параметр start_octet не должен быть меньше 1")
+
+    # выполняем наполнение конфигурации полями
+    config["service_label"] = service_label
+    new_values = nested_set(new_values, "service_label", service_label)
+    config["mysql_server_id"] = mysql_server_id
+    new_values = nested_set(new_values, "mysql_server_id", mysql_server_id)
+    config["start_octet"] = start_octet
+    new_values = nested_set(new_values, "start_octet", start_octet)
+
+    master_service_label = service_label
+    if service_label != "":
+        # получаем путь к файлу для связи компаний между серверами
+        servers_companies_relationship_file_path = new_values.get("company_config_mount_path") + "/" + new_values.get("servers_companies_relationship_file")
+
+        # проверяем, есть ли файл
+        if not Path(servers_companies_relationship_file_path).exists():
+
+            # если нет, создаём и указываем текущий service_label как мастер
+            f = open(servers_companies_relationship_file_path, "w")
+            reserve_relationship_write_object = {service_label: {"master": True}}
+            f.write(json.dumps(reserve_relationship_write_object))
+            f.close()
+
+            # устанавливаем пользователя
+            user = pwd.getpwnam("www-data")
+            os.chown(servers_companies_relationship_file_path, user.pw_uid, user.pw_gid)
+        else:
+            # если файл есть, читаем содержимое
+            with open(servers_companies_relationship_file_path, "r") as file:
+                reserve_relationship_str = file.read()
+                reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
+
+                if reserve_relationship_dict.get(service_label) is None:
+                    data = {"master": False}
+                    reserve_relationship_dict[service_label] = data
+
+                master_service_label = ""
+                for label, data in reserve_relationship_dict.items():
+
+                    # получаем service_label мастера
+                    if "master" in data and data["master"] == True:
+                        master_service_label = label
+
+                    # если текущий service_label и не master_service_label
+                    if label == new_values.get("service_label") and master_service_label != label:
+                        data["master"] = False
+                        reserve_relationship_dict[label] = data
+
+            # записываем новое содержимое
+            f = open(servers_companies_relationship_file_path, "w")
+            f.write(json.dumps(reserve_relationship_dict))
+            f.close()
+
+    config["master_service_label"] = master_service_label
+    new_values = nested_set(new_values, "master_service_label", master_service_label)
 
     return new_values
 
@@ -1530,11 +1681,11 @@ def init_all_projects(new_values: dict):
 
 
 def init_project(
-    new_values: dict,
-    values_path: Path,
-    environment: str,
-    project: str,
-    label: str = None,
+        new_values: dict,
+        values_path: Path,
+        environment: str,
+        project: str,
+        label: str = None,
 ):
     if project == "":
         return
@@ -1561,11 +1712,10 @@ def init_project(
     for required_field in required_project_fields:
         # если для этого проекта не надо - пропускаем
         if (required_field.get("except") is not None) and (
-            project in required_field["except"]
+                project in required_field["except"]
         ):
             continue
         if (value := protected_config.get(project + "." + required_field["name"])) is not None:
-
             new_value = process_post_value(value, required_field)
             project_values = nested_set(
                 project_values, required_field["name"], new_value
@@ -1574,14 +1724,14 @@ def init_project(
 
         if deep_get(project_values, required_field["name"]) == {}:
             if (
-                required_field.get("default_value") is not None
-                and required_field["ask"] == False
+                    required_field.get("default_value") is not None
+                    and required_field["ask"] == False
             ):
                 new_value = required_field["default_value"]
 
             if (
-                required_field.get("value_function") is not None
-                and required_field["ask"] == False
+                    required_field.get("value_function") is not None
+                    and required_field["ask"] == False
             ):
                 new_value = required_field["value_function"](
                     project, label, project_values, new_values, *required_field["args"]
@@ -1625,38 +1775,38 @@ def init_project(
         for extra_field in extra_fields:
             # если для этого проекта не надо - пропускаем
             if (extra_field.get("except") is not None) and (
-                project in extra_field["except"]
+                    project in extra_field["except"]
             ):
                 continue
 
             if extra_field.get("skip_function") is not None:
                 if extra_field["skip_function"](
-                    project, label, {}, new_values, extra_field["skip_args"] if extra_field.get("skip_args") is not None else []
+                        project, label, {}, new_values,
+                        extra_field["skip_args"] if extra_field.get("skip_args") is not None else []
                 ):
                     continue
 
             if (value := protected_config.get(project + "." + extra_field["name"])) is not None:
-
                 new_value = process_post_value(value, extra_field)
                 project_values = nested_set(project_values, extra_field["name"], new_value)
                 continue
 
             if (
-                extra_field.get("default_value") is not None
-                and extra_field["ask"] == False
+                    extra_field.get("default_value") is not None
+                    and extra_field["ask"] == False
             ):
                 new_value = extra_field["default_value"]
 
             if (
-                extra_field.get("value_function") is not None
-                and extra_field["value_function"].__name__
-                == copy_with_custom_postfix.__name__
+                    extra_field.get("value_function") is not None
+                    and extra_field["value_function"].__name__
+                    == copy_with_custom_postfix.__name__
             ):
                 extra_field["args"].append(process_postfix(label, extra_field))
 
             if (
-                extra_field.get("value_function") is not None
-                and extra_field["ask"] == False
+                    extra_field.get("value_function") is not None
+                    and extra_field["ask"] == False
             ):
                 new_value = extra_field["value_function"](
                     project, label, project_values, new_values, *extra_field["args"]
@@ -1715,6 +1865,7 @@ def init_project(
         project_clickhouse_path.mkdir(exist_ok=True, parents=True)
 
     return new_values
+
 
 try:
     start()

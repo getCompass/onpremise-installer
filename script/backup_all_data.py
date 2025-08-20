@@ -64,6 +64,9 @@ def start():
     if is_rsync_installed() == False:
         scriptutils.die("Для работы скрипта необходимо установить утилиту rsync")
 
+    # проверяем права доступа у пользователя к удаленой директории
+    check_remote_folder()
+
     # копируем инсталятор
     copy_installer()
     print(scriptutils.success("Скопировали инсталятор"))
@@ -90,6 +93,20 @@ def is_rsync_installed():
 
         # команда rsync не найдена
         return False
+
+
+# проверяем права доступа у пользователя к удаленой директории
+def check_remote_folder():
+
+    # разбиваем destination на user@host и удаленую директорию куда копируем файлы
+    remote_host, remote_path = dst.split(":", 1)
+
+    # проверяем, что у пользователя есть права для записи в директорию
+    cmd = f'ssh {remote_host} "test -d {remote_path} && test -w {remote_path} || echo ERROR"'
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    if "ERROR" in result.stdout or result.returncode != 0:
+        scriptutils.die(f"Ошибка: У пользователя нет доступа к удаленой директории {remote_path}")
 
 
 # копируем инсталятор

@@ -9,6 +9,9 @@ version: '3.8'
 ## Такая же ситуация с домино — работаем только с домино по умолчанию
 {{$domino := index .projects.domino .domino_id}}
 
+{{$service_label := ""}}{{if ne .service_label ""}}{{$service_label = printf "%s" .service_label}}{{end}}
+{{$node_label_role := ""}}{{if ne .service_label ""}}{{$node_label_role = .service_label}}{{end}}
+
 # --- EXTENSIONS ---
 # правила дефолтного деплоя для сервисов
 # если нужно что-то поменять, то только через override-файл
@@ -65,6 +68,11 @@ services:
      replicas: 1
      restart_policy:
        condition: "none"
+     {{- if ne $node_label_role "" }}
+     placement:
+       constraints:
+         - node.labels.role == {{$node_label_role}}
+     {{- end}}
 
   # Frontend
   web-{{.projects.jitsi.label}}:
@@ -80,7 +88,7 @@ services:
         target: "/config/interface_config.js"
       - source: "web-nginx-meet-conf"
         target: "/config/nginx/meet.conf"
-      - source: "web-nginx-default-conf"
+      - source: "web-nginx-dflt-conf"
         target: "/config/nginx/site-confs/default"
     volumes:
       - type: "volume"
@@ -90,7 +98,7 @@ services:
       - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.key:/config/keys/cert.key"
       - "{{.root_mount_path}}/nginx/ssl/{{.projects.jitsi.host}}.crt:/config/keys/cert.crt"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     deploy:
       replicas: 1
       restart_policy:
@@ -103,6 +111,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z jicofo-jitsi 8888 && curl -sf -o /dev/null http://xmpp.meet.jitsi:5280/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52800/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52801/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52802/http-bind || exit 1"
       interval: "4s"
@@ -150,8 +163,13 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}:
@@ -166,7 +184,7 @@ services:
     configs:
       - source: "prosody-main-cfg"
         target: "/config/conf.d/jitsi-meet.cfg.lua"
-      - source: "prosody-esync-plugin-cfg"
+      - source: "prosody-eplugin-cfg"
         target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
       - source: "prosody-rest-api-plugin-cfg"
         target: "/config/conf.d/rest-api.jitsi-meet.cfg.lua"
@@ -193,13 +211,18 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 5269"
       interval: "5s"
       timeout: "25s"
       retries: 20
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
            - xmpp.meet.jitsi
 
@@ -212,9 +235,9 @@ services:
       - '53470'
       - '52800'
     ports:
-      - '35003:52800'
+      - '{{.projects.jitsi.service.prosody.v0.serve_port}}:52800'
     configs:
-      - source: "prosody-esync-plugin-cfg-v0"
+      - source: "prosody-eplugin-cfg-v0"
         target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
@@ -238,13 +261,18 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52690"
       interval: "5s"
       timeout: "25s"
       retries: 20
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
            - xmpp.meet.jitsi
 
@@ -257,9 +285,9 @@ services:
       - '53471'
       - '52801'
     ports:
-      - '35004:52801'
+      - '{{.projects.jitsi.service.prosody.v1.serve_port}}:52801'
     configs:
-      - source: "prosody-esync-plugin-cfg-v1"
+      - source: "prosody-eplugin-cfg-v1"
         target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
@@ -285,13 +313,18 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52691"
       interval: "5s"
       timeout: "25s"
       retries: 20
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
            - xmpp.meet.jitsi
 
@@ -304,9 +337,9 @@ services:
       - '53472'
       - '52802'
     ports:
-      - '35005:52802'
+      - '{{.projects.jitsi.service.prosody.v2.serve_port}}:52802'
     configs:
-      - source: "prosody-esync-plugin-cfg-v2"
+      - source: "prosody-eplugin-cfg-v2"
         target: "/config/conf.d/esync.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
@@ -333,13 +366,18 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52692"
       interval: "5s"
       timeout: "25s"
       retries: 20
     networks:
-      monolith-private:
+      monolith-{{$service_label}}-private:
         aliases:
            - xmpp.meet.jitsi
 
@@ -367,23 +405,28 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 8888 && nc -z -w5 prosody-jitsi 5222 && nc -z -w5 prosody-jitsi-v0 52220 && nc -z -w5 prosody-jitsi-v1 52221 && nc -z -w5 prosody-jitsi-v2 52222"
       interval: "5s"
       timeout: "15s"
       retries: 3
     networks:
-        monolith-private:
+        monolith-{{$service_label}}-private:
 
   # jitsi_web
-  jitsi_web:
+  jitsi_web-{{.projects.jitsi.label}}:
     image: "{{.registry_compass_path}}/jitsi_web:{{.projects.jitsi_web.service.jitsi_web.tag}}"
     ports:
       - "{{.projects.jitsi_web.service.jitsi_web.external_port}}:80"
     env_file:
       - ".project.jitsi_web.common.env"
     networks:
-      - "monolith-private"
+      - "monolith-{{$service_label}}-private"
     healthcheck:
       test: "nc -z 127.0.0.1 80"
       interval: "10s"
@@ -401,6 +444,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+    {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+    {{- end}}
     configs:
       - source: "jitsi-web-nginx-conf"
         target: "/etc/nginx/nginx.conf"

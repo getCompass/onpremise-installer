@@ -106,7 +106,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.0.6"
+        tag: "v6.1.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -120,7 +120,7 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v6.0.0"
+        tag: "v6.1.0"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
@@ -185,7 +185,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v6.0.0"
+        tag: "v6.1.0"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -293,7 +293,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v6.0.4"
+          tag: "v6.1.0"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
@@ -350,9 +350,9 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.0.6"
+          tag: "v6.1.0"
         php_migration:
-          tag: "v6.0.0"
+          tag: "v6.1.0"
         php_repairer:
           tag: "v1.5.0"
         go_sender:
@@ -368,7 +368,7 @@ projects:
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v6.0.0"
+          tag: "v6.1.0"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -391,7 +391,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v6.0.0"
+          tag: "v6.1.0"
         nginx:
           external_https_port: 20106
   userbot:
@@ -566,6 +566,12 @@ projects:
       prosody:
         tag: "v6.0.4-1"
         serve_port: 20112
+        v0:
+          serve_port: 20113
+        v1:
+          serve_port: 20114
+        v2:
+          serve_port: 20115
       turn:
         host: ""
         port: 3478

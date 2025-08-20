@@ -1,4 +1,4 @@
-set $upstream_jitsi_landing_react jitsi_web:80;
+set $upstream_jitsi_landing_react jitsi_web-{{.projects.jitsi.label}}:80;
 set $upstream_jitsi_web web-{{.projects.jitsi.label}}:443;
 set $upstream_jitsi_prosody prosody-{{.projects.jitsi.label}}:5280;
 

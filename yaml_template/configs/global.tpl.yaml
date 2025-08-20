@@ -98,12 +98,15 @@ jitsi.service.jvb.media_advertise_ips: ""
 # Пример: jitsi.service.jicofo.port: 35001
 jitsi.service.jicofo.port: 35001
 
-# Порт для компонента prosody, модуля для ВКС
+# Порт для компонентов prosody, модуля для ВКС
 # Запросы к компоненту будут отправлять на этот порт.
 #
 # Тип данных: число
 # Пример: jitsi.service.prosody.port: 35002
 jitsi.service.prosody.serve_port: 35002
+jitsi.service.prosody.v0.serve_port: 35003
+jitsi.service.prosody.v1.serve_port: 35004
+jitsi.service.prosody.v2.serve_port: 35005
 
 # Адрес TURN сервера, который будет использоваться для соединения в ВКС
 # По умолчанию указан публичный TURN сервер Compass

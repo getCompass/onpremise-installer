@@ -6,4 +6,9 @@ searchd {
     pid_file = /var/run/manticore/searchd.pid
     data_dir = /var/lib/manticore
     max_packet_size = 64M
+
+    {{- if gt .mysql_server_id 0}}
+    listen = 9312
+    node_address = manticore-{{.mysql_server_id}}
+    {{- end}}
 }

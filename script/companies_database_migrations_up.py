@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')
 parser.add_argument('-e', '--environment', required=False, type=str, help='Окружение, в котором развернут проект')
+parser.add_argument('--service-label', required=False, default="", type=str, help='service_label окружения')
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -28,6 +29,7 @@ script_dir = str(Path(__file__).parent.resolve())
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
+service_label = args.service_label if args.service_label else ''
 stack_name_prefix = environment + '-' + values_arg
 
 # необходимые пользователи для окржуения
@@ -41,24 +43,39 @@ for user in required_user_list:
     except KeyError:
         scriptutils.die('Необходимо создать пользователя окружения' + user)
 
-values_file_path = Path('%s/../src/values.yaml' % (script_dir))
-if not values_file_path.exists():
+origin_values_file_path = Path('%s/../src/values.yaml' % (script_dir))
+if not origin_values_file_path.exists():
     exit(0)
 
-with values_file_path.open('r') as values_file:
-    current_values = yaml.safe_load(values_file)
-    current_values = {} if current_values is None else current_values
+with origin_values_file_path.open('r') as values_file:
+    orig_current_values = yaml.safe_load(values_file)
+    orig_current_values = {} if orig_current_values is None else orig_current_values
+
+stack_name = stack_name_prefix + "-monolith"
+
+if service_label != "":
+    print("Используем service_label %s" % service_label)
+    stack_name = stack_name + "-" + service_label
+
+print("Префикс сервисов при миграции окружения: %s" % stack_name)
 
 loader = Loader('Накатываю миграции On-premise окружения...', 'Скрипт миграций On-premise окружения успешно выполнен',
                 'Не смог накатить миграции On-premise окружения').start()
 
 client = docker.from_env()
-db_controller_tag = current_values["projects"]["domino"]["d1"]["service"]["go_database_controller"]["tag"]
-db_controller_service_name = "%s-monolith_go-database-controller-d1" % stack_name_prefix
+db_controller_tag = orig_current_values["projects"]["domino"]["d1"]["service"]["go_database_controller"]["tag"]
+
+db_controller_service_name = "%s_go-database-controller-d1" % stack_name
 db_controller_image = "docker.getcompass.ru/backend_compass/go_database_controller:%s" % db_controller_tag
 docker_db_controller_service_list = client.services.list(
     filters={'name': db_controller_service_name}
 )
+
+values_file_path = Path('%s/../src/values.%s.yaml' % (script_dir, values_arg))
+with values_file_path.open('r') as values_file:
+    current_values = yaml.safe_load(values_file)
+    current_values = {} if current_values is None else current_values
+mysql_server_id = current_values.get("mysql_server_id") if current_values.get("mysql_server_id") else 0
 
 update_skipped = False
 if docker_db_controller_service_list:
@@ -78,11 +95,13 @@ if docker_db_controller_service_list:
         if healthy_now:
             found_container = healthy_now[0]
     else:
+        # service update: в этом случае не подтягивает новые переменные из docker compose
         cmd = [
             "docker", "service", "update",
             db_controller_service_name,
             "--force", "-d",
-            "--image", db_controller_image
+            "--image", db_controller_image,
+            "--env-add", f"MYSQL_SERVER_ID={mysql_server_id}"
         ]
         try:
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -102,7 +121,7 @@ if not update_skipped:
     )
     initial_ids = {c.id for c in initial_healthy}
 
-    timeout = 300
+    timeout = 600
     interval = 5
     elapsed = 0
 
@@ -126,11 +145,12 @@ if not update_skipped:
 
     else:
         scriptutils.die(
-            'Не был найден необходимый docker контейнер для выполнения миграций. Проверьте что окружение поднялось корректно')
+            'Не был найден необходимый docker контейнер %s для выполнения миграций. Проверьте что окружение поднялось корректно' % db_controller_service_name
+        )
 
-timeout = 60
+timeout = 120
 n = 0
-name = "%s-monolith_php-migration" % stack_name_prefix
+name = "%s_php-migration" % stack_name
 while n <= timeout:
 
     docker_container_list = client.containers.list(filters={'name': name, 'health': 'healthy'})
@@ -142,14 +162,22 @@ while n <= timeout:
     sleep(5)
     if n == timeout:
         scriptutils.die(
-            'Не был найден необходимый docker контейнер миграций компании. Проверьте что окружение поднялось корректно')
+            'Не был найден необходимый docker контейнер %s миграций компании. Проверьте что окружение поднялось корректно' % name
+        )
 
-output = found_container.exec_run(user='www-data',
-                                  cmd=['bash', '-c', 'php /app/src/Compass/Migration/sh/php/migrate_up.php --y'])
+timeout = 180
+n = 0
+while n <= timeout:
+    output = found_container.exec_run(user='www-data',
+                                      cmd=['bash', '-c', 'php /app/src/Compass/Migration/sh/php/migrate_up.php --y'])
 
-if output.exit_code == 0:
-    loader.success()
-else:
-    loader.error()
-    print(output.output.decode("utf-8"))
-    scriptutils.error('Что то пошло не так. Не смогли накатить миграции')
+    if output.exit_code == 0:
+        loader.success()
+        break
+    n = n + 5
+    sleep(5)
+
+    if n == timeout:
+        loader.error()
+        print(output.output.decode("utf-8"))
+        scriptutils.error('Что то пошло не так. Не смогли накатить миграции')

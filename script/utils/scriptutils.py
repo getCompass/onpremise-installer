@@ -4,8 +4,10 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import os, shutil
-
+import os, yaml, shutil
+import docker
+from pathlib import Path
+from time import sleep
 
 class bcolors:
     HEADER = "\033[95m"
@@ -134,3 +136,98 @@ def is_rpm_os():
         return True
 
     return False
+
+# включена ли репликация
+def is_replication_enabled(values_dict: dict):
+    if values_dict.get("service_label") is not None and values_dict.get("service_label") != "":
+        return True
+
+    return False
+
+# мастер сервер ли
+def is_replication_master_server(values_dict: dict):
+    if is_replication_enabled(values_dict) == False:
+        return True
+
+    if values_dict.get("service_label") is not None and values_dict.get("service_label") != "" and values_dict.get("master_service_label") is not None and values_dict.get("master_service_label") != "":
+        if values_dict.get("service_label") != values_dict.get("master_service_label"):
+            return False
+        else:
+            return True
+
+    return True
+
+def merge(a: dict, b: dict, path=[]):
+
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] != b[key]:
+                a[key] = b[key]
+        else:
+            a[key] = b[key]
+    return a
+
+def find_container_mysql_container(client: docker.DockerClient, mysql_type: str, domino_id: str, port :int = 0):
+    """
+    Ищет контейнеры по правилам:
+    1) monolith -> ищем единственный контейнер c 'mysql' и 'monolith' в имени
+    2) team -> ищем все контейнеры c 'mysql' и '{domino_id}-company' в имени;
+               берем последний созданный (по атрибуту Created)
+    """
+    timeout = 600
+    n = 0
+    while n <= timeout:
+
+        all_containers = client.containers.list()
+        mysql_type = mysql_type.lower()
+
+        if mysql_type == "monolith":
+            matching = [c for c in all_containers
+                        if ("mysql" in c.name.lower() and
+                            "monolith" in c.name.lower())]
+            if len(matching) == 0:
+                error_text = "Не найден ни один контейнер (mysql + monolith)."
+            if len(matching) > 1:
+                error_text = "Найдено несколько контейнеров (mysql + monolith). Ожидался единственный."
+            else:
+                found_pivot_container = matching[0]
+                break
+        elif mysql_type == "team":
+            matching = [c for c in all_containers
+                        if (("%s-company_mysql-%s" % (domino_id, str(port))) in c.name.lower())]
+            if len(matching) == 0:
+                error_text = "Не найден ни один контейнер (mysql + %s-company)." % domino_id
+            else:
+                # сортируем по времени создания, берём последний (reverse=True)
+                matching_sorted = sorted(matching,
+                                         key=lambda x: x.attrs["Created"],
+                                         reverse=True)
+                found_pivot_container = matching_sorted[0]
+                break
+        else:
+            error_text = f"Неизвестный тип: {mysql_type}. Поддерживается monolith или team."
+        n = n + 5
+        sleep(5)
+        if n == timeout:
+            die(error_text)
+    sleep(15) # подождём немного чтобы контейнер полностью поднялся
+
+    return found_pivot_container
+
+# получить данные окружение из security
+def get_security(values_dict: dict) -> dict:
+    security_file_path = Path("%s/security.yaml" % values_dict["root_mount_path"])
+
+    if not security_file_path.exists():
+        die("Не найден файл с ключами для деплоя. Окружение было ранее развернуто?")
+
+    with security_file_path.open("r") as security_file:
+        security = yaml.safe_load(security_file)
+        security = {} if security is None else security
+
+    if security.get("replication") is None or security["replication"].get("mysql_user") is None:
+        die("Файл со значениями невалиден. Окружение было ранее развернуто?")
+
+    return security

@@ -358,7 +358,7 @@ services:
       - *default-deploy
       - *log-rule-default
     volumes:
-      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
   # GO_ACTIVITY
   go-activity-{{.projects.pivot.label}}:
     image: "{{.registry_compass_path}}/go_activity:{{.projects.pivot.service.go_activity.tag}}"

@@ -87,6 +87,7 @@ PUBLIC_ENTRYPOINT_LICENSE="https://license.getcompass.ru"
 PUBLIC_ENTRYPOINT_BILLING={{.billing_protocol}}://{{.billing_domain}}
 PUBLIC_ENTRYPOINT_VIDEO_CONFERENCE={{.protocol}}://{{.projects.jitsi.domain}}/c
 PUBLIC_ENTRYPOINT_ELECTRON_UPDATE=https://update-onpremise.getcompass.ru
+PUBLIC_ENTRYPOINT_ELECTRON_DOWNLOAD_APP=https://update.getcompass.ru/electron/onpremise-compass
 PUBLIC_CONNECT_CHECK_URL=https://ya.ru
 
 # точки входа для ссылок приглашений, основная будет использоваться для генерации

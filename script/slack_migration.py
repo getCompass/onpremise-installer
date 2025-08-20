@@ -154,6 +154,12 @@ scriptutils.assert_root()
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
 stack_name_prefix = environment + '-' + values_arg
+stack_name = stack_name_prefix + "-monolith"
+
+# добавляем к префиксу stack-name также пометку сервиса, если такая имеется
+service_label = current_values.get("service_label") if current_values.get("service_label") else ""
+if service_label != "":
+    stack_name = stack_name + "-" + service_label
 
 # необходимые пользователи для окружения
 required_user_list = ['www-data']
@@ -175,7 +181,7 @@ while n <= timeout:
 
     docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_php-monolith" % stack_name_prefix,
+            "name": "%s_php-monolith" % stack_name,
             "health": "healthy",
         }
     )
@@ -197,7 +203,7 @@ while n <= timeout:
 
     docker_container_list = client.containers.list(
         filters={
-            "name": "%s-monolith_php-file-node-file1" % stack_name_prefix,
+            "name": "%s_php-file-node-file1" % stack_name,
             "health": "healthy",
         }
     )
