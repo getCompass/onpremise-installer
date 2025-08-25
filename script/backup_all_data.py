@@ -94,19 +94,34 @@ def is_rsync_installed():
         # команда rsync не найдена
         return False
 
+def parse_destination(dst: str):
+    # если строка содержит "user@host:/path" или "host:/path"
+    # и не начинается с "/" (чтобы не спутать с локальным путём)
+    if ":" in dst and not dst.startswith("/"):
+        remote_host, remote_path = dst.split(":", 1)
+        return True, remote_host, remote_path
+    return False, None, dst
 
 # проверяем права доступа у пользователя к удаленой директории
 def check_remote_folder():
 
-    # разбиваем destination на user@host и удаленую директорию куда копируем файлы
-    remote_host, remote_path = dst.split(":", 1)
+    is_remote, remote_host, path = parse_destination(dst)
 
-    # проверяем, что у пользователя есть права для записи в директорию
-    cmd = f'ssh {remote_host} "test -d {remote_path} && test -w {remote_path} || echo ERROR"'
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if is_remote:
+        # проверяем, что у пользователя есть права для записи в директорию
+        cmd = f'ssh {remote_host} "test -d {path} && test -w {path} || echo ERROR"'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-    if "ERROR" in result.stdout or result.returncode != 0:
-        scriptutils.die(f"Ошибка: У пользователя нет доступа к удаленой директории {remote_path}")
+        if "ERROR" in result.stdout or result.returncode != 0:
+            scriptutils.die(f"Ошибка: У пользователя нет доступа к удаленой директории {path}")
+    else:
+        # локальная директория
+        if not os.path.exists(path):
+                scriptutils.die(f"Локальная директория {path} не существует.")
+
+        # проверяем право на запись
+        if not os.access(path, os.W_OK):
+            scriptutils.die(f"Нет прав на запись в локальную директорию {path}")
 
 
 # копируем инсталятор

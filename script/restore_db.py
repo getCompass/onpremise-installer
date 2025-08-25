@@ -66,6 +66,9 @@ except ValueError:
 
 host_ip = config_values["host_ip"]
 
+# используем всегда из конфига, т.к в values еще не обновленный
+root_mount_path = config_values["root_mount_path"]
+
 stack_name_prefix = environment + '-' + values_name
 
 need_backup_spaces = True
@@ -113,7 +116,7 @@ def start():
     client.images.pull(repository=XTRABACKUP_IMAGE, tag=XTRABACKUP_VERSION)
     loader.success()
 
-    backup_path = choose_backup(current_values)
+    backup_path = choose_backup(root_mount_path)
 
     monolith_backup_name, space_backup_info_list, config_archive_name = validate_backup_contents(current_values, backup_path)
 
@@ -122,10 +125,10 @@ def start():
 
     # восстанавливаем конфигурацию
     if "production" in current_values["server_tag_list"]:
-        start_config_restore(current_values, backup_path, config_archive_name)
+        start_config_restore(root_mount_path, backup_path, config_archive_name)
 
     # начинаем бэкап монолита
-    start_monolith_restore(current_values, backup_path, monolith_backup_name)
+    start_monolith_restore(root_mount_path, backup_path, monolith_backup_name)
 
     # начинаем бэкап пространств
     start_space_restore(current_values, backup_path, space_backup_info_list)
@@ -137,7 +140,7 @@ def start():
 
     # если передали ip - меняем
     if host_ip != "":
-        update_host_ip(monolith_container, host_ip, current_values["root_mount_path"])
+        update_host_ip(monolith_container, host_ip, root_mount_path)
 
     # обновляем конфиги пространств
     update_space_configs(monolith_container)
@@ -314,11 +317,11 @@ def start_dev_environment(current_values: dict):
 
 
 # восстанавливаем базу монолита
-def start_monolith_restore(current_values: dict, backup_path: str, monolith_backup_name: str):
+def start_monolith_restore(root_mount_path: str, backup_path: str, monolith_backup_name: str):
     monolith = DbConfig(
         "",
         0,
-        "%s/monolith/database" % current_values["root_mount_path"],
+        "%s/monolith/database" % root_mount_path,
         "%s/%s" % (backup_path, monolith_backup_name),
     )
 
@@ -349,22 +352,22 @@ def safe_extract(tar_obj: tarfile.TarFile, path: str) -> None:
         tar_obj.extractall(path)
 
 # восстанавливаем конфиги
-def start_config_restore(current_values: dict, backup_path: str, config_archive_name: str):
+def start_config_restore(root_mount_path: str, backup_path: str, config_archive_name: str):
 
     file = tarfile.open("%s/%s" % (backup_path, config_archive_name)) 
     print(file.getnames())
-    safe_extract(file, current_values["root_mount_path"])
+    safe_extract(file, root_mount_path)
     file.close()
 
-    if Path(current_values["root_mount_path"] + "/security.yaml").exists():
-        shutil.copyfile(current_values["root_mount_path"] + "/security.yaml", script_dir + "/../src/security.yaml")
+    if Path(root_mount_path + "/security.yaml").exists():
+        shutil.copyfile(root_mount_path + "/security.yaml", script_dir + "/../src/security.yaml")
 
 
-def choose_backup(current_values: dict) -> str:
+def choose_backup(root_mount_path: str) -> str:
     backup_path_dict = {}
     backup_option_list = []
 
-    backup_path_str = "%s/backups" % (current_values["root_mount_path"])
+    backup_path_str = "%s/backups" % root_mount_path
 
     backup_archive_path = ""
     for backup_archive_path in glob.glob("%s/*" % backup_path_str):
