@@ -23,6 +23,7 @@ args = parser.parse_args()
 # --- КОНЕЦ АРГУМЕНТОВ ---#
 
 scriptutils.assert_root()
+script_dir = str(Path(__file__).parent.resolve())
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
@@ -30,14 +31,14 @@ stack_name_prefix = environment + '-' + values_arg
 
 stack_name = stack_name_prefix + "-monolith"
 
-if Path("src/values." + environment + "." + values_arg + ".yaml").exists():
+if Path(script_dir + "/../src/values." + environment + "." + values_arg + ".yaml").exists():
     values_file_path = str(
-        Path("src/values." + environment + "." + values_arg + ".yaml").resolve()
+        Path(script_dir + "/../src/values." + environment + "." + values_arg + ".yaml").resolve()
     )
-elif (Path("src/values." + values_arg + ".yaml").exists()):
-    values_file_path = str(Path("src/values." + values_arg + ".yaml").resolve())
+elif (Path(script_dir + "/../src/values." + values_arg + ".yaml").exists()):
+    values_file_path = str(Path(script_dir + "/../src/values." + values_arg + ".yaml").resolve())
 else:
-    values_file_path = str(Path("src/values.yaml").resolve())
+    values_file_path = str(Path(script_dir + "/../src/values.yaml").resolve())
 
 with open(values_file_path, "r") as values_file:
     current_values = yaml.safe_load(values_file)

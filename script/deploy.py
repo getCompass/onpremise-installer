@@ -241,22 +241,22 @@ atexit.register(cleanup)
 for sig in catchable_sigs:
     signal.signal(signal.SIGINT, cleanup)
 
-values_file_name = str(Path("src/values.yaml").resolve())
+values_file_name = str(Path(script_dir + "/../src/values.yaml").resolve())
 product_type = override_data.get("product_type", "") if override_data else ""
 
-if Path("src/values." + environment + "." + values + ".yaml").exists():
+if Path(script_dir + "/../src/values." + environment + "." + values + ".yaml").exists():
     specified_values_file_name = str(
-        Path("src/values." + environment + "." + values + ".yaml").resolve()
+        Path(script_dir + "/../src/values." + environment + "." + values + ".yaml").resolve()
     )
 elif (
-    product_type
-    and Path("src/values." + values + "." + product_type + ".yaml").exists()
+        product_type
+        and Path(script_dir + "/../src/values." + values + "." + product_type + ".yaml").exists()
 ):
     specified_values_file_name = str(
-        Path("src/values." + values + "." + product_type + ".yaml").resolve()
+        Path(script_dir + "/../src/values." + values + "." + product_type + ".yaml").resolve()
     )
 else:
-    specified_values_file_name = str(Path("src/values." + values + ".yaml").resolve())
+    specified_values_file_name = str(Path(script_dir + "/../src/values." + values + ".yaml").resolve())
 
 with open(specified_values_file_name, "r") as values_file:
     values_dict = yaml.safe_load(values_file)

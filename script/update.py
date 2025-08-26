@@ -368,21 +368,21 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
     "Ошибка при сверке конфигурации приложения"
 )
 
-if Path("src/values." + environment + "." + values_name + ".yaml").exists():
+if Path(script_dir + "/../src/values." + environment + "." + values_name + ".yaml").exists():
     specified_values_file_name = str(
-        Path("src/values." + environment + "." + values_name + ".yaml").resolve()
+        Path(script_dir + "/../src/values." + environment + "." + values_name + ".yaml").resolve()
     )
 elif (
         product_type
-        and Path("src/values." + values_name + "." + product_type + ".yaml").exists()
+        and Path(script_dir + "/../src/values." + values_name + "." + product_type + ".yaml").exists()
 ):
     specified_values_file_name = str(
-        Path("src/values." + values_name + "." + product_type + ".yaml").resolve()
+        Path(script_dir + "/../src/values." + values_name + "." + product_type + ".yaml").resolve()
     )
-elif (Path("src/values." + values_name + ".yaml").exists()):
-    specified_values_file_name = str(Path("src/values." + values_name + ".yaml").resolve())
+elif (Path(script_dir + "/../src/values." + values_name + ".yaml").exists()):
+    specified_values_file_name = str(Path(script_dir + "/../src/values." + values_name + ".yaml").resolve())
 else:
-    specified_values_file_name = str(Path("src/values.yaml").resolve())
+    specified_values_file_name = str(Path(script_dir + "/../src/values.yaml").resolve())
 
 with open(specified_values_file_name, "r") as values_file:
     values_dict = yaml.safe_load(values_file)
