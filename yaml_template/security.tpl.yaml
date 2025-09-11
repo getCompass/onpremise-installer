@@ -41,6 +41,7 @@ security_keys:
     salt_sender_balancer_hash: ""
     salt_sender_hash: ""
     socket_key_pivot: ""
+    socket_key_prosody: ""
   partner:
     socket_key_partner: ""
   userbot:

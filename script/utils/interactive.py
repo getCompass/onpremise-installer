@@ -65,7 +65,7 @@ class InteractiveValue:
         value = self.config.get(self.name)
         error = ""
 
-        if (value is None or (value == "")) and self.is_required:
+        if (value is None or (value == "")) and self.is_required and self.default_value is None:
             raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации отсутствует значение для поля %s " % self.name + bcolors.ENDC)
 
         if ((value is None) or (value == "")) and not self.is_required:
@@ -77,7 +77,8 @@ class InteractiveValue:
 
         # если значение должно быть булевым - конвертим
         if self.type == "bool":
-            value = bool(value == "true" or value == 1)
+            value = self.prepare_bool(value)
+                
         # если значение должно быть интовым - конвертим
         if self.type == "int":
             try:
@@ -125,16 +126,35 @@ class InteractiveValue:
         self.value = value
         return self.value
 
+    # подготавливаем bool
+    def prepare_bool(self, value):
+
+        if isinstance(value, bool):
+            return value
+
+        if isinstance(value, int) and value in [0,1]:
+            return bool(value)
+        
+        if isinstance(value, str) and value in ["true","false"]:
+            return True if value == "true" else False
+
+        raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации введено неверное значение для поля %s" % self.name + bcolors.ENDC)
+
     # подготавливаем массив
     def prepare_arr(self, value):
 
         output = []
 
         if type(value) is not list:
-            # разбиваем строку через запятую
-            item_list = value.split(",")
+
+            if value == "":
+                item_list = []
+            else:
+                # разбиваем строку через запятую
+                item_list = value.split(",")
         else:
             item_list = value
+
         for index, item in enumerate(item_list):
             # убираем отступы
             # оборачиваем в кавычки
@@ -145,6 +165,11 @@ class InteractiveValue:
             
             if error != "":
                 raise IncorrectValueException(self.name, bcolors.WARNING + error + ", параметр в конфиге %s" % self.name + bcolors.ENDC)
+            
+            if self.options != [] and item not in self.options:
+                options_string = ", ".join(self.options)
+                raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации введено неверное значение для поля %s. Допустимые значения: %s" % (self.name, options_string) + bcolors.ENDC)
+
             output.append(item)
         if len(output) < 1 and self.is_required:
             raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации не введено перечисление для поля %s, исправьте и попробуйте еще раз" % self.name + bcolors.ENDC)
@@ -248,7 +273,10 @@ def validate(value: str, validation: Union[str, None]) -> str:
         return validate_mail_password(value)
     if validation == "smtp_username":
             return validate_smtp_username(value)
-
+    if validation == "port":
+            return validate_port(value)
+    if validation == "host":
+            return validate_host(value)
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
@@ -264,6 +292,13 @@ def validate_smtp_username(smtp_username: str) -> str:
     match = re.search(smtp_username_pattern, smtp_username)
     if match is not None:
         return "Неверный формат smtp логина"
+
+    return ""
+
+def validate_port(port: str) -> str:
+
+    if not 1 <= port <= 65535:
+        return "Неверный формат порта. Правильное значение от 1 до 65535"
 
     return ""
 
@@ -323,6 +358,46 @@ def validate_idna(value: str) -> str:
     except:
         return "Неправильное значение для домена"
 
+def validate_host(value: str) -> str:
+
+    ip_err = validate_ip(value)
+    is_valid_idn = is_valid_domain_idn(value)
+
+    if ip_err != "" and not is_valid_idn:
+        return "Неправильное значение для хоста. Введите валидный IP или домен"
+
+    return ""
+
+# проверить, является ли доменом
+def is_valid_domain_idn(domain):
+
+    # Разделяем домен на части
+    domain_parts = domain.split('.')
+        
+    # Должно быть как минимум 2 части
+    if len(domain_parts) < 2:
+        return False
+    
+    # Проверяем каждую часть домена
+    for part in domain_parts:
+        # Длина каждой части от 1 до 63 символов
+        if len(part) < 1 or len(part) > 63:
+            return False
+        
+        # Проверяем допустимые символы для IDN (Unicode + дефис)
+        # Используем более широкий диапазон Unicode символов
+        if not re.match(r'^[\w\-]+$', part, re.UNICODE):
+            return False
+        
+        # Часть не может начинаться или заканчиваться дефисом
+        if part.startswith('-') or part.endswith('-'):
+            return False
+            
+    # Общая длина домена не более 253 символов
+    if len(domain.encode('utf-8')) > 253:
+        return False
+    
+    return True
 
 # исключение пустого значения
 class EmptyValueException(Exception):

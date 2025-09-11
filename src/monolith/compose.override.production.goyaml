@@ -190,6 +190,8 @@ services:
         target: "/config/conf.d/rest-api.jitsi-meet.cfg.lua"
       - source: "prosody-persistent-lobby-cfg"
         target: "/config/conf.d/persistent-lobby.jitsi-meet.cfg.lua"
+      - source: "prosody-dlp-cfg"
+        target: "/config/conf.d/dlp.jitsi-meet.cfg.lua"
     env_file:
       - ".project.jitsi.common.env"
       - ".project.jitsi.prosody_main.env"

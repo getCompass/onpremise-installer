@@ -279,9 +279,7 @@ command = [
     "monolith",
     "--validate-only",
 ]
-subprocess.run(command).returncode == 0 or scriptutils.die(
-    "Ошибка при валидации конфигурации приложения"
-)
+subprocess.run(command).returncode == 0 or exit(1)
 
 print("Валидируем конфигурацию отказоустойчивости и бд")
 subprocess.run(

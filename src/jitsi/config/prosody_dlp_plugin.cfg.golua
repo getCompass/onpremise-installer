@@ -1,0 +1,5 @@
+Component "dlp.meet.jitsi" "dlp_check"
+    muc_component = "conference.meet.jitsi"
+    entrypoint_jitsi = "{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path 0}}"
+    is_dlp_enabled = {{.icap.is_enabled}}
+    socket_key_prosody = "{{.security_keys.pivot.socket_key_prosody}}"
