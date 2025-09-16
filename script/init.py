@@ -1627,7 +1627,7 @@ def init_database(new_values: dict):
 
         new_value, field_name = process_field(
             field.copy(), "database_encryption", "database_encryption",
-            new_values["database_encryption"], new_values, database_config, database_config_path
+            new_values["database_encryption"], new_values, config, database_config_path
         )
 
         if new_value is None:
