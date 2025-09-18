@@ -55,7 +55,7 @@
 
 - Single-server:
     - CPU 8 физических ядер;
-    - RAM 24GByte;
+    - RAM 24 GByte;
     - SSD 1 TByte.
 
 #### От 300 до 1000 активных пользователей:
