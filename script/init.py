@@ -59,7 +59,9 @@ if not team_config_path.exists():
     exit(1)
 
 if not dlp_config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(dlp_config_path.resolve())))
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+            dlp_config_path.resolve())))
     exit(1)
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
@@ -198,6 +200,11 @@ parser.add_argument(
     required=False,
     action='store_true'
 )
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action="store_true"
+)
 args = parser.parse_args()
 
 
@@ -229,6 +236,7 @@ project = args.project
 environment = args.environment
 use_default_values = args.use_default_values
 validate_only = args.validate_only
+installer_output = args.installer_output
 install_integration = args.install_integration
 project_name_override = (
     args.project_name_override if args.project_name_override is not False else ""
@@ -287,11 +295,16 @@ def nested_set(dic, keys, value, create_missing=True):
 
 def handle_exception(field: str, message: str, config_path: str):
     if validate_only:
+        if installer_output:
+            if validation_errors.get(config_path) is None:
+                validation_errors[config_path] = []
 
-        if validation_errors.get(config_path) is None:
-            validation_errors[config_path] = []
-        
-        validation_errors[config_path].append(message)
+            validation_errors[config_path].append(field)
+        else:
+            if validation_errors.get(config_path) is None:
+                validation_errors[config_path] = []
+
+            validation_errors[config_path].append(message)
         return
 
     print(message)
@@ -476,6 +489,7 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
 
     return str(path.resolve())
 
+
 def strtolower(value):
     if isinstance(value, str):
         return value.lower()
@@ -484,11 +498,12 @@ def strtolower(value):
         output = []
         for item in value:
             output.append(str(item).lower())
-        
+
         return output
-    
+
     return None
-            
+
+
 def convert_idn(value: str):
     return value.strip().encode("idna").decode()
 
@@ -1337,12 +1352,21 @@ def process_field(
 
 def write_to_file(new_values: dict):
     if validate_only:
-        if len(validation_errors) > 0:
-            for config_path, error_list in validation_errors.items():
-                print(scriptutils.error("Ошибка в конфигурации %s" % str(config_path.resolve())))
-                for error in error_list:
-                    print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                failed_fields = []
+                for _, error_list in validation_errors.items():
+                    failed_fields.extend(error_list)
+                print(json.dumps(failed_fields, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                for config_path, error_list in validation_errors.items():
+                    print(scriptutils.error("Ошибка в конфигурации %s" % str(config_path.resolve())))
+                    for error in error_list:
+                        print(error)
+                exit(1)
         return
     new_path = Path(str(values_file_path.resolve()))
     with new_path.open("w+t") as f:
@@ -1396,6 +1420,9 @@ def start():
     # если имеется флаг установки интеграции, то добавляем тег integration
     if install_integration:
         values_initial_dict["server_tag_list"] += ["integration"]
+
+    if scriptutils.is_yandex_cloud_marketplace_product():
+        values_initial_dict["server_tag_list"] += ["yandex_cloud_marketplace"]
 
     new_values = init_global(values_initial_dict, values_file_path, environment)
     new_values = init_nginx(new_values)
@@ -1536,8 +1563,8 @@ def init_nginx(new_values: dict):
 
     return new_values
 
-def init_icap(new_values: dict):
 
+def init_icap(new_values: dict):
     if new_values.get("icap") is None:
         new_values["icap"] = {}
 
@@ -1552,6 +1579,7 @@ def init_icap(new_values: dict):
         new_values = nested_set(new_values, "icap.%s" % field_name, new_value)
 
     return new_values
+
 
 def init_team(new_values: dict):
     """инициализируем конфигурацию команды"""
@@ -1687,7 +1715,8 @@ def init_replication(new_values: dict):
     master_service_label = service_label
     if service_label != "":
         # получаем путь к файлу для связи компаний между серверами
-        servers_companies_relationship_file_path = new_values.get("company_config_mount_path") + "/" + new_values.get("servers_companies_relationship_file")
+        servers_companies_relationship_file_path = new_values.get("company_config_mount_path") + "/" + new_values.get(
+            "servers_companies_relationship_file")
 
         # проверяем, есть ли файл
         if not Path(servers_companies_relationship_file_path).exists():
@@ -1705,7 +1734,8 @@ def init_replication(new_values: dict):
             # если файл есть, читаем содержимое
             with open(servers_companies_relationship_file_path, "r") as file:
                 reserve_relationship_str = file.read()
-                reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
+                reserve_relationship_dict = json.loads(
+                    reserve_relationship_str) if reserve_relationship_str != "" else {}
 
                 if reserve_relationship_dict.get(service_label) is None:
                     data = {"master": False}
@@ -1775,7 +1805,7 @@ def init_all_projects(new_values: dict):
 
         for extra_field in common_specific_project_fields[project]:
             new_value, field_name = process_field(
-                extra_field.copy(), project, label, project_values, new_values, config, config_path            )
+                extra_field.copy(), project, label, project_values, new_values, config, config_path)
 
             if new_value is None:
                 continue

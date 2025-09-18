@@ -86,11 +86,18 @@ parser.add_argument(
     action='store_true'
 )
 
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action='store_true'
+)
+
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
 validate_only = args.validate_only
+installer_output = args.installer_output
 
 # пути для конфигов
 auth_conf_path = args.auth_output_path
@@ -1153,7 +1160,10 @@ class SsoLdapConfig:
 
 def handle_exception(field, message: str):
     if validate_only:
-        validation_errors.append(message)
+        if installer_output:
+            validation_errors.append(field)
+        else:
+            validation_errors.append(message)
         return
 
     print(message)
@@ -1169,11 +1179,17 @@ def start():
 # записываем содержимое в файл
 def write_file(output: str, conf_path: Path):
     if validate_only:
-        if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
-            for error in validation_errors:
-                print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                print(json.dumps(validation_errors, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+                for error in validation_errors:
+                    print(error)
+                exit(1)
         exit(0)
 
     conf_path.unlink(missing_ok=True)
@@ -1210,12 +1226,17 @@ def generate_config():
 
     # если только валидируем данные, то файлы не пишем
     if validate_only:
-
-        if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
-            for error in validation_errors:
-                print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                print(json.dumps(validation_errors, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+                for error in validation_errors:
+                    print(error)
+                exit(1)
         exit(0)
 
     if len(validation_errors) == 0:

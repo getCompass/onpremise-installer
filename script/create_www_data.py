@@ -4,10 +4,24 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import pwd, getpass
+import pwd, getpass, argparse
 from subprocess import Popen, PIPE
 
 from utils import scriptutils
+
+parser = argparse.ArgumentParser(add_help=False)
+
+parser.add_argument("--validate-only", required=False, action="store_true")
+parser.add_argument("--installer-output", required=False, action="store_true")
+args = parser.parse_args()
+validate_only = args.validate_only
+installer_output = args.installer_output
+
+QUIET = (validate_only and installer_output)
+
+def log(*args, **kwargs):
+    if not QUIET:
+        print(*args, **kwargs)
 
 exec_user_name = "www-data"
 exec_user_uid = 33
@@ -25,8 +39,8 @@ def add_user(name: str, uid: int):
     p.wait()
 
     if p.returncode != 0:
-        print(scriptutils.error(p.stdout.read().decode()))
-        print(scriptutils.error(p.stdout.read().decode()))
+        log(scriptutils.error(p.stdout.read().decode()))
+        log(scriptutils.error(p.stdout.read().decode()))
         exit(1)
 
     if scriptutils.is_rpm_os():
@@ -45,11 +59,11 @@ def add_user(name: str, uid: int):
     p.wait()
 
     if p.returncode != 0:
-        print(scriptutils.error(p.stdout.read().decode()))
-        print(scriptutils.error(p.stdout.read().decode()))
+        log(scriptutils.error(p.stdout.read().decode()))
+        log(scriptutils.error(p.stdout.read().decode()))
         exit(1)
 
-    print(scriptutils.success("Пользователь www-data создан"))
+    log(scriptutils.success("Пользователь www-data создан"))
 
 
 def create_user_dialog(name: str, uid: int):
@@ -57,7 +71,7 @@ def create_user_dialog(name: str, uid: int):
         user = pwd.getpwnam(exec_user_name)
 
         if user.pw_uid == uid:
-            print(
+            log(
                 scriptutils.success("Пользователь %s уже существует в системе" % (name))
             )
             return

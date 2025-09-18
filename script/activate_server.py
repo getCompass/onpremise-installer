@@ -5,18 +5,20 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, psutil
+import argparse, yaml, psutil, shlex
 import docker
 from pathlib import Path
-from utils import scriptutils, interactive
+from utils import scriptutils
 from loader import Loader
 from time import sleep
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')
-parser.add_argument('-e', '--environment', required=False, default="production", type=str, help='Окружение, в котором разворачиваем')
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором разворачиваем')
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -76,10 +78,28 @@ def start():
         n = n + 5
         sleep(5)
         if n == timeout:
-            scriptutils.die('Не был найден необходимый docker контейнер для активации сервера. Проверьте что окружение поднялось корректно')
+            scriptutils.die(
+                'Не был найден необходимый docker контейнер для активации сервера. Проверьте что окружение поднялось корректно')
+
+    yc_identity_document, yc_identity_document_base64_signature = scriptutils.get_yc_params()
+
+    # экранируем для шелла
+    yc_identity_document_arg = shlex.quote(yc_identity_document)
+    yc_identity_document_base64_signature_arg = shlex.quote(yc_identity_document_base64_signature)
 
     loader = Loader('Активирую сервер...', 'Сервер активирован', 'Не смог активировать сервер').start()
-    output = found_container.exec_run(user='www-data', cmd=['bash', '-c', 'php src/Compass/Premise/sh/php/server/activate.php'])
+    cli = "php src/Compass/Premise/sh/php/server/activate.php"
+    if len(yc_identity_document_arg) > 0 and len(yc_identity_document_base64_signature_arg) > 0:
+        cli = cli + (" --yc-identity-document=%s" % yc_identity_document_arg)
+        cli = cli + (" --yc-identity-document-base64-signature=%s" % yc_identity_document_base64_signature_arg)
+    output = found_container.exec_run(
+        user='www-data',
+        cmd=[
+            "bash",
+            "-c",
+            cli.strip()
+        ]
+    )
 
     if output.exit_code == 0:
         loader.success()

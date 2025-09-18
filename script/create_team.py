@@ -5,7 +5,7 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import subprocess, argparse, yaml, psutil
+import subprocess, argparse, yaml, json, psutil
 import docker
 from pathlib import Path
 from utils import scriptutils, interactive
@@ -36,6 +36,12 @@ parser.add_argument(
     "--validate-only",
     required=False,
     action='store_true'
+)
+
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action="store_true"
 )
 parser.add_argument("--init", required=False, action="store_true")
 
@@ -81,7 +87,6 @@ for config_path in config_path_list:
 
     config.update(config_values)
 
-
 def get_company_ports():
     default_company_start_port = 33150
     default_company_end_port = 33164
@@ -111,32 +116,36 @@ def get_company_ports():
         end_company_port = 0
 
     if end_company_port < start_company_port:
+
         message = "Конечный порт не может быть меньше начального"
         handle_exception(e.field, message)
 
     return start_company_port, end_company_port
 
-
 def handle_exception(field, message: str):
+
     if validate_only:
-        validation_errors.append(message)
+        if installer_output:
+            validation_errors.append(field)
+        else:
+            validation_errors.append(message)
         return
 
     print(message)
     exit(1)
 
-
 def create_domino(
-        pivot_container: docker.models.containers.Container,
-        domino_id: str,
-        domino_url: str,
-        database_host: str,
-        code_host: str,
-        database_user: str,
-        database_pass: str,
-        go_database_controller_port: str,
-        db_driver: DBDriverConf,
+    pivot_container: docker.models.containers.Container,
+    domino_id: str,
+    domino_url: str,
+    database_host: str,
+    code_host: str,
+    database_user: str,
+    database_pass: str,
+    go_database_controller_port: str,
+    db_driver: DBDriverConf,
 ):
+
     pivot_container.exec_run(
         user="www-data",
         cmd=[
@@ -198,7 +207,6 @@ def create_domino(
         loader.error()
         print(output.output.decode("utf-8"))
 
-
 # ---СКРИПТ---#
 
 values_arg = args.values if args.values else ""
@@ -207,6 +215,7 @@ stack_name_prefix = environment + "-" + values_arg
 stack_name = stack_name_prefix + "-monolith"
 init = args.init
 validate_only = args.validate_only
+installer_output = args.installer_output
 
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_resolved_path, values_arg))
 
@@ -252,8 +261,7 @@ db_driver_name = db_config.get("driver")
 
 if db_driver_name == "docker":
     start_company_port, end_company_port = get_company_ports()
-    db_driver = DBDriverConf(db_driver_name,
-                             {"start_company_port": start_company_port, "end_company_port": end_company_port})
+    db_driver = DBDriverConf(db_driver_name, {"start_company_port": start_company_port, "end_company_port": end_company_port})
 else:
     db_driver = DBDriverConf(db_driver_name, db_config.get("driver_data", None))
 
@@ -270,17 +278,23 @@ if init:
         team_name = ""
 else:
     team_name = interactive.InteractiveValue(
-        "team.init_name",
-        "Введите название команды",
-        "str",
-    ).input()
+            "team.init_name",
+            "Введите название команды",
+            "str",
+        ).input()
 
 if validate_only:
-    if len(validation_errors) > 0:
-        print("Ошибка в конфигурации")
-        for error in validation_errors:
-            print(error)
-        exit(1)
+    if installer_output:
+        if len(validation_errors) > 0:
+            print(json.dumps(validation_errors, ensure_ascii=False))
+            exit(1)
+        print("[]")
+    else:
+        if len(validation_errors) > 0:
+            print("Ошибка в конфигурации")
+            for error in validation_errors:
+                print(error)
+            exit(1)
     exit(0)
 
 client = docker.from_env()
@@ -307,6 +321,7 @@ while n <= timeout:
             "Не был найден необходимый docker-контейнер для создания команды. Убедитесь, что окружение поднялось корректно"
         )
 
+
 first_key = list(domino_project)[0]
 first_domino = domino_project[first_key]
 domino_url = first_domino["label"] + "." + current_values["domain"]
@@ -322,6 +337,7 @@ output = found_pivot_container.exec_run(
 )
 
 if output.exit_code != 0:
+
     create_domino(
         found_pivot_container,
         first_domino["label"],
@@ -346,6 +362,7 @@ if init:
     )
 
     if output.exit_code == 0:
+
         print(
             scriptutils.success(
                 "Первая компания уже была создана. Если хотите создать еще одну команду, запустите скрипт create_team.py"
@@ -416,7 +433,8 @@ if scriptutils.is_replication_master_server(current_values):
     else:
         print("\n%s" % result.output.decode("utf-8", errors="ignore"))
         if init != False:
-            scriptutils.die("Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно")
+            scriptutils.die(
+                "Что то пошло не так. Не смогли создать команду. Проверьте, что окружение поднялось корректно")
 else:
     if init:
         subprocess.run(

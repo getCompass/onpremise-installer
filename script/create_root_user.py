@@ -4,7 +4,7 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, pwd
+import argparse, yaml, pwd, json
 import docker
 from pathlib import Path
 from utils import scriptutils
@@ -34,6 +34,12 @@ parser.add_argument(
 )
 
 parser.add_argument('--service_label', required=False, default="", type=str, help='Метка сервиса, к которому закреплён стак')
+
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action="store_true"
+)
 
 args = parser.parse_args()
 
@@ -83,6 +89,9 @@ service_label = args.service_label if args.service_label else ''
 stack_name_prefix = environment + "-" + values_arg
 stack_name = stack_name_prefix + "-monolith"
 validate_only = args.validate_only
+installer_output = args.installer_output
+
+QUIET = (validate_only and installer_output)
 
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_arg))
 
@@ -112,13 +121,16 @@ if service_label != "":
     stack_name = stack_name + "-" + service_label
 
 def handle_exception(field, message: str):
-
     if validate_only:
-        validation_errors.append(message)
+        if installer_output:
+            validation_errors.append(field)
+        else:
+            validation_errors.append(message)
         return
 
     print(message)
     exit(1)
+
 
 # необходимые пользователи для окружения
 required_user_list = ["www-data"]
@@ -158,7 +170,7 @@ try:
         "str",
         validation="phone",
         config=config,
-        is_required=("phone_number" in available_method_list), # если среди доступных методов указан "phone_number"
+        is_required=("phone_number" in available_method_list),  # если среди доступных методов указан "phone_number"
         default_value=""
     ).from_config()
 except IncorrectValueException as e:
@@ -173,7 +185,7 @@ try:
         "str",
         validation="mail",
         config=config,
-        is_required=("mail" in available_method_list), # если среди доступных методов указан "mail"
+        is_required=("mail" in available_method_list),  # если среди доступных методов указан "mail"
         default_value=""
     ).from_config()
 except IncorrectValueException as e:
@@ -181,25 +193,26 @@ except IncorrectValueException as e:
     mail = ""
 
 try:
-   mail_allowed_domain_list = InteractiveValue(
-       "mail.allowed_domains",
-       "Получаем доступные домены для почты",
-       "arr",
-       config=config,
-       is_required=False,
-       default_value=[]
-   ).from_config()
+    mail_allowed_domain_list = InteractiveValue(
+        "mail.allowed_domains",
+        "Получаем доступные домены для почты",
+        "arr",
+        config=config,
+        is_required=False,
+        default_value=[]
+    ).from_config()
 
-   mail_allowed_domains = "[%s]" % ', '.join(mail_allowed_domain_list)
+    mail_allowed_domains = "[%s]" % ', '.join(mail_allowed_domain_list)
 except IncorrectValueException as e:
     handle_exception(e.field, e.message)
     mail_allowed_domains = "[]"
 
 # если это проверка на валидацию, требуется почта и домен почты root-пользователя нет среди доступных доменов
-if validate_only and ("mail" in available_method_list) and mail_allowed_domains != "[]" and (mail[mail.rfind('@')+1:] not in mail_allowed_domains):
-   scriptutils.die(
-       "Домен почты root-пользователя не совпадает ни с одним из доступных доменов поля mail.allowed_domains"
-   )
+if validate_only and ("mail" in available_method_list) and mail_allowed_domains != "[]" and (
+        mail[mail.rfind('@') + 1:] not in mail_allowed_domains):
+    scriptutils.die(
+        "Домен почты root-пользователя не совпадает ни с одним из доступных доменов поля mail.allowed_domains"
+    )
 
 # получаем значение пароля для почты
 try:
@@ -208,7 +221,7 @@ try:
         "Введите пароль для почты",
         "str",
         config=config,
-        is_required=("mail" in available_method_list), # если среди доступных методов указан "mail"
+        is_required=("mail" in available_method_list),  # если среди доступных методов указан "mail"
         default_value="",
         validation="mail_password"
     ).from_config()
@@ -223,7 +236,7 @@ try:
         "Введите логин используемый для аутентификации через SSO (почтовый адрес или номер телефона в международном формате)",
         "str",
         config=config,
-        is_required=("sso" in available_method_list), # если среди доступных методов указан "sso"
+        is_required=("sso" in available_method_list),  # если среди доступных методов указан "sso"
         default_value=""
     ).from_config()
 except IncorrectValueException as e:
@@ -231,17 +244,24 @@ except IncorrectValueException as e:
     sso_login = ""
 
 if (len(phone_number) == 0 and len(mail) == 0 and len(sso_login) == 0):
-   scriptutils.die(
-       "Необходимо заполнить в конфигурации номер телефона или почту, или логин от sso пользователя"
-   )
+    if not QUIET:
+        scriptutils.die(
+            "Необходимо заполнить в конфигурации номер телефона или почту, или логин от sso пользователя"
+        )
 
 if validate_only:
 
-    if len(validation_errors) > 0:
-        print("Ошибка в конфигурации %s" % str(config_path.resolve()))
-        for error in validation_errors:
-            print(error)
-        exit(1)
+    if installer_output:
+        if len(validation_errors) > 0:
+            print(json.dumps(validation_errors, ensure_ascii=False))
+            exit(1)
+        print("[]")
+    else:
+        if len(validation_errors) > 0:
+            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+            for error in validation_errors:
+                print(error)
+            exit(1)
     exit(0)
 
 client = docker.from_env()
@@ -280,9 +300,11 @@ output = found_pivot_container.exec_run(
 
 if output.exit_code == 0:
     print(output.output.decode("utf-8"))
-    print(scriptutils.warning("Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s" % (domain)))
+    print(scriptutils.warning(
+        "Чтобы получить ключ аутентификации для входа в приложение, необходимо пройти авторизацию на сайте https://%s" % (
+            domain)))
 else:
     print(output.output.decode("utf-8"))
     scriptutils.error(
-    "Что то пошло не так. Не смогли создать пользователя. Проверьте, что окружение поднялось корректно"
-)
+        "Что то пошло не так. Не смогли создать пользователя. Проверьте, что окружение поднялось корректно"
+    )

@@ -50,6 +50,13 @@ parser.add_argument(
     action='store_true'
 )
 
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action='store_true'
+)
+parser.add_argument("--confirm-all", required=False, action="store_true")
+
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -62,6 +69,8 @@ required_app_list = ["compass"]
 added_app_list = args.add_app_list
 app_list = required_app_list
 validate_only = args.validate_only
+installer_output = args.installer_output
+confirm_all = args.confirm_all
 
 # формируем финальный список приложений
 if added_app_list:
@@ -72,6 +81,7 @@ conf_path = Path(conf_path)
 validation_errors = []
 captcha_already_skipped = False
 require_after_already_done = False
+
 
 class AppBlock:
     def __init__(self, provider: str) -> None:
@@ -99,13 +109,17 @@ class AppBlock:
 
         try:
             captcha_enabled = interactive.InteractiveValue(
-                "captcha.enabled", "Включена ли опция для проверки капчи после неудачных попыток аутентификации.", "bool", config=config, is_required=False, default_value=False
+                "captcha.enabled", "Включена ли опция для проверки капчи после неудачных попыток аутентификации.",
+                "bool", config=config, is_required=False, default_value=False
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
 
         # если ранее скипнули установку капчи
         global captcha_already_skipped
+        if captcha_enabled == False and confirm_all:
+            captcha_already_skipped = True
+
         if captcha_already_skipped == True:
             return self.init("", "", "", "", "", {})
 
@@ -116,7 +130,8 @@ class AppBlock:
                 return self.init("", "", "", "", "", {})
 
             captcha_already_skipped = True
-            skip_captcha = input("Вы пытаетесь установить приложение без настройки CAPTCHA.\nЭто может привести к уязвимостям в безопасности и позволить автоматическим системам (ботам) получить доступ к вашему приложению.\nПродолжить установку [Y/n]?\n").lower()
+            skip_captcha = input(
+                "Вы пытаетесь установить приложение без настройки CAPTCHA.\nЭто может привести к уязвимостям в безопасности и позволить автоматическим системам (ботам) получить доступ к вашему приложению.\nПродолжить установку [Y/n]?\n").lower()
             if skip_captcha == "y":
                 return self.init("", "", "", "", "", {})
             else:
@@ -128,13 +143,16 @@ class AppBlock:
             require_after_already_done = True
             try:
                 interactive.InteractiveValue(
-                    "captcha.require_after", "Введите кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.", "int", config=config
+                    "captcha.require_after",
+                    "Введите кол-во попыток аутентификации, после которых запрашивается разгадывание капчи.", "int",
+                    config=config
                 ).from_config()
             except interactive.IncorrectValueException as e:
                 handle_exception(e.field, e.message)
 
         default_client_key = interactive.InteractiveValue(
-            "google_captcha.default_client_key", "Введите клиентский ключ для платформы", "str", config=config, is_required=False,
+            "google_captcha.default_client_key", "Введите клиентский ключ для платформы", "str", config=config,
+            is_required=False,
         ).from_config()
 
         server_key = interactive.InteractiveValue(
@@ -142,7 +160,8 @@ class AppBlock:
         ).from_config()
 
         yandex_default_client_key = interactive.InteractiveValue(
-            "yandex_captcha.default_client_key", "Введите клиентский ключ для платформы.", "str", config=config, is_required=False,
+            "yandex_captcha.default_client_key", "Введите клиентский ключ для платформы.", "str", config=config,
+            is_required=False,
         ).from_config()
 
         yandex_server_key = interactive.InteractiveValue(
@@ -152,13 +171,15 @@ class AppBlock:
         enterprise_captcha_need = server_key is not None or default_client_key is not None
         yandex_captcha_need = yandex_server_key is not None or yandex_default_client_key is not None
 
-        if (default_client_key is None and yandex_default_client_key is None) or (server_key is None and yandex_server_key is None):
+        if (default_client_key is None and yandex_default_client_key is None) or (
+                server_key is None and yandex_server_key is None):
             print(scriptutils.error("Данные по enterprise_google или yandex капче должны быть заполнены"))
             exit(1)
 
         try:
             project_id = interactive.InteractiveValue(
-                "google_captcha.project_id", "Введите идентификатор проекта Google Recaptcha", "str", config=config, is_required=enterprise_captcha_need,
+                "google_captcha.project_id", "Введите идентификатор проекта Google Recaptcha", "str", config=config,
+                is_required=enterprise_captcha_need,
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
@@ -167,14 +188,16 @@ class AppBlock:
         if self.provider == "enterprise_google":
             additional_client_keys = self.add_additional_client_keys(enterprise_captcha_need)
 
-        return self.init(project_id, default_client_key, server_key, yandex_default_client_key, yandex_server_key, additional_client_keys)
+        return self.init(project_id, default_client_key, server_key, yandex_default_client_key, yandex_server_key,
+                         additional_client_keys)
 
     def add_additional_client_keys(self, enterprise_captcha_need, additional_client_keys: dict = {}) -> dict:
 
         for platform in ["electron", "android", "huawei", "ios"]:
             try:
                 client_key = interactive.InteractiveValue(
-                    "google_captcha.%s_client_key" % platform, "Введите клиентский ключ для платформы", "str", config=config,
+                    "google_captcha.%s_client_key" % platform, "Введите клиентский ключ для платформы", "str",
+                    config=config,
                     is_required=(enterprise_captcha_need and (platform == "android" or platform == "ios"))
                 ).from_config()
             except interactive.IncorrectValueException as e:
@@ -203,7 +226,8 @@ class AppBlock:
         for platform_name, client_key in client_keys.items():
 
             if not validate_only:
-                print("Обработка платформы %s провайдера %s" % (platform_name, self.provider))  # Выводим лог platform_name
+                print("Обработка платформы %s провайдера %s" % (platform_name,
+                                                                self.provider))  # Выводим лог platform_name
 
             # если не задали отдельные ключи
             if ((platform_name == "electron_key" or platform_name == "huawei_key")
@@ -237,7 +261,10 @@ class AppBlock:
 
 def handle_exception(field, message: str):
     if validate_only:
-        validation_errors.append(message)
+        if installer_output:
+            validation_errors.append(field)
+        else:
+            validation_errors.append(message)
         return
 
     print(message)
@@ -245,18 +272,23 @@ def handle_exception(field, message: str):
 
 
 def start():
-
     generate_config()
     exit(0)
 
 
 def write_file(output: str):
     if validate_only:
-        if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
-            for error in validation_errors:
-                print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                print(json.dumps(validation_errors, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                print("Ошибка в конфигурации %s" % str(config_path.resolve()))
+                for error in validation_errors:
+                    print(error)
+                exit(1)
         exit(0)
 
     conf_path.unlink(missing_ok=True)
@@ -310,6 +342,7 @@ $CONFIG["CAPTCHA_PROVIDER_LIST"] = [
 return $CONFIG;'''
 
     return config_head + provider_output + config_end
+
 
 # ---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#
 

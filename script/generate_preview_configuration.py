@@ -2,7 +2,7 @@
 
 import argparse
 from pathlib import Path
-import yaml
+import yaml, json
 from utils import scriptutils
 from utils import interactive
 
@@ -39,11 +39,17 @@ parser.add_argument(
     required=False,
     action='store_true'
 )
+parser.add_argument(
+    "--installer-output",
+    required=False,
+    action="store_true"
+)
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
 validate_only = args.validate_only
+installer_output = args.installer_output
 
 # пути для конфигов
 domino_preview_conf_path = args.domino_preview_output_path
@@ -102,21 +108,21 @@ class PreviewMainConfig:
         # Форматирование для url_parsing_flag
         url_parsing_flag_output = '"url_parsing_flag" => %s' % (
             str(self.url_parsing_flag).lower())
-        
+
         # Форматирование для white_list
         white_list_formatted = []
         for domain in self.white_list:
             white_list_formatted.append(f'"{domain}"')
         white_list_output = '"white_list"       => [%s]' % (
             ", ".join(white_list_formatted))
-        
+
         # Форматирование для black_list
         black_list_formatted = []
         for domain in self.black_list:
             black_list_formatted.append(f'"{domain}"')
         black_list_output = '"black_list"       => [%s]' % (
             ", ".join(black_list_formatted))
-            
+
         # Форматирование для redirect_black_list
         redirect_black_list_output = '"redirect_black_list" => []'
 
@@ -131,7 +137,10 @@ class PreviewMainConfig:
 
 def handle_exception(field, message: str, config_path):
     if validate_only:
-        validation_errors.append(message)
+        if installer_output:
+            validation_errors.append(field)
+        else:
+            validation_errors.append(message)
         validation_error_config_path = str(config_path.resolve())
         return
 
@@ -148,11 +157,17 @@ def start():
 # записываем содержимое в файл
 def write_file(output: str, conf_path: Path):
     if validate_only:
-        if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % validation_error_config_path)
-            for error in validation_errors:
-                print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                print(json.dumps(validation_errors, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                print("Ошибка в конфигурации %s" % validation_error_config_path)
+                for error in validation_errors:
+                    print(error)
+                exit(1)
         exit(0)
 
     conf_path.unlink(missing_ok=True)
@@ -173,11 +188,17 @@ def generate_config(preview_conf_path: Path):
 
     # если только валидируем данные, то файлы не пишем
     if validate_only:
-        if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % validation_error_config_path)
-            for error in validation_errors:
-                print(error)
-            exit(1)
+        if installer_output:
+            if len(validation_errors) > 0:
+                print(json.dumps(validation_errors, ensure_ascii=False))
+                exit(1)
+            print("[]")
+        else:
+            if len(validation_errors) > 0:
+                print("Ошибка в конфигурации %s" % validation_error_config_path)
+                for error in validation_errors:
+                    print(error)
+                exit(1)
         exit(0)
 
     if len(validation_errors) == 0:
@@ -207,6 +228,7 @@ $CONFIG["PREVIEW"] = [
 ];
 
 return $CONFIG;'''.format(config.make_preview_output())
+
 
 # ---КОНЕЦ ВСПОМОГАТЕЛЬНЫХ ФУНКЦИЙ---#
 

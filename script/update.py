@@ -24,7 +24,8 @@ parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
 parser.add_argument("--docker-prune", required=False, action="store_true")
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="Окружение, в котором разворачиваем")
+parser.add_argument("-e", "--environment", required=False, default="production", type=str,
+                    help="Окружение, в котором разворачиваем")
 # ВНИМАНИЕ - в data передается json
 parser.add_argument(
     "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
@@ -54,15 +55,15 @@ class Version(tuple):
     def __new__(cls, text):
         return super().__new__(cls, tuple(int(x) for x in text.split(".")))
 
+
 # обновить конфиги пространств
 def update_space_configs(monolith_container: docker.models.containers.Container):
-
     result = monolith_container.exec_run(
-    user="www-data",
-    cmd=[
-        "bash",
-        "-c",
-        "php src/Compass/Pivot/sh/php/domino/force_update_company_db.php",
+        user="www-data",
+        cmd=[
+            "bash",
+            "-c",
+            "php src/Compass/Pivot/sh/php/domino/force_update_company_db.php",
         ],
     )
     # форсированный апдейт конфигов идет каждые 180 секунд
@@ -70,8 +71,8 @@ def update_space_configs(monolith_container: docker.models.containers.Container)
 
     return result
 
-def wait_go_database():
 
+def wait_go_database():
     # ждем поднятия go_database
     timeout = 180
     n = 0
@@ -140,6 +141,7 @@ def wait_go_database():
             scriptutils.die("go_database не поднялся")
     loader.success()
 
+
 # получить контейнер монолита
 def get_monolith_container():
     timeout = 900
@@ -180,6 +182,7 @@ def get_monolith_container():
             scriptutils.die("не смогли найти php_monolith контейнер")
     return found_monolith_container
 
+
 # получаем текущую версию инсталлятора
 script_dir = str(Path(__file__).parent.resolve())
 version_path = Path(script_dir + "/../.version")
@@ -188,7 +191,6 @@ if not version_path.exists():
     current_version = "0.0.0"
 else:
     current_version = version_path.open("r").read()
-
 
 # сначала актуализируем инсталлятор
 sb = subprocess.run(
@@ -462,11 +464,14 @@ subprocess.run(["rm", "-rf", monolith_config_join_web_path])
 # подключаемся к докеру
 client = docker.from_env()
 
-if need_delete_old_stack and ((current_service_label != "" and current_service_label != service_label) or (current_service_label == "" and service_label != "")):
+if need_delete_old_stack and ((current_service_label != "" and current_service_label != service_label) or (
+        current_service_label == "" and service_label != "")):
 
     try:
-        scriptutils.warning("Перед тем как продолжить, убедитесь, что установлен label.role для ноды на текущем сервере!")
-        if input("При смене service_label приложение будет недоступно для пользователей в течение ~5 минут, продолжить? [y/N]\n").lower() != "y":
+        scriptutils.warning(
+            "Перед тем как продолжить, убедитесь, что установлен label.role для ноды на текущем сервере!")
+        if input(
+                "При смене service_label приложение будет недоступно для пользователей в течение ~5 минут, продолжить? [y/N]\n").lower() != "y":
             scriptutils.die("Смена service_label была отменена")
     except UnicodeDecodeError as e:
         print("Не смогли декодировать ответ. Error: ", e)
@@ -514,7 +519,8 @@ if need_delete_old_stack and ((current_service_label != "" and current_service_l
     timeout = 600
     n = 0
     while n <= timeout:
-        docker_container_list = client.containers.list(filters={"name": stack_name_prefix}, sparse=True, ignore_removed=True)
+        docker_container_list = client.containers.list(filters={"name": stack_name_prefix}, sparse=True,
+                                                       ignore_removed=True)
 
         if len(docker_container_list) < 1:
             break

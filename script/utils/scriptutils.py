@@ -4,10 +4,11 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import os, yaml, shutil
+import os, yaml, shutil, json
 import docker
 from pathlib import Path
 from time import sleep
+import urllib.request
 
 class bcolors:
     HEADER = "\033[95m"
@@ -231,3 +232,48 @@ def get_security(values_dict: dict) -> dict:
         die("Файл со значениями невалиден. Окружение было ранее развернуто?")
 
     return security
+
+YC_META_URL = "http://169.254.169.254/computeMetadata/v1/instance/vendor/identity"
+YC_REQ_HDRS = {"Metadata-Flavor": "Google"}
+
+def _fetch_yc_metadata(url):
+    req = urllib.request.Request(url, headers=YC_REQ_HDRS)
+    with urllib.request.urlopen(req, timeout=5) as r:
+        return r.read()
+
+
+def get_yc_params():
+    try:
+        # получаем документ и подпись из metadata
+        yc_identity_document = _fetch_yc_metadata(f"{YC_META_URL}/document").decode("utf-8").strip()
+        yc_signature_b64 = _fetch_yc_metadata(f"{YC_META_URL}/base64").decode().strip()
+
+        # экранируем значения для шелла
+        yc_identity_document = yc_identity_document
+        yc_identity_document_base64_signature = yc_signature_b64
+    except Exception:
+        yc_identity_document = ""
+        yc_identity_document_base64_signature = ""
+
+    return yc_identity_document, yc_identity_document_base64_signature
+
+
+def is_yandex_cloud_marketplace_product() -> bool:
+
+    allowed_product_ids = []
+    if not allowed_product_ids:
+        return False
+
+    yc_identity_document, _ = get_yc_params()
+
+    try:
+        doc = json.loads(yc_identity_document)
+        product_ids = doc.get("productIds", [])
+        if not isinstance(product_ids, list):
+            return False
+
+        return any(pid in product_ids for pid in allowed_product_ids)
+
+    except Exception:
+        # если невалидный json — считаем проверку проваленной
+        return False

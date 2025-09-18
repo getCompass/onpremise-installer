@@ -85,5 +85,10 @@ server {
         listen 80;
         server_name {{.domain}} *.{{.domain}};
 
-        return 301 https://$host$request_uri;
+        # acme.sh stateless challenge
+        include /etc/nginx/compass_snippets/*.conf;
+
+        location / {
+                return 301 https://$host$request_uri;
+        }
 }
