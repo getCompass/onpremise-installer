@@ -182,6 +182,18 @@ configs:
   preview-parsing-thread:
     name: "{{.stack_name}}_preview_parsing-{{.config_revisions.project.domino.preview_parsing.php}}"
     file: ".project.domino.preview_parsing.php"
+  icap-conf-conversation:
+    name: "{{.stack_name}}_icap_conf-{{.config_revisions.project.domino.icap_conversation.php}}"
+    file: ".project.domino.icap_conversation.php"
+  icap-conf-thread:
+    name: "{{.stack_name}}_icap_conf_thread-{{.config_revisions.project.domino.icap_thread.php}}"
+    file: ".project.domino.icap_thread.php"
+  icap-conf-jitsi:
+    name: "{{.stack_name}}_icap_conf_jitsi-{{.config_revisions.project.pivot.icap_jitsi.php}}"
+    file: ".project.pivot.icap_jitsi.php"
+  icap-conf-file:
+    name: "{{.stack_name}}_icap_conf_file-{{.config_revisions.project.file.icap.php}}"
+    file: ".project.file.icap.php"
 {{if eq .database_connection.driver "host"}}
   predefined-db:
     name: "{{.stack_name}}_predefined_db-{{.config_revisions.project.predefined_db.json}}"
@@ -291,6 +303,11 @@ configs:
   prosody-persistent-lobby-cfg:
     name: "{{.stack_name}}_persistent-lobby-{{.config_revisions.project.jitsi.prosody_persistent_lobby.cfg.lua}}"
     file: ".project.jitsi.prosody_persistent_lobby.cfg.lua"
+
+  # конфиг плагина dlp
+  prosody-dlp-cfg:
+    name: "{{.stack_name}}_dlp-{{.config_revisions.project.jitsi.prosody_dlp_plugin.cfg.lua}}"
+    file: ".project.jitsi.prosody_dlp_plugin.cfg.lua"
 
   # config.js с web контейнера
   web-config-js:
@@ -792,7 +809,9 @@ services:
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/app/www/files"
       - "{{.company_config_mount_path}}:/pivot_config"
-
+    configs:
+      - source: "icap-conf-file"
+        target: "/app/src/Compass/FileNode/api/conf/icap.php"
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
@@ -966,6 +985,12 @@ services:
         target: "/app/src/Compass/Thread/api/conf/preview.php"
       - source: "pivot-jitsi-node"
         target: "/app/src/Compass/Jitsi/api/conf/jitsi.php"
+      - source: "icap-conf-jitsi"
+        target: "/app/src/Compass/Jitsi/api/conf/icap.php"
+      - source: "icap-conf-conversation"
+        target: "/app/src/Compass/Conversation/api/conf/icap.php"
+      - source: "icap-conf-thread"
+        target: "/app/src/Compass/Thread/api/conf/icap.php"
     {{- if ne .database_encryption.mode "none"}}
     secrets:
       - "compass_database_encryption_secret_key"

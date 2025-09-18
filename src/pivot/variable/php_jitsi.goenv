@@ -4,3 +4,5 @@ JITSI_DOMAIN="{{.domain}}"
 JITSI_FRONTEND_URL="{{.protocol}}://{{.domain}}/c"
 
 BEGIN_INCREMENTAL_CONFERENCE_ID=1
+
+SOCKET_KEY_PROSODY="{{.security_keys.pivot.socket_key_prosody}}"

@@ -29,12 +29,21 @@ PLATFORM_FEATURES = {
         'ios': '1110540',
         'android': '100051701'
     },
+    'Версия с включением функционала "Интеграция с DLP системой"': {
+        'electron': '1060510',
+        'ios': '1141380',
+        'android': '100060403'
+    },
 }
 
 def print_menu(options):
+
+    last = 0
     for i, option in enumerate(options, 1):
         print(f"{i}. {option}")
-    print("4. Завершить выполнение")
+        last = i
+    
+    print(f"{last + 1}. Завершить выполнение")
 
 def select_feature():
     print("\nПожалуйста, выберите версию из списка ниже:")
@@ -43,7 +52,7 @@ def select_feature():
     
     try:
         feature_choice = int(input("\nВведите номер версии: "))
-        if feature_choice == 0:
+        if feature_choice == 0 or feature_choice == len(features) + 1:
             sys.exit(0)
         if feature_choice < 0 or feature_choice > len(features):
             raise ValueError

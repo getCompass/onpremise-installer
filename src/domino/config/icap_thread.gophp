@@ -1,0 +1,17 @@
+<?php
+
+namespace Compass\Thread;
+
+// настройки тарифов
+$CONFIG["ICAP"] = [
+	"is_enabled" => {{.icap.is_enabled}},
+	"is_mock" => {{.icap.is_mock}},
+	"host" => "{{.icap.host}}",
+	"port" => {{.icap.port}},
+	"reqmod_service" => "{{.icap.url_path}}",
+	"respmod_service" => "{{.icap.url_path}}",
+	"control_entity_list" => {{make_list .icap.control_entity_list}},
+	"file_extension_list" => {{make_list .icap.file_extension_list}},
+];
+
+return $CONFIG;

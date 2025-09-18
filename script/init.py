@@ -22,13 +22,17 @@ config_path = Path(script_dir + "/../configs/global.yaml")
 database_config_path = Path(script_dir + "/../configs/database.yaml")
 replication_config_path = Path(script_dir + "/../configs/replication.yaml")
 team_config_path = Path(script_dir + "/../configs/team.yaml")
+dlp_config_path = Path(script_dir + "/../configs/dlp.yaml")
 
-validation_errors = []
+validation_errors = {}
+config_path_errors = []
+
 config = {}
 protected_config = {}
 database_config = {}
 replication_config = {}
 team_config = {}
+dlp_config = {}
 
 if not config_path.exists():
     print(scriptutils.error(
@@ -54,6 +58,9 @@ if not team_config_path.exists():
             team_config_path.resolve())))
     exit(1)
 
+if not dlp_config_path.exists():
+    print(scriptutils.error("Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(dlp_config_path.resolve())))
+    exit(1)
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
@@ -66,8 +73,12 @@ with replication_config_path.open("r") as replication_config_file:
 with team_config_path.open("r") as team_config_file:
     team_config_values = yaml.load(team_config_file, Loader=yaml.BaseLoader)
 
+with dlp_config_path.open("r") as dlp_config_file:
+    dlp_config_values = yaml.load(dlp_config_file, Loader=yaml.BaseLoader)
+
 config.update(config_values)
 config.update(team_config_values)
+dlp_config.update(dlp_config_values)
 database_config.update(database_config_values)
 replication_config.update(replication_config_values)
 team_config.update(team_config_values)
@@ -274,9 +285,13 @@ def nested_set(dic, keys, value, create_missing=True):
     return dic
 
 
-def handle_exception(field, message: str):
+def handle_exception(field: str, message: str, config_path: str):
     if validate_only:
-        validation_errors.append(message)
+
+        if validation_errors.get(config_path) is None:
+            validation_errors[config_path] = []
+        
+        validation_errors[config_path].append(message)
         return
 
     print(message)
@@ -461,7 +476,19 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
 
     return str(path.resolve())
 
+def strtolower(value):
+    if isinstance(value, str):
+        return value.lower()
 
+    if isinstance(value, list):
+        output = []
+        for item in value:
+            output.append(str(item).lower())
+        
+        return output
+    
+    return None
+            
 def convert_idn(value: str):
     return value.strip().encode("idna").decode()
 
@@ -537,6 +564,65 @@ database_encryption_fields = [
         "type": "str",
         "ask": True,
         "is_required": False,
+    }
+]
+
+icap_fields = [
+    {
+        "name": "is_enabled",
+        "comment": "Включен ли ICAP",
+        "default_value": None,
+        "type": "bool",
+        "ask": True,
+        "is_required": True
+    },
+    {
+        "name": "host",
+        "comment": "Хост сервера ICAP",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "required_if": "is_enabled",
+        "validation": "host"
+    },
+    {
+        "name": "port",
+        "comment": "Порт сервера ICAP",
+        "default_value": 1433,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "required_if": "is_enabled",
+        "validation": "port"
+    },
+    {
+        "name": "url_path",
+        "comment": "Путь до сервиса ICAP",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+    },
+    {
+        "name": "control_entity_list",
+        "comment": "Список контролируемых сущностей, отправляемые в LDAP",
+        "default_value": None,
+        "type": "arr",
+        "ask": True,
+        "is_required": False,
+        "required_if": "is_enabled",
+        "options": ["text", "file"],
+    },
+    {
+        "name": "file_extension_list",
+        "comment": "Список контролируемых расширений файлов, отправляемые в LDAP",
+        "default_value": "",
+        "type": "arr",
+        "ask": True,
+        "is_required": False,
+        "post_function": strtolower,
+        "post_args": [],
     }
 ]
 
@@ -1174,7 +1260,7 @@ def process_post_value(value, field: dict):
 
 
 def process_field(
-        field: dict, project: str, label: str, project_values: dict, new_values: dict
+        field: dict, project: str, label: str, project_values: dict, new_values: dict, config: dict, config_path: str
 ):
     use_default = use_default_values
 
@@ -1210,6 +1296,13 @@ def process_field(
         else:
             is_required = True
 
+        # если поле, от которого зависим, True, заполнение становится обязательным
+        if field.get("required_if") is not None:
+
+            need_field = field["required_if"]
+            if project_values.get(need_field) is True:
+                is_required = True
+
         try:
             new_value = InteractiveValue(
                 prefix + field["name"],
@@ -1219,10 +1312,11 @@ def process_field(
                 validation=field.get("validation"),
                 force_default=use_default,
                 config=config,
-                is_required=is_required
+                is_required=is_required,
+                options=field.get("options", [])
             ).from_config()
         except IncorrectValueException as e:
-            handle_exception(e.field, e.message)
+            handle_exception(e.field, e.message, config_path)
             return None, field["name"]
 
     else:
@@ -1244,9 +1338,10 @@ def process_field(
 def write_to_file(new_values: dict):
     if validate_only:
         if len(validation_errors) > 0:
-            print("Ошибка в конфигурации %s" % str(config_path.resolve()))
-            for error in validation_errors:
-                print(error)
+            for config_path, error_list in validation_errors.items():
+                print(scriptutils.error("Ошибка в конфигурации %s" % str(config_path.resolve())))
+                for error in error_list:
+                    print(error)
             exit(1)
         return
     new_path = Path(str(values_file_path.resolve()))
@@ -1307,6 +1402,7 @@ def start():
     new_values = init_database(new_values)
     new_values = init_replication(new_values)
     new_values = init_team(new_values)
+    new_values = init_icap(new_values)
 
     if not project:
         write_to_file(new_values)
@@ -1403,7 +1499,7 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
                     is_required=is_required
                 ).from_config()
             except IncorrectValueException as e:
-                handle_exception(e.field, e.message)
+                handle_exception(e.field, e.message, config_path)
                 new_value = None
 
         else:
@@ -1430,7 +1526,7 @@ def init_nginx(new_values: dict):
 
     for nginx_field in nginx_fields:
         new_value, field_name = process_field(
-            nginx_field.copy(), "nginx", "nginx", new_values["nginx"], new_values
+            nginx_field.copy(), "nginx", "nginx", new_values["nginx"], new_values, config, config_path
         )
 
         if new_value is None:
@@ -1440,6 +1536,22 @@ def init_nginx(new_values: dict):
 
     return new_values
 
+def init_icap(new_values: dict):
+
+    if new_values.get("icap") is None:
+        new_values["icap"] = {}
+
+    for icap_field in icap_fields:
+        new_value, field_name = process_field(
+            icap_field.copy(), "icap", "icap", new_values["icap"], new_values, dlp_config, dlp_config_path
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "icap.%s" % field_name, new_value)
+
+    return new_values
 
 def init_team(new_values: dict):
     """инициализируем конфигурацию команды"""
@@ -1495,7 +1607,7 @@ def init_database(new_values: dict):
 
         new_value, field_name = process_field(
             field.copy(), "database_connection", "database_connection",
-            new_values["database_connection"], new_values
+            new_values["database_connection"], new_values, config, database_config_path
         )
 
         if new_value is None:
@@ -1515,7 +1627,7 @@ def init_database(new_values: dict):
 
         new_value, field_name = process_field(
             field.copy(), "database_encryption", "database_encryption",
-            new_values["database_encryption"], new_values
+            new_values["database_encryption"], new_values, config, database_config_path
         )
 
         if new_value is None:
@@ -1643,7 +1755,7 @@ def init_all_projects(new_values: dict):
 
         for common_field in common_project_fields:
             new_value, field_name = process_field(
-                common_field.copy(), project, label, project_values, new_values
+                common_field.copy(), project, label, project_values, new_values, config, config_path
             )
 
             if new_value is None:
@@ -1663,8 +1775,7 @@ def init_all_projects(new_values: dict):
 
         for extra_field in common_specific_project_fields[project]:
             new_value, field_name = process_field(
-                extra_field.copy(), project, label, project_values, new_values
-            )
+                extra_field.copy(), project, label, project_values, new_values, config, config_path            )
 
             if new_value is None:
                 continue
@@ -1757,7 +1868,7 @@ def init_project(
                         config=config
                     ).from_config()
                 except IncorrectValueException as e:
-                    handle_exception(e.field, e.message)
+                    handle_exception(e.field, e.message, config_path)
                     new_value = None
 
             elif required_field.get("is_protected"):
@@ -1835,7 +1946,7 @@ def init_project(
                         is_required=is_required,
                     ).from_config()
                 except IncorrectValueException as e:
-                    handle_exception(e.field, e.message)
+                    handle_exception(e.field, e.message, config_path)
                     new_value = None
 
             elif extra_field.get("is_protected"):
