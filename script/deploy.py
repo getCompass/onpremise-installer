@@ -52,6 +52,8 @@ parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
 
 args = parser.parse_args()
+
+
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
 # ---ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ---#
@@ -108,7 +110,7 @@ def process_goenv_files(goenv_files: list, project: str = ""):
 
         # формируем итоговое имя файла, убирая из расширения префикс «go»
         env_file_name = (
-            project_id + "." + prefix + str(goenv_file_name).replace(".goenv", ".env")
+                project_id + "." + prefix + str(goenv_file_name).replace(".goenv", ".env")
         )
         final_path = tmp_path + "/" + env_file_name
 
@@ -159,7 +161,7 @@ def process_conf_files(config_files: list, project: str = ""):
 
         # формируем итоговое имя файла, убирая из расширения префикс «go»
         conf_file_name = (
-            project_id + "." + prefix + str(goconf_file_name).replace(".go", ".")
+                project_id + "." + prefix + str(goconf_file_name).replace(".go", ".")
         )
         final_path = tmp_path + "/" + conf_file_name
 
@@ -277,7 +279,6 @@ if environment not in ["local", "tes"] and project != "search" and project != "i
         print(scriptutils.error("Ошибка при сверке конфигурации приложения"))
         exit(1)
 
-
 if not stack_name_prefix:
     stack_name_prefix = environment + "-" + values
 
@@ -315,7 +316,7 @@ elif values_dict["projects"].get(project, {}).get("label", {}) != {}:
 else:
     first_key = list(values_dict["projects"][project])[0]
     stack_name = (
-        stack_name_prefix + "-" + values_dict["projects"][project][first_key]["label"]
+            stack_name_prefix + "-" + values_dict["projects"][project][first_key]["label"]
     )
     label = values_dict["projects"][project][first_key]["label"]
 

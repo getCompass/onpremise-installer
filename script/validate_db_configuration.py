@@ -15,12 +15,22 @@ from utils import scriptutils
 # region АГРУМЕНТЫ СКРИПТА #
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--validate-only", required=False, action="store_true")
+parser.add_argument("--installer-output", required=False, action="store_true")
 args = parser.parse_args()
 
 script_dir = str(Path(__file__).parent.resolve())
 root_path = str(Path(script_dir + "/../").resolve())
 
 validate_only = args.validate_only
+installer_output = args.installer_output
+
+QUIET = (validate_only and installer_output)
+
+
+def log(*args, **kwargs):
+    if not QUIET:
+        print(*args, **kwargs)
+
 
 # проверяем конфигурационный файл с глобальными параметрами
 config_path = Path(script_dir + "/../configs/global.yaml")
@@ -44,12 +54,13 @@ if not database_config_path.exists():
         f"Запустите скрипт create_configs.py и заполните конфигурацию"
     )
 
-try :
+try:
     # загружаем конфигурационный файл с параметрами БД
     with database_config_path.open("r") as database_config_file:
         database_config: dict = yaml.load(database_config_file, Loader=yaml.BaseLoader)
 except:
-    scriptutils.die("Не смогли прочитать конфигурацию %s. Поправьте её и запустите установку снова." % str(database_config_path.resolve()))
+    scriptutils.die("Не смогли прочитать конфигурацию %s. Поправьте её и запустите установку снова." % str(
+        database_config_path.resolve()))
 
 # известные базы данных, если используются predefined базы, нужно контролировать
 # их изменение, чтобы приложение не начало смотреть куда-то не туда.
@@ -196,8 +207,8 @@ class DBConnConf:
 
         # если какие-то из параметров не объявлены, то говорим, что конфиг невалидный
         if (host is None or host == "") or (port is None or port == "") or (r_password is None or r_password == ""):
-
-            err_str = functools.reduce(lambda p, k: p + k + ", " if field_dict[k] is None or field_dict[k] == "" else  p + "", field_dict, "")
+            err_str = functools.reduce(
+                lambda p, k: p + k + ", " if field_dict[k] is None or field_dict[k] == "" else p + "", field_dict, "")
             err_str = err_str[:-2]
 
             return False, f"В наборе присутствуют следующие некорректные значения для подключения к БД: {err_str}"
@@ -209,7 +220,7 @@ class DBConnConf:
         # если база недоступна, значит ее использовать нельзя
         if not is_database_available(host, port, 'root', r_password):
             return False, f"Указанный инстанс MySQL в конфигурации недоступен: {host}:{port}"
-        
+
         return True, ""
 
     def get_key(self) -> str:
@@ -375,6 +386,7 @@ class EncryptDBConf:
 
         return True, ""
 
+
 class EncryptConfComparer:
     """Класс, проверяющий, совместим ли новый конфиг шифрования с имеющимся"""
 
@@ -392,7 +404,6 @@ class EncryptConfComparer:
 
 
 def write_known_database_config(cfg: dict):
-
     """Записывает конфигурацию БД в файл известных конфигураций"""
 
     if validate_only:
@@ -406,7 +417,6 @@ def write_known_database_config(cfg: dict):
 
 
 def compare_database_config(passed: dict, known: dict):
-
     """Сравнивает две конфигурации подключения к БД"""
 
     db_conf = passed.get("database_connection", None)
@@ -433,7 +443,6 @@ def compare_database_config(passed: dict, known: dict):
 
 
 def compare_encryption_config(passed: dict, known: dict):
-
     """Сравнивает две конфигурации шифрования БД"""
 
     db_conf = passed.get("database_encryption", None)
@@ -460,7 +469,6 @@ def compare_encryption_config(passed: dict, known: dict):
 
 
 def start():
-
     # сравниваем текущую и имеющуюся конфигурации
     compare_database_config(database_config, known_database_config)
     compare_encryption_config(database_config, known_database_config)
@@ -471,4 +479,4 @@ def start():
 
 
 start()
-print(scriptutils.success("Проверка конфигурации БД прошла успешно"))
+log(scriptutils.success("Проверка конфигурации БД прошла успешно"))

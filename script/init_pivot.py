@@ -21,7 +21,8 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')
 parser.add_argument('-e', '--environment', required=False, type=str, help='Окружение, в котором развернут проект')
-parser.add_argument('--service_label', required=False, default="", type=str, help='Метка сервиса, к которому закреплён стак')
+parser.add_argument('--service_label', required=False, default="", type=str,
+                    help='Метка сервиса, к которому закреплён стак')
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -57,7 +58,8 @@ timeout = 30
 n = 0
 while n <= timeout:
 
-    docker_container_list = client.containers.list(filters={'name': '%s_php-monolith' % (stack_name), 'health': 'healthy'})
+    docker_container_list = client.containers.list(
+        filters={'name': '%s_php-monolith' % (stack_name), 'health': 'healthy'})
 
     if len(docker_container_list) > 0:
         found_php_monolith_container = docker_container_list[0]

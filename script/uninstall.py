@@ -45,7 +45,9 @@ script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="Окружение, в котором разворачиваем")
+parser.add_argument("-e", "--environment", required=False, default="production", type=str,
+                    help="Окружение, в котором разворачиваем")
+parser.add_argument("--confirm-all", required=False, action="store_true")
 # ВНИМАНИЕ - в data передается json
 parser.add_argument(
     "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
@@ -57,6 +59,18 @@ if not override_data:
 product_type = override_data.get("product_type", "") if override_data else ""
 
 environment = args.environment
+confirm_all = args.confirm_all
+
+
+def confirm(prompt: str) -> bool:
+    if confirm_all:
+        return True
+    try:
+        return input(prompt).lower() == "y"
+    except UnicodeDecodeError as e:
+        print("Не смогли декодировать ответ. Error: ", e)
+        return False
+
 
 # пишем константы
 values_name = "compass"
@@ -91,12 +105,8 @@ if service_label != "":
     stack_name_monolith = stack_name_monolith + "-" + service_label
     stack_name_company = stack_name_prefix + "-" + service_label
 
-try:
-    if input("Удаляем приложение Compass, продолжить? [y/N]\n").lower() != "y":
-        scriptutils.die("Удаление приложения было отменено")
-except UnicodeDecodeError as e:
-    print("Не смогли декодировать ответ. Error: ", e)
-    exit(0)
+if not confirm("Удаляем приложение Compass, продолжить? [y/N]\n"):
+    scriptutils.die("Удаление приложения было отменено")
 
 # удаляем стаки компаний
 get_stack_command = ["docker", "stack", "ls"]
@@ -188,9 +198,12 @@ def clear_mysql_instances(database_config: dict):
     if database_config["database_connection"]["driver"] != "host":
         return
 
-    monolith_mysql_root_password = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['root_password']
-    monolith_mysql_host = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['host']
-    monolith_mysql_port = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['port']
+    monolith_mysql_root_password = \
+        database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith']['root_password']
+    monolith_mysql_host = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith'][
+        'host']
+    monolith_mysql_port = database_config['database_connection']['driver_data']['project_mysql_hosts']['monolith'][
+        'port']
 
     loader = Loader('Чистим базы на хосте...', 'Базы очищены',
                     'Не получилось почистить базы').start()
@@ -220,7 +233,8 @@ client = docker.from_env()
 timeout = 600
 n = 0
 while n <= timeout:
-    docker_container_list = client.containers.list(filters={"name": stack_name_monolith}, sparse=True, ignore_removed=True)
+    docker_container_list = client.containers.list(filters={"name": stack_name_monolith}, sparse=True,
+                                                   ignore_removed=True)
 
     if len(docker_container_list) < 1:
         break
@@ -281,18 +295,11 @@ if not root_mount_path.exists():
         "Путь, указанный в конфигурации %s в поле root_mount_path, не существует"
     )
 
-try:
-    if (
-            input(
-                "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
-                % str(root_mount_path.resolve())
-            ).lower()
-            != "y"
-    ):
-        scriptutils.die("Удаление данных было отменено")
-except UnicodeDecodeError as e:
-    print("Не смогли декодировать ответ. Error: ", e)
-    exit(0)
+if not confirm(
+        "Удаляем все данные приложения по пути %s, продолжить? [y/N]\n"
+        % str(root_mount_path.resolve())
+):
+    scriptutils.die("Удаление данных было отменено")
 
 # Команда удаления (все, кроме инсталлятора)
 root_path = Path(script_dir + "/../").resolve()
@@ -305,26 +312,27 @@ for item in root_mount_path.glob("*"):
         elif item.is_dir():
             shutil.rmtree(item)
 
+sites_enabled_symlink_path = Path("/etc/nginx/sites-enabled")
+if sites_enabled_symlink_path.exists() or sites_enabled_symlink_path.is_symlink():
+    try:
+        sites_enabled_symlink_path.unlink()
+        sites_enabled_symlink_path.mkdir(exist_ok=True)
+    except IsADirectoryError:
+        # ничего не делаем, если это папка
+        pass
+
 # спрашиваем, удалять ли базы
-try:
+database_config_file_path = Path("%s/../configs/database.yaml" % script_dir)
 
-    database_config_file_path = Path("%s/../configs/database.yaml" % (script_dir))
+if database_config_file_path.exists():
+    with database_config_file_path.open() as database_config_file:
+        database_config = yaml.load(database_config_file, Loader=yaml.BaseLoader)
 
-    if database_config_file_path.exists():
-
-        with database_config_file_path.open() as database_config_file:
-            database_config = yaml.load(database_config_file, Loader=yaml.BaseLoader)
-
-        if (database_config["database_connection"]["driver"] == "host" and
-                input(
-                    "Очищаем инстансы mysql, которые использовались для приложения, продолжить? [y/N]\n"
-                ).lower()
-                == "y"
+    if database_config["database_connection"]["driver"] == "host":
+        if confirm_all or confirm(
+                "Очищаем инстансы mysql, которые использовались для приложения, продолжить? [y/N]\n"
         ):
             clear_mysql_instances(database_config)
-except UnicodeDecodeError as e:
-    print("Не смогли декодировать ответ. Error: ", e)
-    exit(0)
 
 # раз удалили данные, то и текущая конфигурация сервера больше не нужна
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
@@ -332,7 +340,23 @@ values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
 if values_file_path.exists():
     values_file_path.unlink()
 
-# проверяем также файл для service_label, если имеется
-service_label_file_path = Path("%s/../.service_label" % script_dir)
+# удаляем также файл для service_label, если имеется
+service_label_file_path = Path(script_dir).parent / ".service_label"
 if service_label_file_path.exists():
     service_label_file_path.unlink()
+
+# удаление файла с шагами установки
+steps_file = Path(script_dir).parent / ".install_completed_steps.json"
+if steps_file.exists():
+    try:
+        steps_file.unlink()
+    except Exception as e:
+        print(f"Не удалось удалить .install_completed_steps.json: {e}")
+
+# удаление файла с данными установки
+installer_file = Path(script_dir).parent / "configs/installer.yaml"
+if installer_file.exists():
+    try:
+        installer_file.unlink()
+    except Exception as e:
+        print(f"Не удалось удалить installer.yaml: {e}")
