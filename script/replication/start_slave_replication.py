@@ -194,9 +194,9 @@ def start():
 # запускаем старт репликации в полученном контейнере
 def mysql_start_replication(found_container: docker.models.containers.Container, change_master_mysql_command: str, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
 
-    mysql_command = "SET GLOBAL super_read_only = ON; STOP SLAVE;" + \
+    mysql_command = "STOP SLAVE; UNLOCK TABLES;" + \
                     change_master_mysql_command + \
-                    "START SLAVE;"
+                    "START SLAVE; SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
 
     try:
@@ -242,9 +242,8 @@ def mysql_start_replication(found_container: docker.models.containers.Container,
         else:
             print("\nРепликация завершена для монолита")
 
-    # отключаем read_only режим
-    mysql_command = "SET GLOBAL super_read_only = OFF;" + \
-                    "SET GLOBAL read_only = OFF;"
+    # лочим таблицы
+    mysql_command = "FLUSH TABLES WITH READ LOCK;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
 
     try:
@@ -255,11 +254,8 @@ def mysql_start_replication(found_container: docker.models.containers.Container,
     except Exception as e:
         return
 
-    if result.exit_code == 0:
-        if is_logs:
-            print("\nRead-only режим отключен")
-    else:
-        print("Ошибка при отключении read-only режима")
+    if result.exit_code != 0:
+        print("Ошибка при попытке залочить таблицы")
         if result.output:
             print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
         sys.exit(result.exit_code)

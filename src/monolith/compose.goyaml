@@ -482,7 +482,8 @@ services:
       mysqld
         --log_bin=/var/lib/mysql/log-bin.log
         --binlog-format=ROW
-        --expire-logs-days=5
+        --expire-logs-days=20
+        --binlog-expire-logs-seconds=1209600
         --max-binlog-size=500M
         --sync-binlog=1
         --server-id={{.mysql_server_id}}
