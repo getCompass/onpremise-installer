@@ -104,14 +104,6 @@ def start(state):
         change_master_service_label(current_values, current_values.get("service_label"))
         logging.info("Changed master_service_label on Master")
 
-        # рестартим nginx
-        try:
-            subprocess.run(["sudo", "nginx", "-s", "reload"], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.info(f"Ошибка при рестарте nginx: {e}")
-
-        logging.info("Restarted nginx on Master")
-
         # запускаем lsyncd файлов и конфигов
         try:
             subprocess.run(["sudo", "systemctl", "restart", "lsyncd"], check=True)
@@ -144,13 +136,11 @@ def start(state):
 
         logging.info("Stopped lsyncd on Backup")
 
-        # рестартим nginx
-        try:
-            subprocess.run(["sudo", "nginx", "-s", "reload"], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.info(f"Ошибка при рестарте nginx: {e}")
+        # блочим запись в бд
+        lock_write_db_list([monolith])
+        lock_write_db_list(space_config_obj_dict)
 
-        logging.info("Restarted nginx on Backup")
+        logging.info("Locked tables in DB")
 
         # меняем master_service_label
         change_master_service_label(current_values)
@@ -167,14 +157,6 @@ def start(state):
             logging.info(f"Ошибка при остановке службы lsyncd: {e}")
 
         logging.info("Stopped lsyncd on Fault")
-
-        # рестартим nginx
-        try:
-            subprocess.run(["sudo", "nginx", "-s", "reload"], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.info(f"Ошибка при рестарте nginx: {e}")
-
-        logging.info("Restarted nginx on Fault")
 
         # меняем master_service_label
         change_master_service_label(current_values)
@@ -354,7 +336,29 @@ def stop_replication_db_list(db_list: list[DbConfig]):
         space_container : docker.models.containers.Container = container_list[0]
 
         # mysql команда для выполнения
-        mysql_command = "STOP SLAVE; SET GLOBAL super_read_only = OFF; SET GLOBAL read_only = OFF;"
+        mysql_command = "STOP SLAVE; SET GLOBAL super_read_only = OFF; SET GLOBAL read_only = OFF; UNLOCK TABLES;"
+
+        cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % ("localhost", db.root_user, db.root_password, mysql_command)
+        result = space_container.exec_run(cmd=cmd)
+
+        if result.exit_code != 0:
+            print(result.output)
+            scriptutils.die("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id)
+
+# лочим запись в БД
+def lock_write_db_list(db_list: list[DbConfig]):
+
+    for db in db_list:
+
+        container_list = client.containers.list(filters= {"name": db.container_name})
+
+        if len(container_list) < 1:
+            scriptutils.die("Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+
+        space_container : docker.models.containers.Container = container_list[0]
+
+        # mysql команда для выполнения
+        mysql_command = "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; FLUSH TABLES WITH READ LOCK;"
 
         cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % ("localhost", db.root_user, db.root_password, mysql_command)
         result = space_container.exec_run(cmd=cmd)
