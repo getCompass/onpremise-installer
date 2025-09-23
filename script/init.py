@@ -544,6 +544,14 @@ nginx_fields = [
         "type": "str",
         "ask": True,
     },
+
+    {
+        "name": "directio_alignment",
+        "comment": "Значение для nginx.directio_alignment",
+        "default_value": 512,
+        "type": "int",
+        "ask": True,
+    },
 ]
 
 database_connection_fields = [

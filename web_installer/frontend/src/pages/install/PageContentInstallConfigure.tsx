@@ -32,7 +32,7 @@ import {
     checkboxAccountDisablingMonitoringEnabledCheckedState,
     checkboxLdapUseSslCheckedState,
     domainFormState,
-    jobIdState,
+    jobIdState, MIN_CPU_COUNT, MIN_DISK_SPACE_MB, MIN_RAM_MB,
     selectedSsoProviderState,
     serverSpecsAlertState,
     switchEmailCheckedState,
@@ -2954,7 +2954,10 @@ const PageContentInstallConfigure = () => {
                             <div className="flex gap-[16px]">
                                 <WarningIcon />
                                 <Text className="max-w-[626px] whitespace-pre-line">
-                                    {t("install_page.configure.server_specs_warning")}
+                                    {t("install_page.configure.server_specs_warning")
+                                        .replace("$VCPU_COUNT", MIN_CPU_COUNT.toString())
+                                        .replace("$RAM_COUNT", `${MIN_RAM_MB / 1000}GB`)
+                                        .replace("$DISK_SIZE", `${MIN_DISK_SPACE_MB / 1000}GB`)}
                                 </Text>
                             </div>
                             <div

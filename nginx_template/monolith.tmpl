@@ -43,6 +43,7 @@ server {
         error_log       /var/log/nginx/error.log;
 
         proxy_set_header X-Real-IP    $remote_addr;
+        proxy_max_temp_file_size 2048m;
 
         {{if $integration_enabled}}
 	location {{$locprefix}}{{$integration_locprefix}}/ {

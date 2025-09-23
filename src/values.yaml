@@ -72,6 +72,7 @@ nginx:
   label: "compass"
   ssl_crt: "example.crt"
   ssl_key: "example.key"
+  directio_alignment: 512
 
 icap:
   is_enabled: false
@@ -359,7 +360,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.3.0"
+          tag: "v6.3.2"
         php_migration:
           tag: "v6.1.0"
         php_repairer:

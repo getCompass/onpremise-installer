@@ -6,6 +6,7 @@ import re
 import socket
 import subprocess
 import uuid
+import time
 from typing import List, Literal
 
 import psutil
@@ -276,6 +277,7 @@ class ResultResponse(BaseModel):
 
 tasks = {}  # job_id -> {status, log}
 
+
 @app.get("/api/server/info")
 def api_server_info():
     try:
@@ -296,6 +298,7 @@ def api_server_info():
             "ram_mb": 0,
             "disk_mb": 0,
         })
+
 
 def _parse_ipv4_lines(raw: str) -> list[str]:
     ips: list[str] = []
@@ -318,6 +321,7 @@ def _parse_ipv4_lines(raw: str) -> list[str]:
                 except Exception:
                     continue
     return ips
+
 
 def _dig_a(domain: str, nameserver: str | None = None, timeout_sec: int = 5) -> list[str]:
     """
@@ -349,8 +353,10 @@ def _dig_a(domain: str, nameserver: str | None = None, timeout_sec: int = 5) -> 
     except Exception:
         return []
 
+
 class DomainIn(BaseModel):
     domain: str
+
 
 class DomainResolveOut(BaseModel):
     success: bool
@@ -358,6 +364,7 @@ class DomainResolveOut(BaseModel):
     system_dns: list[str]
     google_dns: list[str]
     match: bool
+
 
 @app.post("/api/domain/resolve", response_model=DomainResolveOut)
 def api_domain_resolve(payload: DomainIn):
@@ -375,6 +382,7 @@ def api_domain_resolve(payload: DomainIn):
         "system_dns": sys_ips,
         "google_dns": g_ips,
     })
+
 
 @app.post("/api/install/configure")
 def api_configure(
@@ -415,8 +423,8 @@ def api_configure(
         os.makedirs(le_dir, exist_ok=True)
 
         # пути для итоговых сертификатов
-        config_crt = os.path.join("letsencrypt", f"{params.domain}_ecc", "fullchain.cer");
-        config_key = os.path.join("letsencrypt", f"{params.domain}_ecc", f"{params.domain}.key");
+        config_crt = os.path.join("letsencrypt", f"{params.domain}_ecc", "fullchain.cer")
+        config_key = os.path.join("letsencrypt", f"{params.domain}_ecc", f"{params.domain}.key")
         final_crt = os.path.join(ssl_dir, config_crt)
         final_key = os.path.join(ssl_dir, config_key)
 
@@ -491,7 +499,7 @@ server {{
         subprocess.run(["/usr/sbin/nginx", "-s", "reload"], check=True)
 
         # 4) выпускаем сертификат в stateless режиме, если еще не выпущен
-        if not os.path.exists(final_crt) and not os.path.exists(final_key):
+        if not os.path.exists(final_crt) or not os.path.exists(final_key):
             subprocess.run(
                 [acme_path, "--home", le_dir, "--issue", "--force", "--stateless", "-d", params.domain],
                 check=True
@@ -736,14 +744,31 @@ def api_back_to_configure():
     return JSONResponse({"success": success, "log": (proc.stdout or "") + (proc.stderr or "")})
 
 
+# через delay_sec секунд останавливает и отключает compass-installer.service
+def _stop_and_disable_installer_service(delay_sec: int = 900):
+    try:
+        time.sleep(delay_sec)
+        subprocess.run(["sudo", "rm", "/etc/nginx/sites-enabled-installer/installer.nginx"], check=False)
+        subprocess.run(["nginx", "-s", "reload"], check=False)
+        subprocess.run(["sudo", "systemctl", "stop", "compass-installer.service"], check=False)
+        subprocess.run(["sudo", "systemctl", "disable", "compass-installer.service"], check=False)
+    except Exception:
+        # ничего критичного: не мешаем основному приложению
+        pass
+
+
 @app.post("/api/install/activate_server")
-def api_activate_server():
+def api_activate_server(background_tasks: BackgroundTasks):
     proc = subprocess.run(
         ["sudo", "python3", BASE_DIR / "script/activate_server.py"],
         text=True, capture_output=True
     )
 
     success = proc.returncode == 0
+
+    # если сервер успешно активирован — через 15 минут останавливаем и отключаем инсталлер
+    if success:
+        background_tasks.add_task(_stop_and_disable_installer_service, 900)
 
     return JSONResponse({
         "success": success,
