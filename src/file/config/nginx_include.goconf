@@ -39,6 +39,7 @@ location {{$locprefix}}/files/ {
 	sendfile                on;
 	sendfile_max_chunk      1m;
 	directio                10m;
+	directio_alignment 	{{.nginx.directio_alignment}};
 	output_buffers          128 384k;
 
 	# кэшируем файлы на клиенте

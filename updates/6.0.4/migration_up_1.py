@@ -54,7 +54,7 @@ with open(global_config_path, "r") as file:
     global_config = yaml.safe_load(file)
 
     # если в содержимом уже имеется новое поле, то ничего не делаем
-    if "is_need_index_web:" in global_config:
+    if "is_need_index_web" in global_config:
         print(scriptutils.success("Конфиг-файл global.yaml выглядит актуальным, миграция не требуется."))
         exit(0)
 
