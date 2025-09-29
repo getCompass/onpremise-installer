@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 import ipaddress
 
 from pathlib import Path
-import random, shutil, subprocess, ipaddress, argparse, yaml
+import random, shutil, subprocess, ipaddress, argparse, yaml, os, hashlib
 from utils import scriptutils, interactive
 from loader import Loader
 from typing import Tuple
@@ -25,6 +25,9 @@ scriptutils.assert_root()
 script_path = Path(__file__).parent.resolve()
 cert_path = Path(str(script_path.resolve()) + "/../certs/")
 cert_path.mkdir(exist_ok=True)
+
+RPM_CA_TRUST_CERT_PATH = "/etc/pki/ca-trust/source/anchors"
+DEB_CA_TRUST_CERT_PATH = "/usr/local/share/ca-certificates"
 
 # загружаем конфиги
 config_path = Path(str(script_path) + "/../configs/global.yaml")
@@ -125,7 +128,20 @@ def get_root_certificate_path() -> Tuple[Path, Path]:
     pubkey_path = Path(str(cert_path.resolve()) + "/" + pubkey)
     privkey_path = Path(str(cert_path.resolve()) + "/" + privkey)
 
+    if scriptutils.is_rpm_os():
+        ca_cert_path = "%s/%s" % (RPM_CA_TRUST_CERT_PATH, pubkey)
+    else:
+        ca_cert_path = "%s/%s" % (DEB_CA_TRUST_CERT_PATH, pubkey)
+
     if pubkey_path.exists() and privkey_path.exists():
+
+        # проверяем серты в списке доверенных
+        pubkey_hash = get_file_hash(pubkey_path)
+        ca_cert_hash = get_file_hash(ca_cert_path)
+
+        if ca_cert_hash is None or pubkey_hash != ca_cert_hash:
+            ca_cert_copy(pubkey, pubkey_path)
+
         return pubkey_path, privkey_path
 
     print("Не найдены файлы корневого сертификата")
@@ -143,7 +159,20 @@ def create_root_certificate() -> Tuple[Path, Path]:
     privkey_path = Path(str(cert_path.resolve()) + "/" + privkey)
     srl_path = Path(str(cert_path.resolve()) + "/" + srl)
 
+    if scriptutils.is_rpm_os():
+        ca_cert_path = "%s/%s" % (RPM_CA_TRUST_CERT_PATH, pubkey)
+    else:
+        ca_cert_path = "%s/%s" % (DEB_CA_TRUST_CERT_PATH, pubkey)
+
     if pubkey_path.exists() and privkey_path.exists() and not force:
+
+        # проверяем серты в списке доверенных
+        pubkey_hash = get_file_hash(pubkey_path)
+        ca_cert_hash = get_file_hash(ca_cert_path)
+
+        if ca_cert_hash is None or pubkey_hash != ca_cert_hash:
+            ca_cert_copy(pubkey, pubkey_path)
+
         return pubkey_path, privkey_path
 
     loader = Loader(
@@ -185,21 +214,7 @@ def create_root_certificate() -> Tuple[Path, Path]:
     print(
         "Сгенерирован корневой сертификат для проекта. Он должен быть добавлен в доверенные сертификаты серверов, где развернуто приложение"
     )
-    try:
-        if scriptutils.is_rpm_os():
-            shutil.copy2(pubkey_path, "/etc/pki/ca-trust/source/anchors/%s" % pubkey)
-            subprocess.run(["update-ca-trust"])
-        else:
-            shutil.copy2(pubkey_path, "/usr/local/share/ca-certificates/%s" % pubkey)
-            subprocess.run(["update-ca-certificates"])
-
-    except:
-        if scriptutils.is_rpm_os():
-            print(scriptutils.error(
-                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на RPM"))
-        else:
-            print(scriptutils.error(
-                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Debian"))
+    ca_cert_copy(pubkey, pubkey_path)
 
     print(
         "Корневой сертификат сохранен по следующему пути: "
@@ -210,6 +225,36 @@ def create_root_certificate() -> Tuple[Path, Path]:
         + scriptutils.warning(str(privkey_path.resolve()))
     )
     return pubkey_path, privkey_path
+
+
+def get_file_hash(filepath):
+    if not os.path.exists(filepath):
+        return None
+
+    hasher = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+# копируем серты в доверенные
+def ca_cert_copy(pubkey: str, pubkey_path: str):
+
+    try:
+        if scriptutils.is_rpm_os():
+            shutil.copy2(pubkey_path, "%s/%s" % (RPM_CA_TRUST_CERT_PATH, pubkey))
+            subprocess.run(["update-ca-trust"])
+        else:
+            shutil.copy2(pubkey_path, "%s/%s" % (DEB_CA_TRUST_CERT_PATH, pubkey))
+            subprocess.run(["update-ca-certificates"])
+    except:
+        if scriptutils.is_rpm_os():
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на RPM"))
+        else:
+            print(scriptutils.error(
+                "Не удалось добавить сертификат в доверенные. Убедитесь, что развертываете приложение на Debian"))
 
 
 def generate_host_certificates(host: str, ca_pubkey_path: Path, ca_privkey_path: Path):
@@ -302,7 +347,7 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
 
     if scriptutils.is_rpm_os():
         try:
-            shutil.copy2(pubkey_path, "/etc/pki/ca-trust/source/anchors/%s" % pubkey)
+            shutil.copy2(pubkey_path, "%s/%s" % (RPM_CA_TRUST_CERT_PATH, pubkey))
             subprocess.run(["update-ca-trust"])
         except:
             print(scriptutils.error(
