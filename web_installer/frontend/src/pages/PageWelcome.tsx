@@ -3,10 +3,25 @@ import { Button } from "@/components/ui/button.tsx";
 import { useLangString } from "@/lib/getLangString.ts";
 import PoweredByYandexCloud from "@/components/icons/PoweredByYandexCloud.tsx";
 import useNavigatePages from "@/lib/navigatePages.ts";
+import { useEffect } from "react";
 
 const PageWelcome = () => {
     const t = useLangString();
     const { navigateToNextPage } = useNavigatePages();
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                navigateToNextPage();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
 
     return (
         <div className="flex items-center justify-center min-h-screen max-w-screen">

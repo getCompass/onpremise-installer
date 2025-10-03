@@ -13,6 +13,7 @@ import {
 } from "@/api/_stores.ts";
 import { INSTALL_STEP_LIST, type StatusResponse } from "@/api/_types.ts";
 import { useNavigatePageContent } from "@/components/hooks.ts";
+import NoNetworkError from "@/components/NoNetworkError.tsx";
 
 type ActivateServerResponseStruct = { success: boolean };
 
@@ -20,6 +21,7 @@ const PageContentInstallInProgress = () => {
     const t = useLangString();
     const { navigateToNextPage } = useNavigatePages();
     const { navigateToPageContent } = useNavigatePageContent();
+    const [ networkError, setNetworkError ] = useState(false);
 
     const [ progressBar, setProgressBar ] = useAtom(progressBarState);
     const [ jobStatusResponse, setJobStatusResponse ] = useAtom(jobStatusResponseState);
@@ -108,7 +110,11 @@ const PageContentInstallInProgress = () => {
             } catch (e) {
                 // игнорируем AbortError
                 // @ts-expect-error
-                if (e?.name !== "AbortError") setErrorCount((er) => er + 1);
+                if (e?.name !== "AbortError") {
+
+                    setErrorCount((er) => er + 1)
+                    setNetworkError(true);
+                }
             }
             return cancel;
         };
@@ -150,7 +156,13 @@ const PageContentInstallInProgress = () => {
                         {t("install_page.install_in_progress.desc")}
                     </Text>
                 </div>
-                <Progress value={progressBar} className="w-[545px]" />
+                <NoNetworkError
+                    visible={networkError}
+                    setVisible={setNetworkError}
+                    triggerComponent={
+                        <Progress value={progressBar} className="w-[545px]" />
+                    }
+                />
             </div>
         </div>
     );

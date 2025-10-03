@@ -8,13 +8,14 @@ type LangConfig = {
 
 const LANG_CONFIG: LangConfig = {
     ru: {
+        no_network_error: "Нет подключения к интернету",
         welcome_page: {
             button: "Начать установку",
             powered_by: "Powered by",
         },
         install_page: {
             header: {
-                title: "Установка Compass на сервере Yandex Cloud",
+                title: "Compass на сервере Yandex Cloud",
                 support_title: "Служба поддержки",
                 documentation_title: "Документация",
                 support_dialog: {
@@ -29,7 +30,7 @@ const LANG_CONFIG: LangConfig = {
                     title: "Данные домена",
                     desc: "Для установки необходимо доменное имя, доступное из внешней сети, и доверенный SSL-сертификат.\nУкажите IP-адрес сервера $IP в А-записи поддомена или домена, на котором будет развернут Compass.",
                     checkbox: "Автоматически выпустить SSL-сертификат",
-                    checkbox_checked_desc: "Сертификат и ключ будут автоматически выпущены при установке Compass",
+                    checkbox_checked_desc: "Сертификат и ключ будут автоматически выпущены при установке",
                     domain_input_title: "Домен или поддомен",
                     domain_input_placeholder: "sub.domain.com",
                     domain_check_default_error: "Не удалось определить\nIP-адрес домена. Укажите $SERVER_IP в А-записи домена.\n\nЕсли используется внешний proxy, убедитесь, что 80 и 443 порты проксируются на сервер.",
@@ -153,14 +154,15 @@ const LANG_CONFIG: LangConfig = {
                     admin_email_mail_input_title: "Email",
                     admin_email_mail_input_placeholder: "hello@your-domain.ru",
                     admin_email_password_input_title: "Пароль",
-                    admin_email_password_input_placeholder: "Введите пароль",
+                    admin_email_password_input_placeholder: "Введите пароль (от 8 до 40 символов)",
+                    admin_email_password_input_error: "Пароль должен содержать\nот 8 до 40 символов",
                 },
                 confirm_block: {
                     domain_title: "Домен",
                     auth_title: "Авторизация",
                     admin_title: "Администратор",
                     offer_desc: "Я согласен с условиями политики конфиденциальности и публичной оферты на право использования ПО Compass в Yandex Cloud",
-                    install_button: "Установить Compass",
+                    install_button: "Установить",
                 },
             },
             install_in_progress: {
@@ -209,7 +211,7 @@ const LANG_CONFIG: LangConfig = {
                 sso_title_pt2: "Если вы планируете использовать протокол LDAP, ознакомьтесь с инструкцией.",
                 sso_mapping_attributes_subtitle_pt1: "Заполните параметры для автоматической подгрузки информации о пользователе при регистрации через SSO. Поля Имя, Электронная почта и Номер пользователя обязательны к заполнению, остальные поля могут быть пустыми, если атрибут не требуется. Поля электронной почты и номера телефона необходимы для корректной первой авторизации администратора в Compass.",
                 sso_mapping_attributes_subtitle_pt2: "Атрибуты, которые требуется подтягивать из SSO по протоколу OIDC, обязательно указываются в фигурных скобках. Например, для имени пользователя в Compass атрибут можно указать следующим образом: {first_name}.",
-                sso_mapping_attributes_subtitle_pt3: "Если требуется указать несколько атрибутов, они указываются в фигурных скобках по отдельности. Например: {first_name} {last_name} или {first_name}-{last_name}.",
+                sso_mapping_attributes_subtitle_pt3: "Если требуется указать несколько атрибутов, они указываются в фигурных скобках по отдельности. Например: {first_name} {last_name}.",
                 sso_connect_subtitle: "Ознакомиться с инструкциями для получения данных подключения к SSO-серверу можно по ссылкам:",
                 sso_connect_subtitle_adfs: "Active Directory Federation Services (AD FS);",
                 sso_connect_subtitle_okta: "Okta;",
@@ -227,8 +229,8 @@ const LANG_CONFIG: LangConfig = {
                 sms_agent_title: "С инструкцией для подключения провайдера СМС-Агент можно ознакомиться по ссылке.",
                 vonage_title: "С инструкцией для подключения провайдера Vonage можно ознакомиться по ссылке.",
                 twilio_title: "С инструкцией для подключения провайдера Twilio можно ознакомиться по ссылке.",
-                admin_profile_creds_title: "Администратор является первым пользователем приложения. От его имени будут создаваться новые рабочие пространства. При необходимости вы сможете изменить имя пользователя и название пространства после установки.",
-                admin_auth_creds_title: "Заполните данные, которые будут использоваться для авторизации администратора в приложении. Почту, пароль и номер телефона при необходимости можно будет изменить после установки.",
+                admin_profile_creds_title: "Администратор является первым пользователем приложения. От его имени будут создаваться новые рабочие пространства. При необходимости вы сможете изменить имя пользователя и название пространства в приложении после установки.",
+                admin_auth_creds_title: "Заполните данные, которые будут использоваться для аутентификации администратора в приложении. Почту, пароль и номер телефона при необходимости можно будет изменить в приложении после установки.",
             },
         },
     },
