@@ -1,6 +1,9 @@
 import { useLangString } from "@/lib/getLangString.ts";
 import { type DragEvent, useState } from "react";
 
+export const AllowedFileExtension = /\.(txt|log|pem|crt|cer|key|cfg|conf|cnf)$/i;
+export const ProhibitedFileExtension = /\.(sh|py|php|xml)$/i;
+
 type Options = {
     onText: (text: string, file: File) => void;
     maxBytes?: number; // ограничение размера, например: 10_000_000
@@ -41,11 +44,12 @@ export default function useTextFileDrop({ onText, maxBytes = 10_000_000, nameAll
         // разрешаем «text/*» и часто используемые текстовые расширения
         const looksText =
             file.type.startsWith("text/") ||
-            /\.(txt|log|pem|crt|cer|key|cfg|conf|cnf)$/i.test(file.name);
+            AllowedFileExtension.test(file.name);
+        const executedFiles = ProhibitedFileExtension.test(file.name);
 
         const allowedByName = nameAllow ? nameAllow.test(file.name) : true;
 
-        if (!looksText || !allowedByName) {
+        if (!looksText || !allowedByName || executedFiles) {
             setError(t("install_page.configure.domain_block.ssl_upload_file_error_extension"));
             return;
         }

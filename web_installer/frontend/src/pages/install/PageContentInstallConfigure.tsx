@@ -52,11 +52,12 @@ import type {
     SectionKey,
     SmsProvider
 } from "@/api/_types.ts";
-import useTextFileDrop from "@/lib/useTextFileDrop.ts";
+import useTextFileDrop, { AllowedFileExtension, ProhibitedFileExtension } from "@/lib/useTextFileDrop.ts";
 import Preloader from "@/components/Preloader.tsx";
 import { normalizeBackendInvalidKeys } from "@/lib/functions.ts";
 import ImagePreview from "@/components/ImagePreview.tsx";
 import domainTooltipUrl from "@/img/domain-tooltip-image.png";
+import NoNetworkError from "@/components/NoNetworkError.tsx";
 
 /* =========================
    Свитчеры
@@ -102,6 +103,8 @@ type ConfirmBlockProps = {
     needShowErrorOfferAccepted: boolean;
     setNeedShowErrorOfferAccepted: (v: boolean) => void;
     loading: boolean;
+    networkError: boolean;
+    setNetworkError: (v: boolean) => void;
 };
 const ConfirmBlock = ({
     activeSection,
@@ -113,7 +116,9 @@ const ConfirmBlock = ({
     setOfferAccepted,
     needShowErrorOfferAccepted,
     setNeedShowErrorOfferAccepted,
-    loading
+    loading,
+    networkError,
+    setNetworkError,
 }: ConfirmBlockProps) => {
     const t = useLangString();
     const itemBase =
@@ -209,11 +214,18 @@ const ConfirmBlock = ({
                         {renderOfferDesc()}
                     </Label>
                 </div>
-                <Button className={loading ? "pt-[9px] pb-[10px]" : "py-[6px]"} onClick={onSubmit} disabled={loading}>
-                    {loading ? (
-                        <Preloader size={16} />
-                    ) : t("install_page.configure.confirm_block.install_button")}
-                </Button>
+                <NoNetworkError
+                    visible={networkError}
+                    setVisible={setNetworkError}
+                    triggerComponent={
+                        <Button className={loading ? "pt-[9px] pb-[10px]" : "py-[6px]"} onClick={onSubmit}
+                                disabled={loading}>
+                            {loading ? (
+                                <Preloader size={16} />
+                            ) : t("install_page.configure.confirm_block.install_button")}
+                        </Button>
+                    }
+                />
             </div>
         </div>
     );
@@ -285,11 +297,13 @@ type InputBlockProps = {
     invalid?: boolean;
 
     labelBlock?: ReactNode;
+
+    maxLength?: number;
 }
 const InputBlock = ({
     label, placeholder, className, tooltip, requiredField,
     name, value, onChange, type = "text", inputProps, invalid,
-    labelBlock
+    labelBlock, maxLength = 1000
 }: InputBlockProps) => {
 
     const [ showPassword, setShowPassword ] = useState(false);
@@ -321,7 +335,7 @@ const InputBlock = ({
                         placeholder={placeholder}
                         type={showPassword ? "text" : "password"}
                         aria-invalid={invalid || undefined}
-                        maxLength={1000}
+                        maxLength={maxLength}
                         {...inputProps}
                     />
                     <div
@@ -338,7 +352,7 @@ const InputBlock = ({
                     placeholder={placeholder}
                     type={type}
                     aria-invalid={invalid || undefined}
-                    maxLength={1000}
+                    maxLength={maxLength}
                     min={type === "number" ? 1 : undefined}
                     onWheel={(e) => {
                         if (type === "number") {
@@ -562,28 +576,29 @@ const FileUploadLink = ({
                 accept={accept}
                 style={{ display: "none" }}
                 onChange={async (e) => {
-                    const f = e.currentTarget.files?.[0];
+                    const file = e.currentTarget.files?.[0];
                     try {
-                        if (!f) return;
+                        if (!file) return;
 
                         const looksText =
-                            f.type.startsWith("text/") ||
-                            /\.(txt|log|pem|crt|cer|key|cfg|conf|cnf)$/i.test(f.name);
+                            file.type.startsWith("text/") ||
+                            AllowedFileExtension.test(file.name);
+                        const executedFiles = ProhibitedFileExtension.test(file.name);
 
-                        const allowedByName = nameAllow ? nameAllow.test(f.name) : true;
+                        const allowedByName = nameAllow ? nameAllow.test(file.name) : true;
 
-                        if (!looksText || !allowedByName) {
+                        if (!looksText || !allowedByName || executedFiles) {
                             handleError("install_page.configure.domain_block.ssl_upload_file_error_extension");
                             return;
                         }
-                        if (f.size > maxBytes) {
+                        if (file.size > maxBytes) {
                             handleError("install_page.configure.domain_block.ssl_upload_file_error_size");
                             return;
                         }
 
                         try {
-                            const text = await readTextFile(f);
-                            onText(text, f);
+                            const text = await readTextFile(file);
+                            onText(text, file);
                         } catch {
                             handleError("install_page.configure.domain_block.ssl_upload_file_error_general");
                         }
@@ -681,7 +696,7 @@ export const DroppableTextarea = ({
                         classNameTrigger="top-[13px]"
                         open={error !== null && invalidKeys.has(invalidKey)}
                         side="left"
-                        sideOffset={12}
+                        sideOffset={16}
                     >
                         <Text size="s">
                             {error}
@@ -918,7 +933,8 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                                         </Text>
                                     </Tooltip>
                                 </Text>
-                                <Text>{t("install_page.configure.domain_block.checkbox_checked_desc")}</Text>
+                                <Text
+                                    color="inactive">{t("install_page.configure.domain_block.checkbox_checked_desc")}</Text>
                                 <input type="hidden" name="cert" value="" />
                                 <input type="hidden" name="private_key" value="" />
                             </div>
@@ -1354,6 +1370,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                         size="sm"
                                         className={`text-center cursor-pointer 
                                         ${selectedSsoProvider === "oidc" ? "bg-[rgba(0,0,0,0.1)]" : "bg-[rgba(0,0,0,0.2)]"} 
+                                        ${selectedSsoProvider === "oidc" ? "text-[rgba(255,255,255,0.8)]" : "text-[#54555c]"} 
                                         p-[12px] w-full grow`}
                                         onClick={() => setSelectedSsoProvider("oidc")}>
                                         {t("install_page.configure.auth_block.sso_provider_oidc")}
@@ -1362,6 +1379,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                         size="sm"
                                         className={`text-center cursor-pointer 
                                         ${selectedSsoProvider === "ldap" ? "bg-[rgba(0,0,0,0.1)]" : "bg-[rgba(0,0,0,0.2)]"} 
+                                        ${selectedSsoProvider === "ldap" ? "text-[rgba(255,255,255,0.8)]" : "text-[#54555c]"} 
                                         p-[12px] w-full grow`}
                                         onClick={() => setSelectedSsoProvider("ldap")}>
                                         {t("install_page.configure.auth_block.sso_provider_ldap")}
@@ -2109,6 +2127,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
         switchEmailChecked, switchSsoChecked, switchSmsAgentChecked, switchVonageChecked, switchTwilioChecked,
         form, setForm, invalidKeys, markInvalidKey, clearInvalidKey,
     } = props;
+    const [ mailPasswordErrorVisible, setMailPasswordErrorVisible ] = useState(false);
 
     const anySmsChecked = switchSmsAgentChecked || switchVonageChecked || switchTwilioChecked;
 
@@ -2157,6 +2176,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                                 clearInvalidKey("admin.root_user_full_name");
                             }}
                             invalid={invalidKeys.has("admin.root_user_full_name")}
+                            maxLength={40}
                         />
                         <InputBlock
                             label={t("install_page.configure.admin_block.space_name_input_title")}
@@ -2170,6 +2190,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                                 clearInvalidKey("admin.space_name");
                             }}
                             invalid={invalidKeys.has("admin.space_name")}
+                            maxLength={40}
                         />
                     </div>
                 </div>
@@ -2258,20 +2279,53 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                                         }}
                                         invalid={invalidKeys.has("admin.root_user_mail")}
                                     />
-                                    <InputBlock
-                                        label={t("install_page.configure.admin_block.admin_email_password_input_title")}
-                                        placeholder={t("install_page.configure.admin_block.admin_email_password_input_placeholder")}
-                                        className="rounded-b-[12px]"
-                                        requiredField
-                                        name="root_user_pass"
-                                        value={form.root_user_pass}
-                                        onChange={(v) => {
-                                            setForm((s) => ({ ...s, root_user_pass: v }));
-                                            clearInvalidKey("admin.root_user_pass");
-                                        }}
-                                        type="password"
-                                        invalid={invalidKeys.has("admin.root_user_pass")}
-                                    />
+                                    <div className="relative w-full flex justify-center">
+                                        <Tooltip
+                                            classNameContent="max-w-[219px] w-[219px]"
+                                            color="orange"
+                                            open={mailPasswordErrorVisible}
+                                            side="top"
+                                            sideOffset={-10}
+                                        >
+                                            <Text size="s" className="whitespace-pre-line text-center tracking-[-0.15px]">
+                                                {t("install_page.configure.admin_block.admin_email_password_input_error")}
+                                            </Text>
+                                        </Tooltip>
+                                        <InputBlock
+                                            label={t("install_page.configure.admin_block.admin_email_password_input_title")}
+                                            placeholder={t("install_page.configure.admin_block.admin_email_password_input_placeholder")}
+                                            className="rounded-b-[12px]"
+                                            requiredField
+                                            name="root_user_pass"
+                                            value={form.root_user_pass}
+                                            onChange={(v) => {
+                                                setMailPasswordErrorVisible(false);
+                                                setForm((s) => ({ ...s, root_user_pass: v }));
+                                                clearInvalidKey("admin.root_user_pass");
+                                            }}
+                                            inputProps={{
+                                                onBlur: (e) => {
+                                                    const val = e.currentTarget.value.trim();
+
+                                                    if (val.length < 1) {
+                                                        return;
+                                                    }
+
+                                                    if (val.length < 8 || val.length > 40) {
+
+                                                        markInvalidKey("admin.root_user_pass");
+                                                        setMailPasswordErrorVisible(true);
+                                                        return;
+                                                    }
+
+                                                    setMailPasswordErrorVisible(false);
+                                                    clearInvalidKey("admin.root_user_pass");
+                                                }
+                                            }}
+                                            type="password"
+                                            invalid={invalidKeys.has("admin.root_user_pass")}
+                                        />
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -2326,6 +2380,7 @@ const PageContentInstallConfigure = () => {
     const [ offerAccepted, setOfferAccepted ] = useState<boolean>(false);
     const [ needShowErrorOfferAccepted, setNeedShowErrorOfferAccepted ] = useState<boolean>(false);
     const [ loading, setLoading ] = useState<boolean>(false);
+    const [ networkError, setNetworkError ] = useState(false);
     const { navigateToNextPage } = useNavigatePages();
 
     const [ isEditing, setIsEditing ] = useState(false);
@@ -2336,6 +2391,25 @@ const PageContentInstallConfigure = () => {
         // if (next && centerRef.current?.contains(next)) return;
         // фокус ушел из блока ввода – считаем редактирование законченным
         setIsEditing(false);
+    };
+
+    const fetchJson = async <T, >(url: string, init: RequestInit, label: string): Promise<T | null> => {
+        try {
+            const res = await fetch(url, init);
+            if (!res.ok) {
+                console.log(`Failed to ${label}: ${res.status} ${res.statusText}`);
+                return null;
+            }
+            return (await res.json()) as T;
+        } catch (e) {
+
+            // игнорируем AbortError
+            // @ts-expect-error
+            if (e?.name !== "AbortError") {
+                setNetworkError(true);
+            }
+            throw e;
+        }
     };
 
     // ошибки
@@ -2398,7 +2472,11 @@ const PageContentInstallConfigure = () => {
         if (authSettings.switchEmailChecked) {
             if (!authForm.smtp_host) bad.push("auth.smtp_host");
             if (!authForm.smtp_port) bad.push("auth.smtp_port");
-            if (!authForm.smtp_from) bad.push("auth.smtp_from");
+            if (!authForm.smtp_from) {
+                bad.push("auth.smtp_from");
+            } else {
+                if (!isValidEmail(authForm.smtp_from)) bad.push("auth.smtp_from");
+            }
         }
 
         // sso
@@ -2459,8 +2537,16 @@ const PageContentInstallConfigure = () => {
         if (authSettings.switchSsoChecked && !adminForm.root_user_sso_login) bad.push("admin.root_user_sso_login");
         if (anySmsChecked && !adminForm.root_user_phone) bad.push("admin.root_user_phone");
         if (authSettings.switchEmailChecked) {
-            if (!adminForm.root_user_mail) bad.push("admin.root_user_mail");
-            if (!adminForm.root_user_pass) bad.push("admin.root_user_pass");
+            if (!adminForm.root_user_mail) {
+                bad.push("admin.root_user_mail");
+            } else {
+                if (!isValidEmail(adminForm.root_user_mail)) bad.push("admin.root_user_mail");
+            }
+            if (!adminForm.root_user_pass) {
+                bad.push("admin.root_user_pass");
+            } else {
+                if (adminForm.root_user_pass.length < 8 || adminForm.root_user_pass.length > 40) bad.push("admin.root_user_pass");
+            }
         }
 
         return bad;
@@ -2597,14 +2683,9 @@ const PageContentInstallConfigure = () => {
             setNeedShowErrorOfferAccepted(true);
         }
 
-        // ждем пока исправят перед повторной установкой
-        // if (invalidKeys.size > 0) {
-        //     return;
-        // }
-
         const bad = validateAll();
         setInvalidKeys(new Set(bad));
-        if (bad.length) {
+        if (bad.length > 0) {
             const first = bad[0];
             if (first.startsWith("domain.")) {
                 lockActive("domain");
@@ -2641,34 +2722,37 @@ const PageContentInstallConfigure = () => {
         try {
 
             setLoading(true);
-            const response = await fetch("/api/install/configure", { method: "POST", body: data });
-            if (!response.ok) {
-                console.log(`Failed to configure: ${response.status} ${response.statusText}`);
-                return;
-            }
-            const json = (await response.json()) as ConfigureResponseStruct;
-            if (json.success) {
 
-                // после успешной конфигурации - валидируем
-                const validateResponse = await fetch("/api/install/validate", { method: "POST" });
-                if (!validateResponse.ok) {
-                    console.log(`Failed to validate: ${validateResponse.status} ${validateResponse.statusText}`);
-                    return;
-                }
-                const validateJson = (await validateResponse.json()) as ValidateResponseStruct;
+            const configureJson = await fetchJson<ConfigureResponseStruct>(
+                "/api/install/configure",
+                { method: "POST", body: data },
+                "configure"
+            );
+            if (!configureJson) return;
+
+            if (configureJson.success) {
+
+                const validateJson = await fetchJson<ValidateResponseStruct>(
+                    "/api/install/validate",
+                    { method: "POST" },
+                    "validate"
+                );
+                if (!validateJson) return;
 
                 if (Array.isArray(validateJson.invalid_keys)) {
                     setInvalidKeys(normalizeBackendInvalidKeys(new Set(validateJson.invalid_keys)));
+
                     if (validateJson.success) {
 
-                        const response = await fetch("/api/install/run", { method: "POST" });
-                        if (!response.ok) {
-                            console.log(`Failed to run: ${response.status} ${response.statusText}`);
-                            return;
-                        }
-                        const json = (await response.json()) as RunResponseStruct;
-                        if (json.success) {
-                            setJobId(json.job_id);
+                        const runJson = await fetchJson<RunResponseStruct>(
+                            "/api/install/run",
+                            { method: "POST" },
+                            "run"
+                        );
+                        if (!runJson) return;
+
+                        if (runJson.success) {
+                            setJobId(runJson.job_id);
                             navigateToNextPage();
                         }
                         return;
@@ -3014,6 +3098,8 @@ const PageContentInstallConfigure = () => {
                         needShowErrorOfferAccepted={needShowErrorOfferAccepted}
                         setNeedShowErrorOfferAccepted={setNeedShowErrorOfferAccepted}
                         loading={loading}
+                        networkError={networkError}
+                        setNetworkError={setNetworkError}
                     />
                 </div>
             </div>

@@ -745,13 +745,14 @@ def api_back_to_configure():
 
 
 # через delay_sec секунд останавливает и отключает compass-installer.service
-def _stop_and_disable_installer_service(delay_sec: int = 900):
+def _stop_and_disable_installer_service(delay_sec: int = 600):
     try:
         time.sleep(delay_sec)
         subprocess.run(["sudo", "rm", "/etc/nginx/sites-enabled-installer/installer.nginx"], check=False)
         subprocess.run(["nginx", "-s", "reload"], check=False)
         subprocess.run(["sudo", "systemctl", "stop", "compass-installer.service"], check=False)
         subprocess.run(["sudo", "systemctl", "disable", "compass-installer.service"], check=False)
+        subprocess.run(["sudo", "rm", "/etc/systemd/system/compass-installer.service"], check=False)
     except Exception:
         # ничего критичного: не мешаем основному приложению
         pass
@@ -766,9 +767,9 @@ def api_activate_server(background_tasks: BackgroundTasks):
 
     success = proc.returncode == 0
 
-    # если сервер успешно активирован — через 15 минут останавливаем и отключаем инсталлер
+    # если сервер успешно активирован — через 10 минут останавливаем и отключаем инсталлер
     if success:
-        background_tasks.add_task(_stop_and_disable_installer_service, 900)
+        background_tasks.add_task(_stop_and_disable_installer_service, 600)
 
     return JSONResponse({
         "success": success,

@@ -2,6 +2,22 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 import type { ComponentProps, ReactNode } from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+
+const tooltipVariants = cva(
+    "outline-none",
+    {
+        variants: {
+            color: {
+                default: "bg-[#1a1c23] fill-[#1a1c23]",
+                orange: "bg-[#ff8a00] fill-[#ff8a00]",
+            }
+        },
+        defaultVariants: {
+            color: "default",
+        },
+    }
+)
 
 function TooltipProvider({
     delayDuration = 0,
@@ -23,8 +39,10 @@ function Tooltip({
     sideOffset = 0,
     classNameContent,
     classNameTrigger,
+    color,
     ...props
-}: ComponentProps<typeof TooltipPrimitive.Root> & {
+}: ComponentProps<typeof TooltipPrimitive.Root> &
+    VariantProps<typeof tooltipVariants> & {
     trigger?: ReactNode;
     side?: "top" | "bottom" | "left" | "right";
     sideOffset?: number;
@@ -37,7 +55,12 @@ function Tooltip({
                 <TooltipTrigger className={cn(classNameTrigger, trigger == null ? "absolute" : "")} tabIndex={-1}>
                     {trigger}
                 </TooltipTrigger>
-                <TooltipContent className={classNameContent} sideOffset={sideOffset} side={side}>
+                <TooltipContent
+                    color={color ?? undefined}
+                    className={classNameContent}
+                    sideOffset={sideOffset}
+                    side={side}
+                >
                     {children}
                 </TooltipContent>
             </TooltipPrimitive.Root>
@@ -59,22 +82,28 @@ function TooltipContent({
     className,
     sideOffset = 0,
     children,
+    color,
     ...props
-}: ComponentProps<typeof TooltipPrimitive.Content>) {
+}: ComponentProps<typeof TooltipPrimitive.Content> & VariantProps<typeof tooltipVariants>) {
+
     return (
         <TooltipPrimitive.Portal>
             <TooltipPrimitive.Content
                 data-slot="tooltip-content"
                 sideOffset={sideOffset}
                 className={cn(
-                    "bg-[#1a1c23] text-[rgba(255,255,255,0.8)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-48 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-[8px] px-[12px] py-[8px]",
+                    tooltipVariants({ color }),
+                    "text-[rgba(255,255,255,0.8)] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-48 w-fit origin-(--radix-tooltip-content-transform-origin) rounded-[8px] px-[12px] py-[8px]",
                     className
                 )}
                 {...props}
             >
                 {children}
                 <TooltipPrimitive.Arrow
-                    className="bg-[#1a1c23] fill-[#1a1c23] z-48 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45" />
+                    className={cn(
+                        tooltipVariants({ color }),
+                        "z-48 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45"
+                    )} />
             </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
     )

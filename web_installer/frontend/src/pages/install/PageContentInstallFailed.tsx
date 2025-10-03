@@ -11,6 +11,7 @@ import { useNavigatePageContent } from "@/components/hooks.ts";
 import Preloader from "@/components/Preloader.tsx";
 import CustomDialog from "@/components/CustomDialog.tsx";
 import { DialogClose } from "@/components/ui/dialog.tsx";
+import NoNetworkError from "@/components/NoNetworkError.tsx";
 
 type BackToConfigureResponse = {
     success: boolean;
@@ -28,6 +29,8 @@ const PageContentInstallFailed = () => {
     const [ loading, setLoading ] = useState<boolean>(false);
     const [ downloading, setDownloading ] = useState<boolean>(false);
     const [ logsDownloaded, setLogsDownloaded ] = useState<boolean>(false);
+    const [ networkError, setNetworkError ] = useState(false);
+    const [ activateNetworkError, setActivateNetworkError ] = useState(false);
 
     // true если упали на этапе установки
     // false если упали на этапе активации сервера
@@ -49,14 +52,31 @@ const PageContentInstallFailed = () => {
                 return;
             }
         } catch (e) {
+            // игнорируем AbortError
+            // @ts-expect-error
+            if (e?.name !== "AbortError") {
+                setNetworkError(true);
+            }
             console.error("back_to_configure failed:", e);
         } finally {
-            setLogsDownloaded(false);
             setLoading(false);
         }
     }, []);
 
     const tryActivateServerAgain = useCallback(async () => {
+
+        try {
+            // при активации сервера сначала проверяем есть ли интернет
+            await fetch("/api/server/info");
+        } catch (e) {
+            // игнорируем AbortError
+            // @ts-expect-error
+            if (e?.name !== "AbortError") {
+                setActivateNetworkError(true);
+            }
+            return;
+        }
+
         setActivateServerStatus("not_activated");
         navigateToPageContent("install_in_progress");
     }, [])
@@ -91,20 +111,36 @@ const PageContentInstallFailed = () => {
                         {t("install_page.install_failed.desc")}
                     </Text>
                 </div>
-                <Progress value={progressBar} className="w-[545px]" classNameIndicator="bg-[#ff9d14]" />
+                {logsDownloaded ? (
+                    <Progress value={progressBar} className="w-[545px]" classNameIndicator="bg-[#ff9d14]" />
+                ) : (
+                    <NoNetworkError
+                        visible={networkError}
+                        setVisible={setNetworkError}
+                        triggerComponent={
+                            <Progress value={progressBar} className="w-[545px]" classNameIndicator="bg-[#ff9d14]" />
+                        }
+                    />
+                )}
                 {isFailedOnInstall ? (
                     <>
                         {logsDownloaded ? (
-                            <Button
-                                className={`w-fit min-w-[219px] ${loading ? "pt-[9px] pb-[10px]" : "py-[6px]"}`}
-                                onClick={backToConfigure}
-                                disabled={loading}
-                            >
-                                {loading ?
-                                    <Preloader size={16} />
-                                    : t("install_page.install_failed.back_to_configure_button")
+                            <NoNetworkError
+                                visible={networkError}
+                                setVisible={setNetworkError}
+                                triggerComponent={
+                                    <Button
+                                        className={`w-fit min-w-[219px] ${loading ? "pt-[9px] pb-[10px]" : "py-[6px]"}`}
+                                        onClick={backToConfigure}
+                                        disabled={loading}
+                                    >
+                                        {loading ?
+                                            <Preloader size={16} />
+                                            : t("install_page.install_failed.back_to_configure_button")
+                                        }
+                                    </Button>
                                 }
-                            </Button>
+                            />
                         ) : (
                             <CustomDialog showCloseButton={false} trigger={
                                 <Button
@@ -160,12 +196,18 @@ const PageContentInstallFailed = () => {
                         )}
                     </>
                 ) : (
-                    <Button
-                        className="w-fit min-w-[186px]"
-                        onClick={tryActivateServerAgain}
-                    >
-                        {t("install_page.install_failed.retry_activate_server_button")}
-                    </Button>
+                    <NoNetworkError
+                        visible={activateNetworkError}
+                        setVisible={setActivateNetworkError}
+                        triggerComponent={
+                            <Button
+                                className="w-fit min-w-[186px]"
+                                onClick={tryActivateServerAgain}
+                            >
+                                {t("install_page.install_failed.retry_activate_server_button")}
+                            </Button>
+                        }
+                    />
                 )}
             </div>
 
