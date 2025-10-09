@@ -24,10 +24,18 @@ parser = argparse.ArgumentParser(add_help=False)
 
 parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
 parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument("-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)")
+parser.add_argument(
+    "-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)", choices=["monolith", "team"]
+)
+parser.add_argument("--all-teams", required=False, action="store_true", help="выбрать все команды")
+parser.add_argument("--all-types", required=False, action="store_true", help="выбрать все типы mysql")
+
 args = parser.parse_args()
 values_name = args.values
 mysql_type = args.type.lower()
+is_all_teams = args.all_teams
+is_all_types = args.all_types
+
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -91,7 +99,22 @@ def start():
     print(log_text)
 
     mysql_host = "localhost"
-    if mysql_type == "team":
+
+    if is_all_types or mysql_type == scriptutils.MONOLITH_MYSQL_TYPE:
+        loader = Loader("Статус репликации для типа monolith:", "Статус репликации для типа monolith:").start()
+        mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
+        mysql_pass = current_values["projects"]["monolith"]["service"]["mysql"]["password"]
+
+        found_container = scriptutils.find_container_mysql_container(client, scriptutils.MONOLITH_MYSQL_TYPE, domino_id)
+        if not found_container:
+            print("Не удалось найти контейнер pivot mysql.")
+            sys.exit(1)
+
+        is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
+        loader.success()
+        print(status_text)
+
+    if is_all_types or mysql_type == scriptutils.TEAM_MYSQL_TYPE or is_all_teams:
         mysql_user = "root"
         mysql_pass = "root"
 
@@ -102,7 +125,7 @@ def start():
             scriptutils.die("Не найдено ни одной команды на сервере. Окружение поднято?")
 
         chosen_space_index = 1
-        if len(space_id_list) > 1:
+        if not is_all_teams and len(space_id_list) > 1:
             space_option_str = "Выберете команду, для которой получаем статус репликации:\n"
             for index, option in enumerate(space_id_list):
                 space_option_str += "%d. ID команды = %s\n" % (index + 1, option)
@@ -114,11 +137,11 @@ def start():
                 scriptutils.die("Выбран некорректный вариант")
 
         # проходимся по каждому пространству
-        if int(chosen_space_index) == (len(space_id_list) + 1):
+        if is_all_teams or int(chosen_space_index) == (len(space_id_list) + 1):
             is_all_success = True
             for space_id, space_config_obj in space_config_obj_dict.items():
                 loader = Loader("Статус репликации в команде %s:" % space_id, "Статус репликации в команде %s:" % space_id).start()
-                found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
+                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
                 is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
                 loader.success()
                 print(status_text)
@@ -128,23 +151,10 @@ def start():
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
             loader = Loader("Статус репликации в команде %s:" % space_id, "Статус репликации в команде %s:" % space_id).start()
-            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
+            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
             is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
             loader.success()
             print(status_text)
-    else:
-        loader = Loader("Статус репликации для типа monolith:", "Статус репликации для типа monolith:").start()
-        mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
-        mysql_pass = current_values["projects"]["monolith"]["service"]["mysql"]["password"]
-
-        found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id)
-        if not found_container:
-            print("Не удалось найти контейнер pivot mysql.")
-            sys.exit(1)
-
-        is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
-        loader.success()
-        print(status_text)
 
     if is_success == False:
         print(scriptutils.warning("\nРепликация не может завершиться корректно!"))
