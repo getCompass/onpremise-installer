@@ -24,6 +24,8 @@ class bcolors:
 
 __confirm_yes_key__ = "Y"
 
+MONOLITH_MYSQL_TYPE = "monolith"
+TEAM_MYSQL_TYPE = "team"
 
 # проверить, что запустили из под рута
 def assert_root():
@@ -187,17 +189,19 @@ def find_container_mysql_container(client: docker.DockerClient, mysql_type: str,
         if mysql_type == "monolith":
             matching = [c for c in all_containers
                         if ("mysql" in c.name.lower() and
-                            "monolith" in c.name.lower())]
+                            "monolith" in c.name.lower() and
+                            c.attrs.get('State', {}).get('Health', {}).get('Status') == 'healthy')]
             if len(matching) == 0:
                 error_text = "Не найден ни один контейнер (mysql + monolith)."
             if len(matching) > 1:
                 error_text = "Найдено несколько контейнеров (mysql + monolith). Ожидался единственный."
             else:
-                found_pivot_container = matching[0]
+                found_container = matching[0]
                 break
         elif mysql_type == "team":
             matching = [c for c in all_containers
-                        if (("%s-company_mysql-%s" % (domino_id, str(port))) in c.name.lower())]
+                        if (("%s-company_mysql-%s" % (domino_id, str(port))) in c.name.lower() and
+                            c.attrs.get('State', {}).get('Status', {}) == 'running')]
             if len(matching) == 0:
                 error_text = "Не найден ни один контейнер (mysql + %s-company)." % domino_id
             else:
@@ -205,7 +209,7 @@ def find_container_mysql_container(client: docker.DockerClient, mysql_type: str,
                 matching_sorted = sorted(matching,
                                          key=lambda x: x.attrs["Created"],
                                          reverse=True)
-                found_pivot_container = matching_sorted[0]
+                found_container = matching_sorted[0]
                 break
         else:
             error_text = f"Неизвестный тип: {mysql_type}. Поддерживается monolith или team."
@@ -213,9 +217,8 @@ def find_container_mysql_container(client: docker.DockerClient, mysql_type: str,
         sleep(5)
         if n == timeout:
             die(error_text)
-    sleep(15) # подождём немного чтобы контейнер полностью поднялся
 
-    return found_pivot_container
+    return found_container
 
 # получить данные окружение из security
 def get_security(values_dict: dict) -> dict:

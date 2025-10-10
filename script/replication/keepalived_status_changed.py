@@ -93,7 +93,9 @@ def start(state):
     )
 
     # формируем список активных пространств
+    logging.info("Get this server's space configs")
     space_config_obj_dict = get_space_dict(current_values)
+    logging.info("Spaces configs for this server have been retrieved.")
 
     # действия при переходе в MASTER
     if state == "MASTER":
@@ -109,13 +111,6 @@ def start(state):
             subprocess.run(["sudo", "systemctl", "restart", "lsyncd"], check=True)
         except subprocess.CalledProcessError as e:
             logging.info(f"Ошибка при рестарте службы lsyncd: {e}")
-
-        # отключаем автозапуск lsyncd
-        try:
-            subprocess.run(["sudo", "systemctl", "disable", "lsyncd"], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.info(f"Ошибка при остановке автозапуска lsyncd: {e}")
-
         logging.info("Restarted lsyncd on Master")
 
         # останавливаем репликацию
@@ -133,18 +128,16 @@ def start(state):
             subprocess.run(["sudo", "systemctl", "stop", "lsyncd"], check=True)
         except subprocess.CalledProcessError as e:
             logging.info(f"Ошибка при остановке службы lsyncd: {e}")
-
         logging.info("Stopped lsyncd on Backup")
-
-        # блочим запись в бд
-        lock_write_db_list([monolith])
-        lock_write_db_list(space_config_obj_dict)
-
-        logging.info("Locked tables in DB")
 
         # меняем master_service_label
         change_master_service_label(current_values)
         logging.info("Changed master_service_label on Backup")
+
+        # блочим запись в бд
+        lock_write_db_list([monolith])
+        lock_write_db_list(space_config_obj_dict)
+        logging.info("Locked tables in DB")
 
     elif state == "FAULT":
 
@@ -284,7 +277,7 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
             sleep(5)
             if n == timeout:
                 logging.info("Got empty master_service_label")
-                exit(0)
+                return
     else:
 
         with open(servers_companies_relationship_file_path, "r") as file:
