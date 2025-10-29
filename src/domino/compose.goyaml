@@ -42,6 +42,9 @@ configs:
   turn-server-list:
     name: "{{.stack_name}}_turn_server_list-{{.config_revisions.project.turn_server_list.php}}"
     file: ".project.turn_server_list.php"
+  smartapps:
+    name: "{{.stack_name}}_smartapps-{{.config_revisions.project.smartapps.php}}"
+    file: ".project.smartapps.php"
 services:
 
   ## NGINX
@@ -210,6 +213,9 @@ services:
       interval: "5s"
       timeout: "25s"
       retries: 10
+    configs:
+      - source: "smartapps"
+        target: "/app/src/Compass/Company/api/conf/smartapps.php"
     logging:
       driver: "json-file"
       options:

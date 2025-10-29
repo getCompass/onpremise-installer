@@ -20,3 +20,4 @@ configs/
 .version
 .service_label
 .venv
+.install_completed_steps.json

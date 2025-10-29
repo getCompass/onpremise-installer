@@ -100,6 +100,7 @@ class RestrictionsMainConfig:
             badge_change_enabled: int,
             description_change_enabled: int,
             status_change_enabled: int,
+            deletion_enabled: int,
     ):
         self.is_desktop_prohibited = is_desktop_prohibited
         self.is_ios_prohibited = is_ios_prohibited
@@ -111,6 +112,7 @@ class RestrictionsMainConfig:
         self.badge_change_enabled = badge_change_enabled
         self.description_change_enabled = description_change_enabled
         self.status_change_enabled = status_change_enabled
+        self.deletion_enabled = deletion_enabled
 
     def input(self):
 
@@ -204,9 +206,18 @@ class RestrictionsMainConfig:
             handle_exception(e.field, e.message, team_config_path)
             status_change_enabled = ""
 
+        try:
+            deletion_enabled = interactive.InteractiveValue(
+                "profile.deletion_enabled",
+                "Разрешено ли пользователям удалять свой профиль", "bool", config=config
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message, team_config_path)
+            deletion_enabled = ""
+
         return self.init(is_desktop_prohibited, is_ios_prohibited, is_android_prohibited, phone_change_enabled,
                          mail_change_enabled, name_change_enabled, avatar_change_enabled, badge_change_enabled,
-                         description_change_enabled, status_change_enabled)
+                         description_change_enabled, status_change_enabled, deletion_enabled)
 
     # заполняем содержимым
     def make_profile_output(self):
@@ -224,11 +235,13 @@ class RestrictionsMainConfig:
             str(self.description_change_enabled).lower())
         status_change_enabled_output = '"status_change_enabled" => %s' % (
             str(self.status_change_enabled).lower())
+        deletion_enabled_output = '"deletion_enabled" => %s' % (
+            str(self.deletion_enabled).lower())
 
-        output = "%s,\n %s,\n %s,\n %s,\n %s,\n %s,\n %s" % (
+        output = "%s,\n %s,\n %s,\n %s,\n %s,\n %s,\n %s,\n %s" % (
             phone_change_enabled_output, mail_change_enabled_output, name_change_enabled_output,
             avatar_change_enabled_output, badge_change_enabled_output, description_change_enabled_output,
-            status_change_enabled_output)
+            status_change_enabled_output, deletion_enabled_output)
         return output.encode().decode()
 
     # заполняем содержимым

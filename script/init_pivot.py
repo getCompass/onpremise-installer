@@ -11,8 +11,9 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import os, argparse, yaml, pwd, json, psutil
+import argparse, yaml, pwd, psutil
 import docker
+from pathlib import Path
 from utils import scriptutils
 from time import sleep
 
@@ -26,6 +27,18 @@ parser.add_argument('--service_label', required=False, default="", type=str,
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
+
+script_dir = Path(__file__).parent.resolve()
+
+smart_apps_config_path = script_dir.parent / "configs" / "smart_apps.yaml"
+
+if not smart_apps_config_path.exists():
+    print(scriptutils.error(
+        f"Отсутствует файл конфигурации {smart_apps_config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
+    exit(1)
+
+with smart_apps_config_path.open("r") as config_file:
+    smart_apps_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
 # ---СКРИПТ---#
 
@@ -59,7 +72,7 @@ n = 0
 while n <= timeout:
 
     docker_container_list = client.containers.list(
-        filters={'name': '%s_php-monolith' % (stack_name), 'health': 'healthy'})
+        filters={'name': '%s_php-monolith' % stack_name, 'health': 'healthy'})
 
     if len(docker_container_list) > 0:
         found_php_monolith_container = docker_container_list[0]
@@ -70,15 +83,34 @@ while n <= timeout:
         scriptutils.die(
             'Не был найден необходимый docker-контейнер для запуска скриптов. Убедитесь, что окружение поднялось корректно')
 
+smart_app_catalog_id_list = []
+for smart_app in smart_apps_config_values.get("smart_apps.catalog_config", []):
+    if not isinstance(smart_app, dict):
+        continue
+    try:
+        catalog_item_id = int(smart_app.get("catalog_item_id", -1))
+        if catalog_item_id > 0:
+            smart_app_catalog_id_list.append(catalog_item_id)
+    except (ValueError, TypeError):
+        continue
+
+smart_app_catalog_id_str = ",".join(map(str, smart_app_catalog_id_list))
+update_created_smart_apps_script = ""
+if smart_app_catalog_id_list:
+    update_created_smart_apps_script = f"php src/Compass/Pivot/sh/php/service/exec_company_update_script.php --script-name=UpdateCreatedSmartApps --dry=0 --log-level=1 --module-proxy=[php_company] --script-data=[{smart_app_catalog_id_str}] --y"
+
 exec_script_list = [
     'php src/Compass/Pivot/sh/php/service/upload_default_file_list.php',
     'php src/Compass/Pivot/sh/php/service/check_default_file_list.php',
+    'php src/Compass/Pivot/sh/php/service/upload_custom_file_list.php',
+    'php src/Compass/Pivot/sh/php/service/check_custom_file_list.php',
     'php src/Compass/Pivot/sh/start/create_system_bot_list.php',
     'php src/Compass/Pivot/sh/php/update/update_notice_bot.php',
     'php src/Compass/Pivot/sh/php/update/update_remind_bot.php',
     'php src/Compass/Pivot/sh/php/update/update_support_bot.php',
     'php src/Compass/Pivot/sh/php/update/replace_userbot_avatar.php',
     'php src/Compass/Pivot/sh/php/update/replace_preview_for_welcome_video.php',
+    update_created_smart_apps_script,
 ]
 
 for script in exec_script_list:

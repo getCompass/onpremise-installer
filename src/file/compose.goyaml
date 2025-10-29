@@ -18,6 +18,9 @@ configs:
   nginx-conf:
     name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
     file: ".global.nginx.conf"
+  file-auto-deletion-conf:
+    name: "{{.stack_name}}_file_conf-{{.config_revisions.project.file_auto_deletion.conf}}"
+    file: ".project.file_auto_deletion.conf"
 services:
   ## NGINX
   nginx-{{$file_node.label}}:
@@ -148,6 +151,8 @@ services:
     configs:
       - source: "go-collector-agent-sharding-conf"
         target: "/app/api/conf/sharding.example.json"
+      - source: "file-auto-deletion-conf"
+        target: "/app/src/Compass/FileNode/api/conf/file.php"
     deploy:
       replicas: 1
       restart_policy:

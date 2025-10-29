@@ -248,6 +248,15 @@ return_code = run_validation(
 if return_code != 0 and not QUIET:
     scriptutils.die("Ошибка при валидации конфигурации парсинга превью ссылок")
 
+log("Валидируем конфигурацию smart_apps")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_smart_apps_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации smart_apps")
+
 log("Валидируем конфигурацию приложения")
 command = [
     script_resolved_path + "/init.py",
@@ -340,7 +349,12 @@ subprocess.run(
     ["python3", script_resolved_path + "/generate_preview_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации парсинга превью ссылок")
 
-log("Запускаем скрипт инициализации проекта")
+log("Запускаем скрипт генерации конфигурации smart_apps")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_smart_apps_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации smart_apps")
+
+print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
     command.append("--use-default-values")

@@ -87,6 +87,7 @@ for config_path in config_path_list:
 
     config.update(config_values)
 
+
 def get_company_ports():
     default_company_start_port = 33150
     default_company_end_port = 33164
@@ -116,14 +117,13 @@ def get_company_ports():
         end_company_port = 0
 
     if end_company_port < start_company_port:
-
         message = "Конечный порт не может быть меньше начального"
         handle_exception(e.field, message)
 
     return start_company_port, end_company_port
 
-def handle_exception(field, message: str):
 
+def handle_exception(field, message: str):
     if validate_only:
         if installer_output:
             validation_errors.append(field)
@@ -134,18 +134,18 @@ def handle_exception(field, message: str):
     print(message)
     exit(1)
 
-def create_domino(
-    pivot_container: docker.models.containers.Container,
-    domino_id: str,
-    domino_url: str,
-    database_host: str,
-    code_host: str,
-    database_user: str,
-    database_pass: str,
-    go_database_controller_port: str,
-    db_driver: DBDriverConf,
-):
 
+def create_domino(
+        pivot_container: docker.models.containers.Container,
+        domino_id: str,
+        domino_url: str,
+        database_host: str,
+        code_host: str,
+        database_user: str,
+        database_pass: str,
+        go_database_controller_port: str,
+        db_driver: DBDriverConf,
+):
     pivot_container.exec_run(
         user="www-data",
         cmd=[
@@ -181,7 +181,7 @@ def create_domino(
             cmd=[
                 "bash",
                 "-c",
-                f"php src/Compass/Pivot/sh/php/domino/add_predefined_host_to_domino.php --domino-id={domino_id} --mysql-user={database_user} --mysql-pass={database_pass} --host-list=[{host_list_serialized}] --type=common"
+                f"php src/Compass/Pivot/sh/php/domino/add_predefined_host_to_domino.php --domino-id={domino_id} --mysql-user=\"{database_user}\" --mysql-pass=\"{database_pass}\" --host-list=[{host_list_serialized}] --type=common"
             ],
         )
     else:
@@ -197,7 +197,7 @@ def create_domino(
             cmd=[
                 "bash",
                 "-c",
-                f"php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id={domino_id} --mysql-user={database_user} --mysql-pass={database_pass} --start-port={start_port} --end-port={end_port} --type=common"
+                f"php src/Compass/Pivot/sh/php/domino/add_port_to_domino.php --domino-id={domino_id} --mysql-user=\"{database_user}\" --mysql-pass=\"{database_pass}\" --start-port={start_port} --end-port={end_port} --type=common"
             ],
         )
 
@@ -206,6 +206,7 @@ def create_domino(
     else:
         loader.error()
         print(output.output.decode("utf-8"))
+
 
 # ---СКРИПТ---#
 
@@ -261,7 +262,8 @@ db_driver_name = db_config.get("driver")
 
 if db_driver_name == "docker":
     start_company_port, end_company_port = get_company_ports()
-    db_driver = DBDriverConf(db_driver_name, {"start_company_port": start_company_port, "end_company_port": end_company_port})
+    db_driver = DBDriverConf(db_driver_name,
+                             {"start_company_port": start_company_port, "end_company_port": end_company_port})
 else:
     db_driver = DBDriverConf(db_driver_name, db_config.get("driver_data", None))
 
@@ -278,10 +280,10 @@ if init:
         team_name = ""
 else:
     team_name = interactive.InteractiveValue(
-            "team.init_name",
-            "Введите название команды",
-            "str",
-        ).input()
+        "team.init_name",
+        "Введите название команды",
+        "str",
+    ).input()
 
 if validate_only:
     if installer_output:
@@ -321,7 +323,6 @@ while n <= timeout:
             "Не был найден необходимый docker-контейнер для создания команды. Убедитесь, что окружение поднялось корректно"
         )
 
-
 first_key = list(domino_project)[0]
 first_domino = domino_project[first_key]
 domino_url = first_domino["label"] + "." + current_values["domain"]
@@ -337,7 +338,6 @@ output = found_pivot_container.exec_run(
 )
 
 if output.exit_code != 0:
-
     create_domino(
         found_pivot_container,
         first_domino["label"],
@@ -362,7 +362,6 @@ if init:
     )
 
     if output.exit_code == 0:
-
         print(
             scriptutils.success(
                 "Первая компания уже была создана. Если хотите создать еще одну команду, запустите скрипт create_team.py"

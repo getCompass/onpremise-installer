@@ -1,0 +1,28 @@
+# cron general
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/general.php start bot0 > /dev/null 2>&1 &
+
+# Cron_PostUpload_Image [0-9]
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/image.php start bot0 >> /dev/null 2>&1 &
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/image.php start bot10 >> /dev/null 2>&1 &
+
+# Cron_PostUpload_Video [0-9]
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/video.php start bot0 >> /dev/null 2>&1 &
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/video.php start bot10 >> /dev/null 2>&1 &
+
+# Cron_PostUpload_Audio [0-9]
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/audio.php start bot0 >> /dev/null 2>&1 &
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/audio.php start bot10 >> /dev/null 2>&1 &
+
+# Cron_PostUpload_Document [0-9]
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/document.php start bot0 >> /dev/null 2>&1 &
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/postupload/document.php start bot10 >> /dev/null 2>&1 &
+
+# Cron_DlpCheck[0-9]
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/dlp_check.php start bot0 >> /dev/null 2>&1 &
+* * * * *  /usr/local/bin/php /app/src/Compass/FileNode/api/cron/dlp_check.php start bot10 >> /dev/null 2>&1 &
+
+{{if and .file_auto_deletion.is_enabled .file_auto_deletion.check_interval}}
+# Cron_FileAutoDeletion
+0 1 * * * /usr/local/bin/php /app/src/Compass/FileNode/sh/php/file/delete_expired_files.php >> /dev/null 2>&1 &
+{{end}}
+

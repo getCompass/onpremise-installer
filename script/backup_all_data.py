@@ -14,6 +14,7 @@ from loader import Loader
 import subprocess
 import time
 import os
+import socket
 
 scriptutils.assert_root()
 
@@ -47,16 +48,41 @@ parser.add_argument(
     help="название файла со значениями для деплоя",
 )
 parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
+parser.add_argument("--backups-folder", required=False, default="", type=str, help="директория для хранения бэкапов")
+parser.add_argument("--backup-name-format", required=False, default="%d_%m_%Y", type=str,
+                    help="формат имени папки бэкапа")
+parser.add_argument("--free-threshold-percent", required=False, default=0, type=int,
+                    help="пороговое значение свободного места в процентах для возможности создания бэкапа")
+parser.add_argument("--auto-cleaning-limit", required=False, default=0, type=int,
+                    help="лимит для автоматической очистки бэкапов, если их количество превышает указанный лимит")
+parser.add_argument("--userbot-notice-chat-id", required=False, default="", type=str,
+                    help="id чата для отправки уведомления")
+parser.add_argument("--userbot-notice-token", required=False, default="", type=str,
+                    help="токен бота для отправки уведомления")
+parser.add_argument("--userbot-notice-domain", required=False, default="", type=str,
+                    help="домен, на который отправляется запрос уведомления")
+parser.add_argument("--userbot-notice-text", required=False, default="", type=str,
+                    help="текст уведомления от бота в случае, если не смогли создать бэкап")
 args = parser.parse_args()
 
 values_name = args.values
 environment = args.environment
 dst = args.destination
+backups_folder = args.backups_folder
+backup_name_format = args.backup_name_format
+threshold_percent = args.free_threshold_percent
+auto_cleaning_limit = args.auto_cleaning_limit
+userbot_notice_chat_id = args.userbot_notice_chat_id
+userbot_notice_token = args.userbot_notice_token
+userbot_notice_domain = args.userbot_notice_domain
+userbot_notice_text = args.userbot_notice_text
+
 stack_name_prefix = environment + '-' + values_name
 
 # путь до директории с инсталятором
 installer_dir = str(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+hostname = socket.gethostname()
 
 # точка входа в скрипт бэкапа всех данных
 def start():
@@ -109,7 +135,8 @@ def check_remote_folder():
 
     if is_remote:
         # проверяем, что у пользователя есть права для записи в директорию
-        cmd = f'ssh {remote_host} "test -d {path} && test -w {path} || echo ERROR"'
+        # сначала проверяем, существует ли директория. Если нет, создаем ее.
+        cmd = f'ssh {remote_host} "if [ ! -d {path} ]; then mkdir -p {path}; fi && test -w {path}"'
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
         if "ERROR" in result.stdout or result.returncode != 0:
@@ -117,12 +144,32 @@ def check_remote_folder():
     else:
         # локальная директория
         if not os.path.exists(path):
-                scriptutils.die(f"Локальная директория {path} не существует.")
+            # создаем директорию, если ее нет
+            try:
+                os.makedirs(path, exist_ok=True)
+            except Exception as e:
+                scriptutils.die(f"Не удалось создать локальную директорию {path}: {str(e)}")
 
         # проверяем право на запись
+        if not os.path.exists(path):
+            scriptutils.die(f"Локальная директория {path} не существует после попытки создания.")
         if not os.access(path, os.W_OK):
             scriptutils.die(f"Нет прав на запись в локальную директорию {path}")
 
+# создаем директорию
+def create_destination_directory(path, is_remote=False, remote_host=None):
+    if is_remote:
+        # Для удаленного пути используем SSH для создания директории
+        cmd = f'ssh {remote_host} "mkdir -p {path}"'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            scriptutils.die(f"Не удалось создать удаленную директорию {path} через SSH")
+    else:
+        # Для локального пути используем os.makedirs
+        try:
+            os.makedirs(path, exist_ok=True)
+        except Exception as e:
+            scriptutils.die(f"Не удалось создать локальную директорию {path}: {str(e)}")
 
 # копируем инсталятор
 def copy_installer():
@@ -142,20 +189,32 @@ def backup_db():
     script_path = "%s/script/backup_db.py" % (installer_dir)
 
     # формируем команду
-    cmd = ["python3", script_path]
+    cmd = ["python3", script_path,
+        "--backups-folder", backups_folder,
+        "--backup-name-format", backup_name_format,
+        "--free-threshold-percent", str(threshold_percent),
+        "--auto-cleaning-limit", str(auto_cleaning_limit),
+        "--userbot-notice-chat-id", userbot_notice_chat_id,
+        "--userbot-notice-token", userbot_notice_token,
+        "--userbot-notice-domain", userbot_notice_domain,
+        "--userbot-notice-text", userbot_notice_text,
+    ]
 
     # запускаем команду
     try:
 
         start_time = time.time()
-        loader = Loader("Делаем резервную копию базы данных", "Сделали резервную копию базы данных").start()
+        loader = Loader(
+            "Делаем резервную копию базы данных",
+            "Сделали резервную копию базы данных",
+            "Не удалось сделать резервную копию базы данных").start()
         subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         loader.success()
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Создание резервной копии базы данных заняло: {elapsed_time:.2f} sec")
     except subprocess.CalledProcessError as e:
-        print(scriptutils.error("Не удалось сделать резервную копию базы данных, ошибка:"))
+        loader.error()
         print(e)
         print(e.stdout)
         print(e.stderr)
@@ -169,16 +228,22 @@ def transfer_data():
 
     # директорию, которую копируем
     src = current_values["root_mount_path"]
+    src_dirs = [current_values["root_mount_path"]]
 
     # получим и выведем размер директории src для справки
     directory_size = get_directory_size(src)
     print(f"Размер директории с резервной копией {src}: {directory_size / (1024 * 1024):.2f} MB")
 
+    if backups_folder != "":
+        directory_size = get_directory_size(backups_folder)
+        print(f"Размер директории с бэкапами баз данных {backups_folder}: {directory_size / (1024 * 1024):.2f} MB")
+        src_dirs = [current_values["root_mount_path"], backups_folder]
+
     # флаги rsync
     flags = "-avzu"
 
     # формируем команду
-    cmd = ["rsync", flags, src, dst]
+    cmd = ["rsync", flags, *src_dirs, dst]
 
     # запускаем команду
     try:
@@ -198,10 +263,13 @@ def transfer_data():
         elapsed_time = end_time - start_time
         print(f"Отправка резервной копии заняла: {elapsed_time:.2f} sec")
     except subprocess.CalledProcessError as e:
-        print(scriptutils.error("Не удалось отправить резервную копию в указанное место, ошибка:"))
+        error_text = "Не удалось отправить резервную копию в указанное место!"
+        print(scriptutils.error(error_text))
         print(e)
         print(e.stdout)
         print(e.stderr)
+        message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else error_text}"
+        scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
         scriptutils.die("Исправьте проблему и выполните скрипт снова")
 
 

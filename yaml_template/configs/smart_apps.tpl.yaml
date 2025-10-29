@@ -1,0 +1,993 @@
+# Включено ли ограничение на добавление приложений из каталога Smart Apps на сервере.
+#
+# Тип данных: булево значение, true\false
+smart_apps.is_create_from_catalog_disabled: false
+
+# Включено ли ограничение на добавление кастомных Smart Apps на сервере.
+#
+# Тип данных: булево значение, true\false
+smart_apps.is_create_custom_smart_apps_disabled: false
+
+# ----------------------------------------------
+# Конфигурация каталога Smart Apps
+# ----------------------------------------------
+
+# Отображение приложений в каталоге.
+
+# ВАЖНО: рекомендуется не вносить изменения в ID приложений в каталоге и не удалять
+# приложения из списка, так как это может отразиться на их работе. При необходимости любое
+# приложение может быть скрыто из каталога с помощью параметра is_need_show_in_catalog.
+
+# Доступные параметры:
+#
+# catalog_item_id: ID приложения в рамках каталога.
+# Тип данных: целое число
+#
+# is_popular: должно ли приложение отображаться в списке популярных. Возможные варианты:
+# "0" – приложение не отображается в списке популярных;
+# "1" – приложение отображается в списке популярных.
+#
+# sort_weight: значение для сортировки приложения в списке популярных. Чем больше значение,
+# тем выше располагается приложение в списке популярных. Параметр действителен только при
+# значении is_popular: 1
+# Тип данных: целое число
+#
+# catalog_category: "категория каталога, в которой располагается приложение."
+# Тип данных: строка
+# - popular
+# - office_apps
+# - mail
+# - calendars
+# - team_collaboration
+# - crm_systems
+# - video_conferencing
+# - messengers
+# - development
+# - file_storage
+# - ai_services
+# - accounting_and_edo
+# - hr_services
+# - analytics
+# - other
+#
+# uniq_name: "уникальный ID приложения."
+# Тип данных: целое число
+#
+# title: название приложения, видимое пользователям.
+# Тип данных: строка
+#
+# url: URL-адрес, который открывается при запуске приложения.
+# Тип данных: строка
+#
+# is_need_custom_user_agent: требуется ли использование специального user-agent при
+# открытии приложения.
+# Возможные варианты:
+# "0" – приложение не использует специальный user-agent;
+# "1" – приложение использует специальный user-agent.
+#
+# is_need_show_in_catalog: требуется ли отображать приложение в каталоге. Возможные варианты:
+# "0" – приложение не отображается в каталоге;
+# "1" – приложение отображается в каталоге.
+
+# При добавлении собственных приложений в каталог используются вышеописанные параметры.
+# Значения catalog_item_id и uniq_name должны быть уникальными и не должны пересекаться с уже
+# занятыми ID в каталоге.
+smart_apps.catalog_config:
+  - catalog_item_id: 1
+    is_popular: 1
+    sort_weight: 10
+    catalog_category: "office_apps"
+    uniq_name: "googledocs"
+    title: "Google Документы"
+    url: "https://docs.google.com/document/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 2
+    is_popular: 1
+    sort_weight: 9
+    catalog_category: "office_apps"
+    uniq_name: "googlesheets"
+    title: "Google Таблицы"
+    url: "https://docs.google.com/spreadsheets/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 3
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "googleslides"
+    title: "Google Презентации"
+    url: "https://docs.google.com/presentation/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 4
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "googleforms"
+    title: "Google Формы"
+    url: "https://forms.google.com/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 5
+    is_popular: 1
+    sort_weight: 14
+    catalog_category: "office_apps"
+    uniq_name: "yandexdocs"
+    title: "Яндекс Документы"
+    url: "https://docs.yandex.ru/docs"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 6
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "yandexnotes"
+    title: "Яндекс Заметки"
+    url: "https://disk.yandex.ru/notes/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 7
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "microsoftword"
+    title: "Microsoft Word"
+    url: "https://word.cloud.microsoft/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 8
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "microsoftexcel"
+    title: "Microsoft Excel"
+    url: "https://excel.cloud.microsoft/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 9
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "office_apps"
+    uniq_name: "microsoftpowerpoint"
+    title: "Microsoft PowerPoint"
+    url: "https://powerpoint.cloud.microsoft/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 10
+    is_popular: 1
+    sort_weight: 12
+    catalog_category: "mail"
+    uniq_name: "microsoftoutlook"
+    title: "Microsoft Outlook"
+    url: "https://outlook.live.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 11
+    is_popular: 1
+    sort_weight: 11
+    catalog_category: "mail"
+    uniq_name: "gmail"
+    title: "Gmail"
+    url: "https://mail.google.com/mail/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 12
+    is_popular: 1
+    sort_weight: 16
+    catalog_category: "mail"
+    uniq_name: "yandexmail"
+    title: "Яндекс Почта"
+    url: "https://mail.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 13
+    is_popular: 1
+    sort_weight: 7
+    catalog_category: "mail"
+    uniq_name: "mailru"
+    title: "Почта Mail"
+    url: "https://e.mail.ru/inbox/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 14
+    is_popular: 1
+    sort_weight: 8
+    catalog_category: "calendars"
+    uniq_name: "googlecalendar"
+    title: "Google Календарь"
+    url: "https://calendar.google.com/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 15
+    is_popular: 1
+    sort_weight: 15
+    catalog_category: "calendars"
+    uniq_name: "yandexcalendar"
+    title: "Яндекс Календарь"
+    url: "https://calendar.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 16
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "calendars"
+    uniq_name: "mailcalendar"
+    title: "Календарь Mail"
+    url: "https://calendar.mail.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 17
+    is_popular: 1
+    sort_weight: 4
+    catalog_category: "team_collaboration"
+    uniq_name: "jira"
+    title: "Jira"
+    url: "https://www.atlassian.com/software/jira"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 18
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "confluence"
+    title: "Confluence"
+    url: "https://www.atlassian.com/software/confluence"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 19
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "yandexboards"
+    title: "Яндекс Доски"
+    url: "https://boards.yandex.ru/cabinet/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 20
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "sboard"
+    title: "Эсборд"
+    url: "https://sboard.online/dashboard"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 21
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "yandextracker"
+    title: "Яндекс Трекер"
+    url: "https://tracker.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 22
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "vkworkspace"
+    title: "VK WorkSpace"
+    url: "https://biz.mail.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 23
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "miro"
+    title: "Miro"
+    url: "https://miro.com/app/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 24
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "shtab"
+    title: "Shtab"
+    url: "https://my.shtab.app/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 25
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "teamly"
+    title: "Teamly"
+    url: "https://app5.teamly.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 26
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "kaiten"
+    title: "Kaiten"
+    url: "https://kaiten.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 27
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "trello"
+    title: "Trello"
+    url: "https://trello.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 28
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "asana"
+    title: "Asana"
+    url: "https://app.asana.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 29
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "team_collaboration"
+    uniq_name: "notion"
+    title: "Notion"
+    url: "https://www.notion.so/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 30
+    is_popular: 1
+    sort_weight: 17
+    catalog_category: "crm_systems"
+    uniq_name: "bitrix"
+    title: "Битрикс24"
+    url: "https://auth2.bitrix24.net/authorization/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 31
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "crm_systems"
+    uniq_name: "amocrm"
+    title: "amoCRM"
+    url: "https://www.amocrm.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 32
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "crm_systems"
+    uniq_name: "1ccrm"
+    title: "1C CRM"
+    url: "https://1crm.ru/profile/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 33
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "crm_systems"
+    uniq_name: "megaplan"
+    title: "Мегаплан"
+    url: "https://megaplan.ru/login/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 34
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "zoom"
+    title: "Zoom"
+    url: "https://app.zoom.us/wc/home"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 35
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "googlemeet"
+    title: "Google Meet"
+    url: "https://meet.google.com/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 36
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "yandextelemost"
+    title: "Яндекс Телемост"
+    url: "https://telemost.yandex.ru/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 37
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "konturtalk"
+    title: "Контур Толк"
+    url: "https://app.ktalk.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 38
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "salutejazz"
+    title: "SaluteJazz"
+    url: "https://salutejazz.ru/calls"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 39
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "trueconf"
+    title: "TrueConf"
+    url: "https://trueconf.ru/persons/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 40
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "video_conferencing"
+    uniq_name: "mtslink"
+    title: "МТС Линк"
+    url: "https://my.mts-link.ru/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 41
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "messengers"
+    uniq_name: "telegram"
+    title: "Telegram"
+    url: "https://web.telegram.org/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 42
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "messengers"
+    uniq_name: "whatsapp"
+    title: "WhatsApp"
+    url: "https://web.whatsapp.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 43
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "github"
+    title: "GitHub"
+    url: "https://github.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 44
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "gitlab"
+    title: "GitLab"
+    url: "https://gitlab.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 45
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "grafana"
+    title: "Grafana"
+    url: "https://grafana.com/auth/sign-in/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 46
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "figma"
+    title: "Figma"
+    url: "https://www.figma.com/files/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 47
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "sentry"
+    title: "Sentry"
+    url: "https://sentry.io/auth/login/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 48
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "zabbix"
+    title: "Zabbix"
+    url: "https://cloud.zabbix.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 49
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "development"
+    uniq_name: "yandexcloud"
+    title: "Yandex Cloud"
+    url: "https://console.yandex.cloud/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 50
+    is_popular: 1
+    sort_weight: 13
+    catalog_category: "file_storage"
+    uniq_name: "yandexdisk"
+    title: "Яндекс Диск"
+    url: "https://disk.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 51
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "file_storage"
+    uniq_name: "mailcloud"
+    title: "Облако Mail"
+    url: "https://cloud.mail.ru/home/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 52
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "file_storage"
+    uniq_name: "googledrive"
+    title: "Google Диск"
+    url: "https://drive.google.com/drive/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 53
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "file_storage"
+    uniq_name: "dropbox"
+    title: "Dropbox"
+    url: "https://www.dropbox.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 54
+    is_popular: 1
+    sort_weight: 6
+    catalog_category: "ai_services"
+    uniq_name: "chatgpt"
+    title: "ChatGPT"
+    url: "https://chatgpt.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 55
+    is_popular: 1
+    sort_weight: 5
+    catalog_category: "ai_services"
+    uniq_name: "deepseek"
+    title: "DeepSeek"
+    url: "https://chat.deepseek.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 56
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "ai_services"
+    uniq_name: "perplexity"
+    title: "Perplexity"
+    url: "https://www.perplexity.ai/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 57
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "ai_services"
+    uniq_name: "claude"
+    title: "Claude"
+    url: "https://claude.ai/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 58
+    is_popular: 1
+    sort_weight: 2
+    catalog_category: "accounting_and_edo"
+    uniq_name: "saby"
+    title: "Saby (СБИС)"
+    url: "https://online.sbis.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 59
+    is_popular: 1
+    sort_weight: 1
+    catalog_category: "accounting_and_edo"
+    uniq_name: "moysklad"
+    title: "МойСклад"
+    url: "https://online.moysklad.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 60
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "1cfresh"
+    title: "1С Фреш"
+    url: "https://1cfresh.com/my"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 61
+    is_popular: 1
+    sort_weight: 3
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturdiadoc"
+    title: "Контур Диадок"
+    url: "https://diadoc.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 62
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturaktsverki"
+    title: "Контур Взаиморасчёты"
+    url: "https://auth.kontur.ru/?tabs=1%2C1%2C0%2C0&back=http%3A%2F%2Frevise.kontur.ru&regurl=http%3A%2F%2Frevise.kontur.ru"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 63
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturkedo"
+    title: "Контур КЭДО"
+    url: "https://kedo.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 64
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "kontursign"
+    title: "Контур Сайн"
+    url: "https://sign.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 65
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturedi"
+    title: "Контур EDI"
+    url: "https://edi.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 66
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturexpert"
+    title: "Контур Эксперт"
+    url: "https://expert.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 67
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturelba"
+    title: "Контур Эльба"
+    url: "https://elba.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 68
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturextern"
+    title: "Контур Экстерн"
+    url: "https://setter.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 69
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturfactoring"
+    title: "Контур Факторинг"
+    url: "https://factoring.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 70
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturlogistika"
+    title: "Контур Логистика"
+    url: "https://logist.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 71
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturmchd"
+    title: "Контур Доверенность"
+    url: "https://m4d.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 72
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturca"
+    title: "Контур Удостоверяющий центр"
+    url: "https://lk.ca.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 73
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturzakupki"
+    title: "Контур Закупки"
+    url: "https://zakupki.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 74
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturnds"
+    title: "Контур НДС+"
+    url: "https://nds.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 75
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturofd"
+    title: "Контур ОФД"
+    url: "https://ofd.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 76
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturfocus"
+    title: "Контур Фокус"
+    url: "https://focus.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 77
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "konturdeclarant"
+    title: "Контур Декларант"
+    url: "https://d.kontur.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 78
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralotchet"
+    title: "Астрал Отчет 5.0"
+    url: "https://online.astral.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 79
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralonline"
+    title: "Астрал Онлайн"
+    url: "https://edo.astral.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 80
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralofd"
+    title: "Астрал ОФД"
+    url: "https://ofd.astralnalog.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 81
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralsign"
+    title: "Астрал Подпись"
+    url: "https://lk.et.astral.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 82
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astraldocs"
+    title: "Астрал Доки"
+    url: "https://1cdocs.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 83
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralikedo"
+    title: "Астрал iКЭДО"
+    url: "https://ikedo.astral.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 84
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralpoa"
+    title: "Астрал Доверенность"
+    url: "https://poa.astral.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 85
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "astralscreen"
+    title: "Астрал.СКРИН"
+    url: "https://kontragent.skrin.ru/?utm_source=site_astral&utm_content=menu"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 86
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "accounting_and_edo"
+    uniq_name: "yandexofd"
+    title: "Яндекс ОФД"
+    url: "https://ofd.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 87
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "hr_services"
+    uniq_name: "huntflow"
+    title: "Хантфлоу"
+    url: "https://huntflow.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 88
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "hr_services"
+    uniq_name: "sap"
+    title: "SAP"
+    url: "https://www.sap.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 0
+  - catalog_item_id: 89
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "hr_services"
+    uniq_name: "hhru"
+    title: "HH.ru"
+    url: "https://hh.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 90
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "hr_services"
+    uniq_name: "habrcareer"
+    title: "Хабр Карьера"
+    url: "https://career.habr.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 91
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "hr_services"
+    uniq_name: "superjob"
+    title: "SuperJob"
+    url: "https://www.superjob.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 92
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "analytics"
+    uniq_name: "yandexmetrica"
+    title: "Яндекс Метрика"
+    url: "https://metrika.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 93
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "analytics"
+    uniq_name: "appmetrica"
+    title: "AppMetrica"
+    url: "https://appmetrica.yandex.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 94
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "analytics"
+    uniq_name: "amplitude"
+    title: "Amplitude"
+    url: "https://app.amplitude.com/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 95
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "analytics"
+    uniq_name: "googleanalytics"
+    title: "Google Аналитика"
+    url: "https://analytics.google.com/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 96
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "yandexbusiness"
+    title: "Яндекс Бизнес"
+    url: "https://yandex.ru/business/priority"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 97
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "consultantplus"
+    title: "Консультант Плюс"
+    url: "https://www.consultant.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 98
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "jivo"
+    title: "Jivo"
+    url: "https://app.jivo.ru/"
+    is_need_custom_user_agent: 1
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 99
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "carrotquest"
+    title: "Carrot quest"
+    url: "https://carrotquest.io/panel/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 100
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "cdek"
+    title: "CDEK (СДЭК)"
+    url: "https://www.cdek.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 101
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "yandexmaps"
+    title: "Яндекс Карты"
+    url: "https://yandex.ru/maps/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1
+  - catalog_item_id: 102
+    is_popular: 0
+    sort_weight: 0
+    catalog_category: "other"
+    uniq_name: "2gis"
+    title: "2ГИС"
+    url: "https://2gis.ru/"
+    is_need_custom_user_agent: 0
+    is_need_show_in_catalog: 1

@@ -6,9 +6,8 @@ sys.dont_write_bytecode = True
 
 from pathlib import Path
 from utils import scriptutils
-from loader import Loader
-import collections.abc, shutil
-import re, socket, yaml, argparse, readline, string, random, pwd, os, json
+import collections.abc
+import socket, yaml, argparse, string, random, pwd, os, json
 from utils.interactive import InteractiveValue, IncorrectValueException
 import uuid
 from base64 import b64encode
@@ -358,6 +357,17 @@ def random_string(
     return "".join(random.choice(characters) for i in range(size))
 
 
+# генерируем пароль длиной size, содержащий минимум:
+# - 1 цифру
+# - 1 строчную букву
+# - 1 прописную букву
+# - 1 спецсимвол
+def random_password(
+        project_name: str, label: str, project_values: dict, global_values: dict, size: int
+) -> str:
+    return scriptutils.generate_random_password(size)
+
+
 def get_subnet_number(subnet_mask: str) -> int:
     for part in subnet_mask.split():
         address, network = part.split("/")
@@ -605,7 +615,7 @@ icap_fields = [
         "type": "str",
         "ask": True,
         "is_required": False,
-        "required_if": "is_enabled",
+        "depends_on": "is_enabled",
         "validation": "host"
     },
     {
@@ -615,7 +625,7 @@ icap_fields = [
         "type": "int",
         "ask": True,
         "is_required": False,
-        "required_if": "is_enabled",
+        "depends_on": "is_enabled",
         "validation": "port"
     },
     {
@@ -633,7 +643,7 @@ icap_fields = [
         "type": "arr",
         "ask": True,
         "is_required": False,
-        "required_if": "is_enabled",
+        "depends_on": "is_enabled",
         "options": ["text", "file"],
     },
     {
@@ -645,6 +655,46 @@ icap_fields = [
         "is_required": False,
         "post_function": strtolower,
         "post_args": [],
+    }
+]
+
+file_auto_deletion_fields = [
+    {
+        "name": "is_enabled",
+        "comment": "Включено ли автоудаление файлов",
+        "default_value": None,
+        "type": "bool",
+        "ask": True,
+    },
+    {
+        "name": "file_ttl",
+        "comment": "Время жизни файлов",
+        "default_value": None,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "is_enabled",
+        "validation": "positive_int"
+    },
+    {
+        "name": "check_interval",
+        "comment": "Временной интервал запуска проверки на удаление файлов с сервера",
+        "default_value": None,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "is_enabled",
+        "validation": "positive_int"
+    },
+    {
+        "name": "need_delete_file_type_list",
+        "comment": "Тип удаляемых файлов с сервера",
+        "default_value": None,
+        "type": "arr",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "is_enabled",
+        "options": ["audio", "voice", "image", "video", "archive", "document", "file"]
     }
 ]
 
@@ -806,7 +856,27 @@ required_root_fields = [
         "type": "bool",
         "ask": True,
         "is_required": False
-    }
+    },
+    {
+        "name": "backup_user_password",
+        "comment": "Введите пароль пользователя mysql для бекапов баз данных команд",
+        "default_value": None,
+        "type": "password",
+        "value_function": random_password,
+        "args": [32],
+        "ask": False,
+        "is_protected": True,
+    },
+    {
+        "name": "backup_archive_password",
+        "comment": "Введите пароль для архивов бекапов",
+        "default_value": None,
+        "type": "password",
+        "value_function": random_password,
+        "args": [32],
+        "ask": False,
+        "is_protected": True,
+    },
 ]
 
 common_project_fields = [
@@ -989,10 +1059,10 @@ required_specific_project_fields = {
         },
         {
             "name": "company_mysql_password",
-            "comment": "Введите ароль пользователя mysql для баз данных команд",
+            "comment": "Введите пароль пользователя mysql для баз данных команд",
             "default_value": None,
             "type": "password",
-            "value_function": random_string,
+            "value_function": random_password,
             "args": [32],
             "ask": False,
             "is_protected": True,
@@ -1083,6 +1153,17 @@ required_specific_project_fields = {
         {
             "name": "default_files_dir",
             "comment": "Укажите папку со стандартными файлами приложения",
+            "default_value": None,
+            "value_function": copy_with_custom_postfix,
+            "args": ["_global.root_mount_path"],
+            "type": "str",
+            "ask": False,
+            "post_function": create_dir,
+            "post_args": ["www-data", 0o777],
+        },
+        {
+            "name": "custom_files_dir",
+            "comment": "Укажите папку с пользовательскими файлами приложения",
             "default_value": None,
             "value_function": copy_with_custom_postfix,
             "args": ["_global.root_mount_path"],
@@ -1318,20 +1399,25 @@ def process_field(
         else:
             is_required = True
 
-        # если поле, от которого зависим, True, заполнение становится обязательным
-        if field.get("required_if") is not None:
+        validation = field.get("validation")
 
-            need_field = field["required_if"]
+        # если поле, от которого зависим, True, заполнение становится обязательным
+        if field.get("depends_on") is not None:
+
+            need_field = field["depends_on"]
             if project_values.get(need_field) is True:
                 is_required = True
+            else:
+                validation = None
 
+        options = [] if field.get("options") is None else field["options"]
         try:
             new_value = InteractiveValue(
                 prefix + field["name"],
                 "[%s] " % project + field["comment"],
                 field["type"],
                 field["default_value"],
-                validation=field.get("validation"),
+                validation=validation,
                 force_default=use_default,
                 config=config,
                 is_required=is_required,
@@ -1436,6 +1522,7 @@ def start():
     new_values = init_database(new_values)
     new_values = init_replication(new_values)
     new_values = init_team(new_values)
+    new_values = init_file_auto_deletion(new_values)
     new_values = init_icap(new_values)
 
     if not project:
@@ -1465,6 +1552,9 @@ def process_postfix(label: str, field: dict) -> str:
 
     if field["name"] == "default_files_dir":
         return "/default_files"
+
+    if field["name"] == "custom_files_dir":
+        return "/custom_files"
 
     if field["name"] == "files_dir":
         return "/files"
@@ -1567,6 +1657,24 @@ def init_nginx(new_values: dict):
             continue
 
         new_values = nested_set(new_values, "nginx.%s" % field_name, new_value)
+
+    return new_values
+
+
+def init_file_auto_deletion(new_values: dict):
+    if new_values.get("file_auto_deletion") is None:
+        new_values["file_auto_deletion"] = {}
+
+    for file_auto_deletion_field in file_auto_deletion_fields:
+        new_value, field_name = process_field(
+            file_auto_deletion_field.copy(), "file_auto_deletion", "file_auto_deletion",
+            new_values["file_auto_deletion"], new_values, config, team_config_path
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "file_auto_deletion.%s" % field_name, new_value)
 
     return new_values
 
