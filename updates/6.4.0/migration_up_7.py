@@ -49,6 +49,7 @@ with open(team_config_path, "r") as file:
 
 # добавляем поля автоудаления файлов
 content += '''
+
 # Разрешено ли автоматическое удаление файлов с сервера.
 # Тип данных: булево значение true/false
 file_auto_deletion.is_enabled: false
