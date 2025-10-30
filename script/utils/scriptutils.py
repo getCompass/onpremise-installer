@@ -357,7 +357,7 @@ def generate_random_password(size: int) -> str:
     alnum = lower + upper + digits
 
     # берем спецсимволы без запрещенных
-    _PROHIBITED_SYMBOLS = '"\'\\`$-={}|%@()#'
+    _PROHIBITED_SYMBOLS = '"\'\\`$-={}|%@()#:'
     specials = string.punctuation.translate(str.maketrans('', '', _PROHIBITED_SYMBOLS))
     if not specials:
         print(error("после исключений не осталось допустимых спецсимволов"))
