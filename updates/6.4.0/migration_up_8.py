@@ -97,7 +97,6 @@ protected_config_path = Path(global_protected_config_path)
 if protected_config_path.exists():
     with protected_config_path.open("r") as config_file:
         protected_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
-
     protected_config.update(protected_config_values)
 
 backup_user_password = scriptutils.generate_random_password(32)
@@ -112,6 +111,8 @@ backup_protected_config_path = Path(current_values.get("root_mount_path") + "/de
 with backup_protected_config_path.open("w+t") as f:
     yaml.dump(protected_config, f, sort_keys=False)
 
+# экранированный пароль для SQL
+backup_user_password_sql = backup_user_password.replace("'", "''")
 
 # класс конфига пространства
 class DbConfig:
@@ -151,9 +152,8 @@ if current_values["database_connection"]["driver"] != "host":
                 continue
 
             space_id = s.group(1)
-            f = open(space_config, "r")
-            space_config_dict = json.loads(f.read())
-            f.close()
+            with open(space_config, "r") as f:
+                space_config_dict = json.loads(f.read())
             if space_config_dict["status"] not in [1, 2]:
                 continue
 
@@ -179,42 +179,76 @@ if current_values["database_connection"]["driver"] != "host":
             scriptutils.die("Не найдено ни одного пространства на сервере. Окружение поднято?")
 
     for space_id, space_config_obj in space_config_obj_dict.items():
-        found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
-                                                                     space_config_obj.port)
+        found_container = scriptutils.find_container_mysql_container(
+            client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port
+        )
         mysql_host = "localhost"
         mysql_user = "root"
         mysql_pass = "root"
-        mysql_command = f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password}';"
-        cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
-        try:
-            result = found_container.exec_run(cmd)
-        except docker.errors.NotFound:
-            print("\nНе нашли mysql контейнер для компании")
-            continue
 
-        if result.exit_code != 0:
-            print(f"Не удалось сменить пароль backup_user в компании {space_id}, driver: docker")
-            if result.output:
-                print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
-            sys.exit(result.exit_code)
+        def exec_sql(sql, parse_output=False):
+            cmd = [
+                "mysql",
+                "-h", mysql_host,
+                "-u", mysql_user,
+                f"-p{mysql_pass}",
+                "-Nse", sql
+            ]
+            try:
+                # demux=True -> output: (stdout_bytes, stderr_bytes)
+                result = found_container.exec_run(cmd, demux=True)
+            except docker.errors.NotFound:
+                print("\nНе нашли mysql контейнер для компании")
+                return None
+
+            if result.exit_code != 0:
+                print(f"Не удалось сменить пароль backup_user в компании {space_id}, driver: docker")
+                out = b""
+                if result.output:
+                    out = (result.output[0] or b"") + (result.output[1] or b"")
+                if out:
+                    print("Результат выполнения:\n", out.decode("utf-8", errors="ignore"))
+                sys.exit(result.exit_code)
+
+            if parse_output:
+                stdout = (result.output[0] or b"").decode("utf-8", errors="ignore").strip()
+                return stdout
+            return None
+
+        exists_backup_user_on_127 = int(exec_sql(
+            "SELECT COUNT(*) FROM mysql.user WHERE user='backup_user' AND host='127.0.0.1';",
+            parse_output=True
+        ) or "0")
+
+        # только меняем пароль у 127.0.0.1
+        if exists_backup_user_on_127 > 0:
+            exec_sql(f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
+        else:
+            exists_backup_user_on_localhost = int(exec_sql(
+                "SELECT COUNT(*) FROM mysql.user WHERE user='backup_user' AND host='localhost';",
+                parse_output=True
+            ) or "0")
+
+            if exists_backup_user_on_localhost > 0:
+                # переносим localhost -> 127.0.0.1 и меняем пароль
+                exec_sql("RENAME USER 'backup_user'@'localhost' TO 'backup_user'@'127.0.0.1';")
+                exec_sql(f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
+            else:
+                exec_sql(f"CREATE USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
     exit(0)
 
 # --- меняем пароль у каждой компании ---
 
 # формируем список пространств
 # пространства выбираются по наличию их конфига
-space_config_obj_dict = {}
 for space_config in glob.glob("%s/*_company.json" % space_config_dir):
-
     s = re.search(r'([0-9]+)_company', space_config)
-
     if s is None:
         continue
 
     space_id = s.group(1)
-    f = open(space_config, "r")
-    space_config_dict = json.loads(f.read())
-    f.close()
+    with open(space_config, "r") as f:
+        space_config_dict = json.loads(f.read())
     if space_config_dict["status"] not in [1, 2]:
         continue
 
@@ -224,17 +258,45 @@ for space_config in glob.glob("%s/*_company.json" % space_config_dir):
         current_values["database_connection"]["driver_data"]["company_mysql_hosts"][int(space_id) - 1][
             "root_password"]
 
-    try:
-        subprocess.run([
+    def run_mysqlsh(sql, parse_output=False):
+
+        proc = subprocess.run([
             "mysqlsh",
-            f"--user=root",
+            "--user=root",
             f"--password={company_db_root_password}",
             f"--host={company_db_host}",
             f"--port={company_db_port}",
             "--sql",
             "-e",
-            f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password}';"
-        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            sql
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        if parse_output:
+            m = re.search(r'(\d+)\s*$', proc.stdout.strip())
+            return m.group(1) if m else "0"
+        return None
+
+    try:
+        exists_backup_user_on_127 = int(run_mysqlsh(
+            "SELECT COUNT(*) FROM mysql.user WHERE user='backup_user' AND host='127.0.0.1';",
+            parse_output=True
+        ) or "0")
+
+        if exists_backup_user_on_127 > 0:
+            # только меняем пароль у 127.0.0.1
+            run_mysqlsh(f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
+        else:
+            exists_backup_user_on_localhost = int(run_mysqlsh(
+                "SELECT COUNT(*) FROM mysql.user WHERE user='backup_user' AND host='localhost';",
+                parse_output=True
+            ) or "0")
+
+            # переносим localhost -> 127.0.0.1 и меняем пароль
+            if exists_backup_user_on_localhost > 0:
+                run_mysqlsh("RENAME USER 'backup_user'@'localhost' TO 'backup_user'@'127.0.0.1';")
+                run_mysqlsh(f"ALTER USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
+            else:
+                run_mysqlsh(f"CREATE USER 'backup_user'@'127.0.0.1' IDENTIFIED BY '{backup_user_password_sql}';")
+
     except subprocess.CalledProcessError as e:
         print(e.stderr)
         print(scriptutils.error(f"Не удалось сменить пароль backup_user в компании {space_id}, driver: host"))
