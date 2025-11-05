@@ -172,7 +172,7 @@ def add_ports(pivot_container: docker.models.containers.Container, db_driver: DB
         cmd=[
             "bash",
             "-c",
-            f"php src/Compass/Pivot/sh/php/domino/add_predefined_host_to_domino.php --domino-id={domino_credentials.domino_id} --mysql-user={domino_credentials.company_mysql_user} --mysql-pass={domino_credentials.company_mysql_pass} --host-list=[{host_list_serialized}] --type=common"
+            f"php src/Compass/Pivot/sh/php/domino/add_predefined_host_to_domino.php --domino-id={domino_credentials.domino_id} --mysql-user=\"{domino_credentials.company_mysql_user}\" --mysql-pass=\"{domino_credentials.company_mysql_pass}\" --host-list=[{host_list_serialized}] --type=common"
         ],
     )
 

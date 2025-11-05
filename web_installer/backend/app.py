@@ -639,6 +639,8 @@ server {{
             auth['ldap.require_cert_strategy'] = DoubleQuotedScalarString(params.ldap_require_cert_strategy)
             auth['ldap.user_search_base'] = DoubleQuotedScalarString(params.ldap_user_search_base)
             auth['ldap.user_unique_attribute'] = DoubleQuotedScalarString(params.ldap_user_unique_attribute)
+            auth['ldap.user_login_attribute'] = DoubleQuotedScalarString(
+                params.ldap_user_unique_attribute)  # пока не добавляем новое поле, просто ставим тоже значение, что и в ldap.user_unique_attribute
             auth['ldap.user_search_filter'] = DoubleQuotedScalarString(params.ldap_user_search_filter)
             auth['ldap.user_search_account_dn'] = DoubleQuotedScalarString(params.ldap_user_search_account_dn)
             auth['ldap.user_search_account_password'] = DoubleQuotedScalarString(
@@ -647,7 +649,8 @@ server {{
         else:
             # отключаем ldap-блок
             for k in ['ldap.server_host', 'ldap.server_port', 'ldap.user_search_base',
-                      'ldap.user_unique_attribute', 'ldap.user_search_filter', 'ldap.user_search_account_dn',
+                      'ldap.user_unique_attribute', 'ldap.user_login_attribute', 'ldap.user_search_filter',
+                      'ldap.user_search_account_dn',
                       'ldap.user_search_account_password']:
                 auth[k] = ''
             auth['ldap.use_ssl'] = True
@@ -659,7 +662,7 @@ server {{
                   'sso.compass_mapping.role', 'sso.compass_mapping.bio', 'oidc.client_id', 'oidc.client_secret',
                   'oidc.oidc_provider_metadata_link', 'oidc.attribution_mapping.mail',
                   'oidc.attribution_mapping.phone_number', 'ldap.server_host', 'ldap.server_port',
-                  'ldap.user_search_base', 'ldap.user_unique_attribute',
+                  'ldap.user_search_base', 'ldap.user_unique_attribute', 'ldap.user_login_attribute',
                   'ldap.user_search_filter', 'ldap.user_search_account_dn', 'ldap.user_search_account_password']:
             auth[k] = ''
         auth['ldap.use_ssl'] = True

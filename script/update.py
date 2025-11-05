@@ -192,21 +192,22 @@ if not version_path.exists():
 else:
     current_version = version_path.open("r").read()
 
-# сначала актуализируем инсталлятор
-sb = subprocess.run(
-    [
-        "python3",
-        script_resolved_path + "/installer_migrations_up.py",
-        "-e",
-        environment,
-        "-v",
-        values_name,
-    ]
-)
-if sb.returncode == 1:
-    exit(1)
+# если не восстанавливаемся из бекапа - сначала актуализируем инсталлятор
+if not is_restore_db:
+    sb = subprocess.run(
+        [
+            "python3",
+            script_resolved_path + "/installer_migrations_up.py",
+            "-e",
+            environment,
+            "-v",
+            values_name,
+        ]
+    )
+    if sb.returncode == 1:
+        exit(1)
 
-sb.returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
+    sb.returncode == 0 or scriptutils.die("Ошибка при выполнении миграции инсталлятора")
 
 # подготовка
 print("Создаем пользователя www-data, от имени которого будет работать приложение")
@@ -269,6 +270,15 @@ subprocess.run(
         "--validate-only",
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации парсинга превью ссылок")
+
+print("Валидируем конфигурацию smart_apps")
+subprocess.run(
+    [
+        "python3",
+        script_resolved_path + "/generate_smart_apps_configuration.py",
+        "--validate-only",
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации smart_apps")
 
 print("Валидируем конфигурацию приложения")
 command = [
@@ -357,6 +367,11 @@ subprocess.run(
     ["python3", script_resolved_path + "/generate_preview_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации парсинга превью ссылок")
 
+print("Запускаем скрипт генерации конфигурации smart_apps")
+subprocess.run(
+    ["python3", script_resolved_path + "/generate_smart_apps_configuration.py"]
+).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации smart_apps")
+
 print("Запускаем скрипт инициализации проекта")
 command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
@@ -428,6 +443,18 @@ subprocess.run(
         values_name,
     ]
 ).returncode == 0 or scriptutils.die("Ошибка при создании ключей безопасности")
+
+print("Подготавливаем пользовательские файлы к загрузке")
+subprocess.run(
+    [
+        "python3",
+        script_dir + "/prepare_custom_files.py",
+        "-e",
+        environment,
+        "-v",
+        values_name
+    ]
+).returncode == 0 or scriptutils.die("Ошибка при подготовке файлов к загрузке")
 
 script_dir = str(Path(__file__).parent.resolve())
 service_label_path = Path(script_dir + "/../.service_label")
@@ -566,7 +593,7 @@ if len(container_list) > 0:
     need_update_migrations_after_deploy = False
 
 # в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
-if Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy and not is_restore_db:
+if not is_restore_db and Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy:
 
     # накатываем миграцию на компании
     sb = subprocess.run(
@@ -760,7 +787,7 @@ sleep(60)
 loader.success()
 
 # Если версия меньше 4.1.0 - обновляем конфиги пространств
-if Version(current_version) < Version("4.1.0"):
+if not is_restore_db and Version(current_version) < Version("4.1.0"):
 
     wait_go_database()
     sleep(30)
@@ -799,7 +826,7 @@ if Version(current_version) < Version("4.1.0"):
     loader.success()
 
 # если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
-if (Version(current_version) < Version("6.0.1") or need_update_migrations_after_deploy) and not is_restore_db:
+if not is_restore_db and Version(current_version) < Version("6.0.1") or need_update_migrations_after_deploy:
 
     # накатываем миграцию на компании
     sb = subprocess.run(

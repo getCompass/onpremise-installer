@@ -4,11 +4,13 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import os, yaml, shutil, json
+import os, yaml, shutil, json, string, secrets, random
 import docker
 from pathlib import Path
 from time import sleep
 import urllib.request
+import requests
+
 
 class bcolors:
     HEADER = "\033[95m"
@@ -26,6 +28,7 @@ __confirm_yes_key__ = "Y"
 
 MONOLITH_MYSQL_TYPE = "monolith"
 TEAM_MYSQL_TYPE = "team"
+
 
 # проверить, что запустили из под рута
 def assert_root():
@@ -79,6 +82,7 @@ def confirm(text: str):
 
     exit(os.EX_OK)
 
+
 def get_os_type_by_package_manager():
     # сначала проверяем наличие dpkg
     if shutil.which("dpkg") is not None:
@@ -90,6 +94,7 @@ def get_os_type_by_package_manager():
 
     # если не найдены ни dpkg, ни rpm, то отдаем по дефолту
     return "deb"
+
 
 def get_os_type_by_os():
     os_release_file = "/etc/os-release"
@@ -133,12 +138,13 @@ def get_os_type_by_os():
 
     return get_os_type_by_package_manager()
 
-def is_rpm_os():
 
+def is_rpm_os():
     if get_os_type_by_os() == "rpm":
         return True
 
     return False
+
 
 # включена ли репликация
 def is_replication_enabled(values_dict: dict):
@@ -147,12 +153,14 @@ def is_replication_enabled(values_dict: dict):
 
     return False
 
+
 # мастер сервер ли
 def is_replication_master_server(values_dict: dict):
     if is_replication_enabled(values_dict) == False:
         return True
 
-    if values_dict.get("service_label") is not None and values_dict.get("service_label") != "" and values_dict.get("master_service_label") is not None and values_dict.get("master_service_label") != "":
+    if values_dict.get("service_label") is not None and values_dict.get("service_label") != "" and values_dict.get(
+            "master_service_label") is not None and values_dict.get("master_service_label") != "":
         if values_dict.get("service_label") != values_dict.get("master_service_label"):
             return False
         else:
@@ -160,8 +168,8 @@ def is_replication_master_server(values_dict: dict):
 
     return True
 
-def merge(a: dict, b: dict, path=[]):
 
+def merge(a: dict, b: dict, path=[]):
     for key in b:
         if key in a:
             if isinstance(a[key], dict) and isinstance(b[key], dict):
@@ -172,7 +180,8 @@ def merge(a: dict, b: dict, path=[]):
             a[key] = b[key]
     return a
 
-def find_container_mysql_container(client: docker.DockerClient, mysql_type: str, domino_id: str, port :int = 0):
+
+def find_container_mysql_container(client: docker.DockerClient, mysql_type: str, domino_id: str, port: int = 0):
     """
     Ищет контейнеры по правилам:
     1) monolith -> ищем единственный контейнер c 'mysql' и 'monolith' в имени
@@ -220,6 +229,7 @@ def find_container_mysql_container(client: docker.DockerClient, mysql_type: str,
 
     return found_container
 
+
 # получить данные окружение из security
 def get_security(values_dict: dict) -> dict:
     security_file_path = Path("%s/security.yaml" % values_dict["root_mount_path"])
@@ -236,8 +246,10 @@ def get_security(values_dict: dict) -> dict:
 
     return security
 
+
 YC_META_URL = "http://169.254.169.254/computeMetadata/v1/instance/vendor/identity"
 YC_REQ_HDRS = {"Metadata-Flavor": "Google"}
+
 
 def _fetch_yc_metadata(url):
     req = urllib.request.Request(url, headers=YC_REQ_HDRS)
@@ -262,7 +274,6 @@ def get_yc_params():
 
 
 def is_yandex_cloud_marketplace_product() -> bool:
-
     allowed_product_ids = []
     if not allowed_product_ids:
         return False
@@ -280,3 +291,101 @@ def is_yandex_cloud_marketplace_product() -> bool:
     except Exception:
         # если невалидный json — считаем проверку проваленной
         return False
+
+
+# отправляем уведомление от лица бота
+def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, userbot_notice_domain: str,
+                        message_text: str):
+    if userbot_notice_chat_id == "" or userbot_notice_token == "" or userbot_notice_domain == "":
+        return
+
+    userbot_version = "v3"
+    url = f"https://{userbot_notice_domain}/userbot/api/{userbot_version}/group/send"
+
+    json_data = {
+        'group_id': userbot_notice_chat_id,
+        'text': message_text,
+        'type': 'text'
+    }
+    headers = {
+        'Authorization': f'bearer={userbot_notice_token}'
+    }
+
+    try:
+        response = requests.post(url, json=json_data, headers=headers)
+    except requests.RequestException as e:
+        print(warning(f"Userbot send failed: {e}"))
+
+
+# Возвращает форму слова в зависимости от числа n
+#
+# form1 — форма для 1:            "приложение"
+# form2 — форма для 2–4:          "приложения"
+# form5 — форма для 5–0, 11–14:   "приложений"
+#
+# Примеры:
+#     plural(1,  "приложение", "приложения", "приложений")    -> "приложение"
+#     plural(2,  "приложение", "приложения", "приложений")    -> "приложения"
+#     plural(5,  "приложение", "приложения", "приложений")    -> "приложений"
+#     plural(21,  "приложение", "приложения", "приложений")   -> "приложение"
+def plural(n: int, form1: str, form2: str, form5: str) -> str:
+    n = abs(int(n))
+    n100 = n % 100
+    if 11 <= n100 <= 14:
+        return form5
+    n10 = n % 10
+    if n10 == 1:
+        return form1
+    if 2 <= n10 <= 4:
+        return form2
+    return form5
+
+
+# генерируем пароль длиной size, содержащий минимум:
+# - 1 цифру
+# - 1 строчную букву
+# - 1 прописную букву
+# - 1 спецсимвол
+def generate_random_password(size: int) -> str:
+    if size < 4:
+        print(error("size должен быть >= 4, чтобы поместились все обязательные категории символов"))
+        exit(1)
+
+    lower = string.ascii_lowercase
+    upper = string.ascii_uppercase
+    digits = string.digits
+    alnum = lower + upper + digits
+
+    # берем спецсимволы без запрещенных
+    _PROHIBITED_SYMBOLS = '"\'\\`$-={}|%@()#:'
+    specials = string.punctuation.translate(str.maketrans('', '', _PROHIBITED_SYMBOLS))
+    if not specials:
+        print(error("после исключений не осталось допустимых спецсимволов"))
+        exit(1)
+
+    # гарантируем минимум по одному из каждой категории
+    required = [
+        secrets.choice(lower),
+        secrets.choice(upper),
+        secrets.choice(digits),
+        secrets.choice(specials),
+    ]
+
+    # оставшиеся символы заполняем из общего пула
+    all_chars = alnum + specials
+    required += [secrets.choice(all_chars) for _ in range(size - len(required))]
+
+    # перемешиваем (криптостойко)
+    rng = random.SystemRandom()
+    rng.shuffle(required)
+
+    # гарантируем, что первый символ - буква или цифра
+    if required[0] in specials:
+        alnum_indices = [i for i, ch in enumerate(required) if ch in alnum]
+        if not alnum_indices:  # теоретически не случится, но перестрахуемся
+            print(error("не удалось подобрать первый символ из [a-zA-Z0-9]"))
+            exit(1)
+        j = rng.choice(alnum_indices)
+        required[0], required[j] = required[j], required[0]
+
+    return "".join(required)

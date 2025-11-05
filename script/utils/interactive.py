@@ -18,6 +18,8 @@ domain_pattern = re.compile(
 )
 
 mail_pattern = re.compile(r'([A-Za-z0-9]+[.\-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+', re.IGNORECASE)
+sso_attr_pattern = re.compile(r'^[a-zA-Z0-9-]+$')
+
 password_pattern = re.compile(r"^[^\s]+$", re.UNICODE)
 
 phone_number_pattern = r'^\+?[1-9][0-9]{7,14}$'
@@ -78,7 +80,7 @@ class InteractiveValue:
         # если значение должно быть булевым - конвертим
         if self.type == "bool":
             value = self.prepare_bool(value)
-                
+
         # если значение должно быть интовым - конвертим
         if self.type == "int":
             try:
@@ -134,7 +136,7 @@ class InteractiveValue:
 
         if isinstance(value, int) and value in [0,1]:
             return bool(value)
-        
+
         if isinstance(value, str) and value in ["true","false"]:
             return True if value == "true" else False
 
@@ -165,6 +167,10 @@ class InteractiveValue:
             
             if error != "":
                 raise IncorrectValueException(self.name, bcolors.WARNING + error + ", параметр в конфиге %s" % self.name + bcolors.ENDC)
+
+            # если в массиве есть all - завершаем выполнение и отдаем все возможные значения
+            if self.options != [] and item == "all":
+                return self.options
             
             if self.options != [] and item not in self.options:
                 options_string = ", ".join(self.options)
@@ -272,11 +278,15 @@ def validate(value: str, validation: Union[str, None]) -> str:
     if validation == "mail_password":
         return validate_mail_password(value)
     if validation == "smtp_username":
-            return validate_smtp_username(value)
+        return validate_smtp_username(value)
     if validation == "port":
-            return validate_port(value)
+        return validate_port(value)
     if validation == "host":
-            return validate_host(value)
+        return validate_host(value)
+    if validation == "positive_int":
+        return validate_positive_int(value)
+    if validation == "sso_attr":
+        return validate_sso_attr(value)
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
@@ -368,35 +378,49 @@ def validate_host(value: str) -> str:
 
     return ""
 
+def validate_positive_int(value: int) -> str:
+
+    if int(value) < 1:
+        return "Значение должно быть больше нуля"
+
+    return ""
+
+def validate_sso_attr(value: str) -> str:
+    
+    match = re.match(sso_attr_pattern, value)
+    if match is None:
+        return "Параметр должен состоять только из латинских букв, цифр и дефисов"
+    return ""
+    
 # проверить, является ли доменом
 def is_valid_domain_idn(domain):
 
     # Разделяем домен на части
     domain_parts = domain.split('.')
-        
+
     # Должно быть как минимум 2 части
     if len(domain_parts) < 2:
         return False
-    
+
     # Проверяем каждую часть домена
     for part in domain_parts:
         # Длина каждой части от 1 до 63 символов
         if len(part) < 1 or len(part) > 63:
             return False
-        
+
         # Проверяем допустимые символы для IDN (Unicode + дефис)
         # Используем более широкий диапазон Unicode символов
         if not re.match(r'^[\w\-]+$', part, re.UNICODE):
             return False
-        
+
         # Часть не может начинаться или заканчиваться дефисом
         if part.startswith('-') or part.endswith('-'):
             return False
-            
+
     # Общая длина домена не более 253 символов
     if len(domain.encode('utf-8')) > 253:
         return False
-    
+
     return True
 
 # исключение пустого значения

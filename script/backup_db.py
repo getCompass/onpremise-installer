@@ -12,6 +12,10 @@ from utils import scriptutils
 from pathlib import Path
 from loader import Loader
 from datetime import datetime
+from math import ceil
+import subprocess
+import mysql.connector
+import socket
 
 scriptutils.assert_root()
 
@@ -19,36 +23,46 @@ scriptutils.assert_root()
 
 parser = argparse.ArgumentParser(add_help=False)
 
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="окружение",
-)
-
-parser.add_argument(
-    "-v",
-    "--values",
-    required=False,
-    default="compass",
-    type=str,
-    help="название файла со значениями для деплоя",
-)
-parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
+parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
+parser.add_argument("-v", "--values", required=False, default="compass", type=str,
+                    help="название файла со значениями для деплоя")
+parser.add_argument("--backups-folder", required=False, default="", type=str, help="директория для хранения бэкапов")
+parser.add_argument("--backup-name-format", required=False, default="%d_%m_%Y", type=str,
+                    help="формат имени папки бэкапа")
+parser.add_argument("--free-threshold-percent", required=False, default=0, type=int,
+                    help="пороговое значение свободного места в процентах для возможности создания бэкапа")
+parser.add_argument("--auto-cleaning-limit", required=False, default=0, type=int,
+                    help="лимит для автоматической очистки бэкапов, если их количество превышает указанный лимит")
+parser.add_argument("--userbot-notice-chat-id", required=False, default="", type=str,
+                    help="id чата для отправки уведомления")
+parser.add_argument("--userbot-notice-token", required=False, default="", type=str,
+                    help="токен бота для отправки уведомления")
+parser.add_argument("--userbot-notice-domain", required=False, default="", type=str,
+                    help="домен, на который отправляется запрос уведомления")
+parser.add_argument("--userbot-notice-text", required=False, default="", type=str,
+                    help="текст уведомления от бота в случае, если не смогли создать бэкап")
 args = parser.parse_args()
 
 values_name = args.values
 environment = args.environment
-stack_name_prefix = environment + '-' + values_name
+backups_folder = args.backups_folder
+backup_name_format = args.backup_name_format
+threshold_percent = args.free_threshold_percent
+auto_cleaning_limit = args.auto_cleaning_limit
+userbot_notice_chat_id = args.userbot_notice_chat_id
+userbot_notice_token = args.userbot_notice_token
+userbot_notice_domain = args.userbot_notice_domain
+userbot_notice_text = args.userbot_notice_text
+
+stack_name_prefix = f"{environment}-{values_name}"
 
 need_backup_spaces = True
 need_backup_monolith = True
 
 client = docker.from_env()
-
 script_dir = str(Path(__file__).parent.resolve())
+
+hostname = socket.gethostname()
 
 XTRABACKUP_IMAGE = "docker.getcompass.ru/backend_compass/xtrabackup"
 XTRABACKUP_VERSION = "8.0.28-21"
@@ -57,8 +71,9 @@ NEED_APP_VERSION = "4.1.0"
 
 # класс конфига пространства
 class DbConfig:
-    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str, backup_user: str, backup_password: str, db_path: str,
-                 backup_path: str, container_name: str) -> None:
+    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str,
+                 backup_user: str, backup_password: str, db_path: str, backup_path: str, driver: str,
+                 container_name: str) -> None:
         self.domino_id = domino_id
         self.space_id = space_id
         self.host = host
@@ -70,6 +85,7 @@ class DbConfig:
         self.db_path = db_path
         self.backup_path = backup_path
         self.backup_name = os.path.basename(os.path.normpath(self.backup_path))
+        self.driver = driver
         self.container_name = container_name
 
 
@@ -77,6 +93,17 @@ class DbConfig:
 def start():
     # получаем значения для выбранного окружения
     current_values = get_values()
+
+    if backups_folder == "":
+        backup_dir_str = "%s/backups" % current_values.get("root_mount_path")
+    else:
+        backup_dir_str = "%s" % backups_folder
+
+    if not Path(backup_dir_str).exists():
+        Path(backup_dir_str).mkdir(exist_ok=True, parents=True)
+
+    # проверяем свободное место на диске
+    check_disk_usage(backup_dir_str)
 
     # добавляем к префиксу stack-name также пометку сервиса, если такая имеется
     stack_name_monolith = stack_name_prefix + "-monolith"
@@ -86,12 +113,12 @@ def start():
         stack_name_monolith = stack_name_monolith + "-" + service_label
         stack_name_domino = stack_name_domino + "-" + service_label
 
-    loader = Loader("Загружаем образ Percona Xtrabackup", "Загрузили образ Percona Xtrabackup").start()
-    client.images.pull(repository=XTRABACKUP_IMAGE, tag=XTRABACKUP_VERSION)
-    loader.success()
+    if current_values["database_connection"]["driver"] != "host":
+        loader = Loader("Загружаем образ Percona Xtrabackup", "Загрузили образ Percona Xtrabackup").start()
+        client.images.pull(repository=XTRABACKUP_IMAGE, tag=XTRABACKUP_VERSION)
+        loader.success()
 
-    backup_path_str = "%s/backups/%s" % (current_values["root_mount_path"], datetime.today().strftime('%d.%m.%Y_%H:%M:%S'))
-    Path(backup_path_str).mkdir(parents=True, exist_ok=True)
+    backup_path_str = create_backup_folder(backup_dir_str)
 
     # начинаем бэкап конфигов
     if "production" in current_values["server_tag_list"]:
@@ -102,6 +129,40 @@ def start():
 
     # начинаем бэкап пространств
     start_space_backup(current_values, backup_path_str, stack_name_domino)
+
+    # выполняем автоматическую очистку старых бэкапов
+    old_backups_auto_clean(backup_dir_str)
+
+
+# создаём директорию бэкапа
+def create_backup_folder(backup_dir_str: str):
+    backup_name = datetime.today().strftime(backup_name_format)
+    backup_full_path_str = "%s/%s" % (backup_dir_str, backup_name)
+
+    # если бэкап с таким именем существует, то добавляем постфикс
+    if Path(backup_dir_str).exists():
+
+        max_counter = None
+        for item in Path(backup_dir_str).iterdir():
+            # ищем бэкапы с таким же именем
+            if item.is_dir() and item.name.startswith(backup_name):
+                if item.name == backup_name:
+                    max_counter = max_counter if max_counter else 0
+                else:
+                    # пробуем получить номер после дефиса
+                    try:
+                        counter_num = int(item.name.split('-')[-1])
+                        max_counter = max_counter if max_counter else 0
+                        max_counter = max(max_counter, counter_num)
+                    except ValueError:
+                        continue
+
+        if max_counter is not None:
+            counter = max_counter + 1
+            backup_full_path_str = f"{backup_full_path_str}-{counter}"
+
+    Path(backup_full_path_str).mkdir(parents=True, exist_ok=True)
+    return backup_full_path_str
 
 
 # записать данные в контрольный файл
@@ -138,21 +199,39 @@ def start_monolith_backup(current_values: dict, backup_path_str: str, stack_name
         print(scriptutils.error("БД монолита не выбрана, как необходимая для бэкапа"))
         return
 
-    monolith_backup_path_str = "%s/mysql" % (backup_path_str)
+    monolith_backup_path_str = "%s/mysql" % backup_path_str
     Path(monolith_backup_path_str).mkdir(exist_ok=True, parents=True)
+
+    db_host = current_values["database_connection"]["driver_data"]["project_mysql_hosts"]["monolith"]["host"] if \
+        current_values["database_connection"]["driver"] == "host" else \
+        current_values["projects"]["monolith"]["service"]["mysql"]["host"]
+
+    db_port = current_values["database_connection"]["driver_data"]["project_mysql_hosts"]["monolith"]["port"] if \
+        current_values["database_connection"]["driver"] == "host" else \
+        current_values["projects"]["monolith"]["service"]["mysql"]["port"]
+
+    db_root_user = "root" if \
+        current_values["database_connection"]["driver"] == "host" else \
+        current_values["projects"]["monolith"]["service"]["mysql"]["user"]
+
+    db_root_password = current_values["database_connection"]["driver_data"]["project_mysql_hosts"]["monolith"][
+        "root_password"] if \
+        current_values["database_connection"]["driver"] == "host" else \
+        current_values["projects"]["monolith"]["service"]["mysql"]["password"]
 
     monolith = DbConfig(
         "",
         0,
-        current_values["projects"]["monolith"]["service"]["mysql"]["host"],
-        current_values["projects"]["monolith"]["service"]["mysql"]["port"],
-        current_values["projects"]["monolith"]["service"]["mysql"]["user"],
-        current_values["projects"]["monolith"]["service"]["mysql"]["password"],
+        db_host,
+        db_port,
+        db_root_user,
+        db_root_password,
         current_values["backup_user"],
         current_values["backup_user_password"],
         "%s/monolith/database" % current_values["root_mount_path"],
         monolith_backup_path_str,
-        "%s_mysql-monolith" % (stack_name_monolith)
+        current_values["database_connection"]["driver"],
+        "%s_mysql-monolith" % stack_name_monolith
     )
 
     backup_db_list([monolith], backup_path_str)
@@ -192,17 +271,24 @@ def backup_db_list(db_list: list[DbConfig], backup_path_str: str):
         db_container = prepare_db(db)
 
         try:
+            header = f"#----- ПРОСТРАНСТВО {db.space_id or 'MONOLITH'} -----#"
+            print(scriptutils.warning(header))
 
-            print(scriptutils.warning("#-----ПРОСТРАНСТВО %d-----#" % db.space_id if db.space_id != 0 else "#-----ОСНОВНАЯ БАЗА-----#"))
-            run_xtrabackup_container(db, db_container)
+            if db.driver == "host":
+                # бэкапим с помощью mysqlsh
+                backup_with_mysqlsh(db)
+            else:
+                # бэкапим через контейнер XtraBackup
+                run_xtrabackup_container(db, db_container)
 
             loader = Loader("Архивируем бэкап...", "Архив с бэкапом готов", "Не смогли заархивировать бэкап").start()
             db_archive_path = archive_backup(db)
             loader.success()
-            print(scriptutils.warning("Путь до архива бэкапа: %s" % (db_archive_path)))
+            print(scriptutils.warning("Путь до архива бэкапа: %s" % db_archive_path))
 
             if db.space_id > 0:
-                control_data = {"space_backups": {"%s::%s" % (db.domino_id, db.space_id): os.path.basename(os.path.normpath(db_archive_path))}}
+                control_data = {"space_backups": {
+                    "%s::%s" % (db.domino_id, db.space_id): os.path.basename(os.path.normpath(db_archive_path))}}
             else:
                 control_data = {"monolith_backup_name": os.path.basename(os.path.normpath(db_archive_path))}
 
@@ -225,16 +311,47 @@ def archive_backup(db: DbConfig) -> str:
 
 
 # готовим БД для бэкапа
-def prepare_db(db: DbConfig) -> docker.models.containers.Container:
-    container_list = client.containers.list(filters={"name": db.container_name})
+def prepare_db(db: DbConfig) -> docker.models.containers.Container | None:
+    if db.driver == "host":
+        try:
+            conn = mysql.connector.connect(
+                host=db.host,
+                port=db.port,
+                user=db.root_user,
+                password=db.root_password,
+            )
+            cursor = conn.cursor()
+            # несколько отдельных команд, чтобы корректно сработал FLUSH PRIVILEGES
+            stmts = [
+                f"CREATE USER IF NOT EXISTS '{db.backup_user}'@'%'"
+                f" IDENTIFIED WITH mysql_native_password BY '{db.backup_password}'",
+                f"GRANT RELOAD, BACKUP_ADMIN, LOCK TABLES, REPLICATION CLIENT,"
+                f" CREATE TABLESPACE, PROCESS, SUPER, CREATE, INSERT, SELECT"
+                f" ON *.* TO '{db.backup_user}'@'%'",
+                "FLUSH PRIVILEGES"
+            ]
+            for sql in stmts:
+                cursor.execute(sql)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except mysql.connector.Error as err:
+            print(err)
+            scriptutils.die(
+                f"Не удалось создать backup-пользователя на хосте для пространства {db.space_id}"
+            )
+        return None
 
+    container_list = client.containers.list(filters={"name": db.container_name})
     if len(container_list) < 1:
-        scriptutils.die("Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+        scriptutils.die(
+            "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
 
     space_container: docker.models.containers.Container = container_list[0]
 
     # создаем временного пользователя в БД, от имени которого будет проводиться бэкап
-    mysql_command = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s';" % (db.backup_user, db.backup_password) + \
+    mysql_command = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s';" % (
+        db.backup_user, db.backup_password) + \
                     "GRANT RELOAD, BACKUP_ADMIN, LOCK TABLES, REPLICATION CLIENT, CREATE TABLESPACE, PROCESS, SUPER, CREATE, INSERT, SELECT ON * . * TO '%s'@'%%';" % db.backup_user + \
                     "FLUSH PRIVILEGES;"
 
@@ -249,17 +366,69 @@ def prepare_db(db: DbConfig) -> docker.models.containers.Container:
 
 
 # действия, необходимые совершить после бэкапа
-def finish_backup(db_container: docker.models.containers.Container, db: DbConfig):
-    # удаляем временного пользователя, которого создавали для бэкапа
-    mysql_command = "DROP USER '%s'@'%%';" % (db.backup_user) + \
-                    "FLUSH PRIVILEGES;"
+def finish_backup(db_container: docker.models.containers.Container | None, db: DbConfig):
+    drop_stmts = [
+        f"DROP USER '{db.backup_user}'@'%'",
+        "FLUSH PRIVILEGES"
+    ]
 
-    cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % ("localhost", db.root_user, db.root_password, mysql_command)
+    if db.driver == "host":
+        try:
+            conn = mysql.connector.connect(
+                host=db.host,
+                port=db.port,
+                user=db.root_user,
+                password=db.root_password,
+            )
+            cursor = conn.cursor()
+            for sql in drop_stmts:
+                cursor.execute(sql)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except mysql.connector.Error as err:
+            print(err)
+            scriptutils.die(
+                f"Не удалось удалить backup-пользователя на хосте для пространства {db.space_id}"
+            )
+    else:
+        drop_sql = "; ".join(drop_stmts)
+        result = db_container.exec_run(
+            cmd=f'mysql -h localhost -u {db.root_user} -p{db.root_password} -e "{drop_sql}"'
+        )
+        if result.exit_code != 0:
+            scriptutils.die("Не смогли удалить mysql пользователя для бэкапа в пространстве %d" % db.space_id)
 
-    result = db_container.exec_run(cmd=cmd)
 
-    if result.exit_code != 0:
-        scriptutils.die("Не смогли удалить mysql пользователя для бэкапа в пространстве %d" % db.space_id)
+def backup_with_mysqlsh(db: DbConfig) -> None:
+    backup_dir = db.backup_path
+
+    # на всякий случай создаём папку
+    Path(backup_dir).mkdir(parents=True, exist_ok=True)
+
+    cpu_count = os.cpu_count() or 1
+    threads = max(1, ceil(cpu_count * 0.3))
+
+    mysqlsh_cmd = [
+        "mysqlsh",
+        f"--user={db.root_user}",
+        f"--password={db.root_password}",
+        f"--host={db.host}",
+        f"--port={db.port}",
+        "--js",
+        "-e",
+        f"util.dumpInstance('{backup_dir}', {{threads: {threads}}})"
+    ]
+    loader = Loader("Создаем бэкап...", "Создали бэкап", "Не смогли создать бэкап").start()
+
+    try:
+        subprocess.run(mysqlsh_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        loader.success()
+    except subprocess.CalledProcessError as e:
+        loader.error()
+        print(e.stderr)
+        print(scriptutils.error("Не смогли выполнить бэкап"))
+        raise e
 
 
 # запускаем контейнер и выполняем команду бэкапа
@@ -278,7 +447,8 @@ def run_xtrabackup_container(db_config_obj: DbConfig, db_container: docker.model
     )
 
     # находим сеть, к которой мы можем подключить контейнер xtrabackup
-    if db_container.attrs.get("NetworkSettings") is None or len(db_container.attrs["NetworkSettings"].get("Networks")) < 1:
+    if db_container.attrs.get("NetworkSettings") is None or len(
+            db_container.attrs["NetworkSettings"].get("Networks")) < 1:
         scriptutils.die("Не смогли найти ни одну подключенную сеть у контейнера mysql. Окружение поднято корректно?")
 
     # нужна именно attachable сеть, чтобы к ней можно было подключить внешний контейнер
@@ -294,7 +464,8 @@ def run_xtrabackup_container(db_config_obj: DbConfig, db_container: docker.model
             attach_network_name = network_name
 
     if attach_network_name == "":
-        scriptutils.die("У контейнера mysql нет сети, к которой можно подключить контейнер xtrabackup. Обновите приложение Compass до версии %s" % NEED_APP_VERSION)
+        scriptutils.die(
+            "У контейнера mysql нет сети, к которой можно подключить контейнер xtrabackup. Обновите приложение Compass до версии %s" % NEED_APP_VERSION)
 
     # формируем команду для бэкапа
     backup_command = [
@@ -307,7 +478,7 @@ def run_xtrabackup_container(db_config_obj: DbConfig, db_container: docker.model
                   "--port=%s" % str(db_config_obj.port),
                   "--datadir=/var/lib/mysql",
                   "--user=%s" % db_config_obj.backup_user,
-                  "--password=%s" % db_config_obj.backup_password,
+                  "--password=\"%s\"" % db_config_obj.backup_password,
                   "&&",
                   "xtrabackup",
                   "--prepare",
@@ -317,7 +488,7 @@ def run_xtrabackup_container(db_config_obj: DbConfig, db_container: docker.model
 
     # бэкапим пространство
     try:
-        result = client.containers.run(
+        client.containers.run(
             detach=False,
             image="%s:%s" % (XTRABACKUP_IMAGE, XTRABACKUP_VERSION),
             mounts=[data_mount, backup_mount],
@@ -346,7 +517,7 @@ def build_option_list(space_dict: dict[int: DbConfig]) -> str:
 Список доступных пространств: '''
 
     for space_id, space in space_dict.items():
-        option_list_str += "%s, " % (space_id)
+        option_list_str += "%s, " % space_id
 
     return option_list_str[:-2] + "\n"
 
@@ -390,6 +561,12 @@ def get_space_dict(current_values: dict, backup_path_str: str, stack_name_domino
         if space_config_dict["status"] not in [1, 2]:
             continue
 
+        db_root_password = \
+            current_values["database_connection"]["driver_data"]["company_mysql_hosts"][int(space_id) - 1][
+                "root_password"] if \
+                current_values["database_connection"]["driver"] == "host" else \
+                "root"
+
         # формируем объект конфигурации пространства
         space_config_obj = DbConfig(
             domino_id,
@@ -397,11 +574,12 @@ def get_space_dict(current_values: dict, backup_path_str: str, stack_name_domino
             space_config_dict["mysql"]["host"],
             space_config_dict["mysql"]["port"],
             "root",
-            "root",
+            db_root_password,
             current_values["backup_user"],
             current_values["backup_user_password"],
             get_space_data_dir_path(current_values, domino_id, space_id),
             get_space_backup_dir_path(space_id, backup_path_str),
+            current_values["database_connection"]["driver"],
             "%s-%s-company_mysql-%d" % (stack_name_domino, domino_id, space_config_dict["mysql"]["port"])
         )
 
@@ -411,7 +589,7 @@ def get_space_dict(current_values: dict, backup_path_str: str, stack_name_domino
 
 # получить данные окружение из values
 def get_values() -> dict:
-    default_values_file_path = Path("%s/../src/values.yaml" % (script_dir))
+    default_values_file_path = Path("%s/../src/values.yaml" % script_dir)
     values_file_path = Path("%s/../src/values.%s.yaml" % (script_dir, values_name))
 
     if not values_file_path.exists():
@@ -445,5 +623,79 @@ def merge(a: dict, b: dict, path=[]):
     return a
 
 
+# проверка свободного места на диске
+def check_disk_usage(backup_dir_str: str):
+    total, used, free = shutil.disk_usage(backup_dir_str)
+    free_percent = round(free / total * 100)
+    if threshold_percent > 0 and free_percent < threshold_percent:
+        print(scriptutils.warning("Свободное место на диске превышает указанный порог для создания бэкапа."))
+        print(f"(свободное место: {free_percent}%, указанный порог для создания бэкапа: {threshold_percent}%)")
+
+        scriptutils.die(f"Прервано создание бэкапа с указанным порогом свободного места.")
+
+
+# автоматическая очистка старых бэкапов
+def old_backups_auto_clean(backup_dir_str: str):
+    if auto_cleaning_limit <= 0:
+        return
+
+    # считаем сколько у нас папок с бэкапами
+    backups_list = []
+    backups_folders_count = 0
+    with os.scandir(backup_dir_str) as entries:
+        for entry in entries:
+
+            if not entry.is_dir():
+                continue
+
+            backups_folders_count += 1
+
+            try:
+                backups_list.append((entry, entry.stat().st_mtime))
+            except ValueError as e:
+                try:
+                    current_name = '-'.join(entry.name.split('-')[:-1])
+                    backups_list.append((entry, entry.stat().st_mtime))
+                except ValueError as e:
+                    continue
+
+    # проверяем, что требуется очистка
+    if backups_folders_count > 0 and backups_folders_count > auto_cleaning_limit:
+
+        # сортируем по дате (от старых к новым)
+        backups_list.sort(key=lambda x: x[1])
+
+        current_time = datetime.now()
+        delete_count = 0
+
+        for folder_path, folder_created_at in backups_list:
+
+            if len(backups_list) - delete_count <= auto_cleaning_limit:
+                break
+
+            # удаляем старые бэкапы
+            age_seconds = current_time.timestamp() - folder_created_at
+            age_days = int(age_seconds / (24 * 3600))
+            delete_text = f"Автоматически удален старый бэкап: {folder_path.name} ({age_days} дней)"
+            try:
+                shutil.rmtree(folder_path)
+                delete_count += 1
+                print(delete_text)
+            except Exception as e:
+                print(f"Ошибка удаления {folder_path.name}: {e}")
+
+            message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else delete_text}"
+            scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
+
+
 # точка входа в скрипт
-start()
+try:
+    start()
+except Exception as e:
+    message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else 'Ошибка при создании бэкапа на сервере!'}"
+    scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
+    raise
+except SystemExit as e:
+    message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else 'Ошибка при создании бэкапа на сервере!'}"
+    scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
+    raise

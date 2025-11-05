@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, re, yaml, json, glob, os, tarfile, shutil, subprocess
+import argparse, yaml, json, glob, os, tarfile, shutil, subprocess
 import docker
 import docker.errors, docker.models, docker.models.containers, docker.types
 from math import ceil
 from utils import scriptutils
 from pathlib import Path
 from loader import Loader
+import mysql.connector
 from time import sleep
 from datetime import datetime
 import ipaddress
@@ -40,12 +42,15 @@ parser.add_argument(
 )
 
 parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
-parser.add_argument('--force-update-company-db', required=False, default=1, type=int, help='форсим обновление баз данных компаний')
+parser.add_argument('--force-update-company-db', required=False, default=1, type=int,
+                    help='форсим обновление баз данных компаний')
+parser.add_argument("--backups-folder", required=False, default="", type=str, help="директория для хранения бэкапов")
 args = parser.parse_args()
 
 values_name = args.values
 environment = args.environment
 force_update_company_db = args.force_update_company_db
+backups_folder = args.backups_folder
 
 # загружаем конфиг
 script_path = Path(__file__).parent
@@ -54,7 +59,8 @@ config_path = Path(str(script_path) + "/../configs/global.yaml")
 config = {}
 
 if not config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(config_path.resolve())) + "Запустите скрипт create_configs.py и заполните конфигурацию")
+    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(
+        config_path.resolve())) + "Запустите скрипт create_configs.py и заполните конфигурацию")
     exit(1)
 
 with config_path.open("r") as config_file:
@@ -112,23 +118,25 @@ def start():
     if service_label != "":
         stack_name = stack_name + "-" + service_label
 
-    loader = Loader("Загружаем образ Percona Xtrabackup", "Загрузили образ Percona Xtrabackup").start()
-    client.images.pull(repository=XTRABACKUP_IMAGE, tag=XTRABACKUP_VERSION)
-    loader.success()
+    if current_values["database_connection"]["driver"] != "host":
+        loader = Loader("Загружаем образ Percona Xtrabackup", "Загрузили образ Percona Xtrabackup").start()
+        client.images.pull(repository=XTRABACKUP_IMAGE, tag=XTRABACKUP_VERSION)
+        loader.success()
 
-    backup_path = choose_backup(root_mount_path)
+    backup_path = choose_backup(backups_folder)
 
-    monolith_backup_name, space_backup_info_list, config_archive_name = validate_backup_contents(current_values, backup_path)
+    monolith_backup_name, space_backup_info_list, config_archive_name = validate_backup_contents(current_values,
+                                                                                                 backup_path)
 
     # останавливаем окружение
     stop_environment(stack_name if service_label != "" else stack_name_prefix)
 
     # восстанавливаем конфигурацию
     if "production" in current_values["server_tag_list"]:
-        start_config_restore(root_mount_path, backup_path, config_archive_name)
+        start_config_restore(backup_path, config_archive_name)
 
     # начинаем бэкап монолита
-    start_monolith_restore(root_mount_path, backup_path, monolith_backup_name)
+    start_monolith_restore(current_values, backup_path, monolith_backup_name)
 
     # начинаем бэкап пространств
     start_space_restore(current_values, backup_path, space_backup_info_list)
@@ -140,7 +148,7 @@ def start():
 
     # если передали ip - меняем
     if host_ip != "":
-        update_host_ip(monolith_container, host_ip, root_mount_path)
+        update_host_ip(monolith_container, host_ip)
 
     # обновляем конфиги пространств
     update_space_configs(monolith_container)
@@ -148,7 +156,8 @@ def start():
 
 # останавливаем окружение
 def stop_environment(stack_name: str) -> None:
-    result = input(scriptutils.error("Перед восстановлением необходимо завершить работу приложения Compass и удалить текущие данные БД. Согласны?[Y/n]"))
+    result = input(scriptutils.error(
+        "Перед восстановлением необходимо завершить работу приложения Compass и удалить текущие данные БД. Согласны?[Y/n]"))
 
     if result.lower() != "y":
         scriptutils.die("Восстановление отменено")
@@ -168,31 +177,36 @@ def stop_environment(stack_name: str) -> None:
 # Функция для удаления стека с проверкой
 def remove_stack_if_exists(stack_name):
     # Выполняем команду 'docker stack ls' и проверяем, существует ли стек
-    result = subprocess.run(f"docker stack ls | grep {stack_name}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(f"docker stack ls | grep {stack_name}", shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
 
     # Если стек найден, удаляем его
     if result.stdout:
         print(f"Удаление стека {stack_name}...")
-        subprocess.run("docker stack ls | grep %s | awk '{print $1}' | xargs docker stack rm" % (stack_name), shell=True)
+        subprocess.run("docker stack ls | grep %s | awk '{print $1}' | xargs docker stack rm" % stack_name,
+                       shell=True)
     # Если стек не найден, ничего не делаем и не выводим сообщение
+
 
 # Функция для удаления сети с проверкой
 def remove_networks_if_exists(stack_name):
     # Выполняем команду 'docker network ls' и проверяем, существует ли сеть
-    result = subprocess.run(f"docker network ls | grep {stack_name}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(f"docker network ls | grep {stack_name}", shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
 
     # Если сетка найдена, удаляем её
     if result.stdout:
         print(f"Удаление сети {stack_name}...")
         try:
-            subprocess.run("docker network ls | grep %s | awk '{print $1}' | xargs docker network rm" % (stack_name), shell=True)
+            subprocess.run("docker network ls | grep %s | awk '{print $1}' | xargs docker network rm" % stack_name,
+                           shell=True)
         except Exception:
             pass
     # Если сеть не найдена, ничего не делаем и не выводим сообщение
 
 
 # обновить хостовый ip
-def update_host_ip(monolith_container: docker.models.containers.Container, host_ip: str, root_mount_path: str) -> None:
+def update_host_ip(monolith_container: docker.models.containers.Container, host_ip: str) -> None:
     # обновляем ip в базе
     result = monolith_container.exec_run([
         "bash",
@@ -231,7 +245,7 @@ def wait_monolith_container(stack_name: str) -> docker.models.containers.Contain
 
         docker_container_list = client.containers.list(
             filters={
-                "name": "%s_php-monolith" % (stack_name),
+                "name": "%s_php-monolith" % stack_name,
                 "health": "healthy",
             }
         )
@@ -253,7 +267,6 @@ def wait_monolith_container(stack_name: str) -> docker.models.containers.Contain
 
 # обновить конфиги пространств
 def update_space_configs(monolith_container: docker.models.containers.Container) -> None:
-
     if force_update_company_db == 0:
         exit(0)
 
@@ -289,16 +302,17 @@ def start_environment(current_values: dict) -> None:
         ])
 
         if result.returncode != 0:
-            scriptutils.die("Не смогли поднять окружение после восстановления. Проверьте конфигурацию приложения и запустите скрипт restore_db.py заново.")
+            scriptutils.die(
+                "Не смогли поднять окружение после восстановления. Проверьте конфигурацию приложения и запустите скрипт restore_db.py заново.")
 
         return
 
     # если это тестовое окружение, то поднимаем окружение по другому
-    start_dev_environment(current_values)
+    start_dev_environment()
 
 
 # запускаем тестовое окружение
-def start_dev_environment(current_values: dict):
+def start_dev_environment():
     result = subprocess.run([
         "python3",
         "%s/deploy.py" % script_dir,
@@ -317,7 +331,7 @@ def start_dev_environment(current_values: dict):
 
 
 # восстанавливаем базу монолита
-def start_monolith_restore(root_mount_path: str, backup_path: str, monolith_backup_name: str):
+def start_monolith_restore(current_values: dict, backup_path: str, monolith_backup_name: str):
     monolith = DbConfig(
         "",
         0,
@@ -325,7 +339,7 @@ def start_monolith_restore(root_mount_path: str, backup_path: str, monolith_back
         "%s/%s" % (backup_path, monolith_backup_name),
     )
 
-    restore_db_list(backup_path, [monolith])
+    restore_db_list(current_values, backup_path, [monolith])
 
 
 # восстанавливаем базы пространств
@@ -343,7 +357,8 @@ def start_space_restore(current_values: dict, backup_path: str, space_backup_inf
         need_backup_space_obj_list.append(space_config_obj)
 
     # начинаем восстановление пространств
-    restore_db_list(backup_path, need_backup_space_obj_list)
+    restore_db_list(current_values, backup_path, need_backup_space_obj_list)
+
 
 def safe_extract(tar_obj: tarfile.TarFile, path: str) -> None:
     try:
@@ -351,10 +366,10 @@ def safe_extract(tar_obj: tarfile.TarFile, path: str) -> None:
     except TypeError:
         tar_obj.extractall(path)
 
-# восстанавливаем конфиги
-def start_config_restore(root_mount_path: str, backup_path: str, config_archive_name: str):
 
-    file = tarfile.open("%s/%s" % (backup_path, config_archive_name)) 
+# восстанавливаем конфиги
+def start_config_restore(backup_path: str, config_archive_name: str):
+    file = tarfile.open("%s/%s" % (backup_path, config_archive_name))
     print(file.getnames())
     safe_extract(file, root_mount_path)
     file.close()
@@ -363,11 +378,14 @@ def start_config_restore(root_mount_path: str, backup_path: str, config_archive_
         shutil.copyfile(root_mount_path + "/security.yaml", script_dir + "/../src/security.yaml")
 
 
-def choose_backup(root_mount_path: str) -> str:
+def choose_backup(backups_folder: str) -> str:
     backup_path_dict = {}
     backup_option_list = []
 
-    backup_path_str = "%s/backups" % root_mount_path
+    if backups_folder == "":
+        backup_path_str = "%s/backups" % root_mount_path
+    else:
+        backup_path_str = "%s" % backups_folder
 
     backup_archive_path = ""
     for backup_archive_path in glob.glob("%s/*" % backup_path_str):
@@ -385,7 +403,8 @@ def choose_backup(root_mount_path: str) -> str:
 
     chosen_backup_index = input(backup_option_str)
 
-    if (not chosen_backup_index.isdigit()) or int(chosen_backup_index) < 0 or int(chosen_backup_index) > len(backup_option_list):
+    if (not chosen_backup_index.isdigit()) or int(chosen_backup_index) < 0 or int(chosen_backup_index) > len(
+            backup_option_list):
         scriptutils.die("Выбран некорректный вариант")
 
     return backup_path_dict[backup_option_list[int(chosen_backup_index) - 1]]
@@ -429,26 +448,120 @@ def validate_backup_contents(current_values: dict, backup_path: str):
 
 
 # восстанавливаем выбранные БД
-def restore_db_list(backup_path: str, db_list: list[DbConfig]):
+def restore_db_list(current_values: dict, backup_path: str, db_list: list[DbConfig]):
     # для каждой БД выполняем восстановление
     for db in db_list:
-        print(scriptutils.warning("#-----ПРОСТРАНСТВО %s-----#" % db.space_id if db.space_id != 0 else "#-----ОСНОВНАЯ БАЗА-----#"))
+        print(scriptutils.warning(
+            "#-----ПРОСТРАНСТВО %s-----#" % db.space_id if db.space_id != 0 else "#-----ОСНОВНАЯ БАЗА-----#"))
 
-        loader = Loader("Удаляем текущие данные из БД...", "Успешно удалили текущие данные", "Не смогли удалить текущие данные").start()
+        loader = Loader("Удаляем текущие данные из БД...", "Успешно удалили текущие данные",
+                        "Не смогли удалить текущие данные").start()
         shutil.rmtree(db.db_path, ignore_errors=True)
         path = Path(db.db_path)
         path.mkdir(exist_ok=True, parents=True, mode=0o755)
 
         loader.success()
 
-        loader = Loader("Разархивируем бэкап...", "Успешно разархивировали бэкап", "Не смогли разархивировать бэкап").start()
+        loader = Loader("Разархивируем бэкап...", "Успешно разархивировали бэкап",
+                        "Не смогли разархивировать бэкап").start()
         file = tarfile.open("%s/%s" % (backup_path, db.archive_backup_name))
         safe_extract(file, backup_path)
         file.close()
         # recursive_chown(backup_path, "lxd", "docker")
         loader.success()
 
-        run_xtrabackup_container(backup_path, db)
+        if current_values["database_connection"]["driver"] == "host":
+            restore_with_mysqlsh(current_values, backup_path, db)
+        else:
+            run_xtrabackup_container(backup_path, db)
+
+
+def restore_with_mysqlsh(current_values: dict, backup_path: str, db: DbConfig) -> None:
+    driver_data = current_values["database_connection"]["driver_data"]
+    if db.space_id == 0:
+        host = driver_data["project_mysql_hosts"]["monolith"]["host"]
+        port = driver_data["project_mysql_hosts"]["monolith"]["port"]
+        root_password = driver_data["project_mysql_hosts"]["monolith"]["root_password"]
+    else:
+        idx = int(db.space_id) - 1
+        host = driver_data["company_mysql_hosts"][idx]["host"]
+        port = driver_data["company_mysql_hosts"][idx]["port"]
+        root_password = driver_data["company_mysql_hosts"][idx]["root_password"]
+
+    user = "root"
+
+    # вычисляем число потоков
+    cpu_count = os.cpu_count() or 1
+    threads = max(1, ceil(cpu_count * 0.3))
+
+    # путь до распакованной папки с дампом
+    dump_dir = f"{backup_path}/{os.path.basename(os.path.normpath(db.db_path))}"
+
+    loader = Loader("Восстанавливаем бэкап...", "Восстановили бэкап", "Не смогли восстановить бэкап").start()
+
+    try:
+        restricted_db_list = [
+            'information_schema',
+            'mysql',
+            'performance_schema',
+            'sys'
+        ]
+
+        mydb = mysql.connector.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=root_password,
+        )
+
+        drop_command = 'DROP DATABASE'
+        show_databases = 'SHOW DATABASES'
+        my_cursor = mydb.cursor(buffered=True)
+        my_cursor.execute(show_databases)
+
+        db_for_deletion = []
+        result = my_cursor.fetchall()
+        for row in result:
+
+            if row[0] in restricted_db_list:
+                continue
+            db_for_deletion.append(row[0])
+
+        for db in db_for_deletion:
+            my_cursor.execute('%s %s' % (drop_command, db))
+
+            mydb.commit()
+    except mysql.connector.Error as e:
+        loader.error()
+        print(e.stderr)
+        print(scriptutils.error("Не смогли выполнить восстановление бэкапа"))
+        raise e
+
+    js_code = (
+        "session.runSql('SET GLOBAL local_infile=ON');"
+        f"util.loadDump('{dump_dir}', "
+        f"{{threads: {threads}, showProgress: true, resetProgress: true}});"
+        "session.runSql('SET GLOBAL local_infile=OFF');"
+    )
+
+    cmd = [
+        "mysqlsh",
+        f"--user={user}",
+        f"--password={root_password}",
+        f"--host={host}",
+        f"--port={port}",
+        "--js",
+        "-e", js_code
+    ]
+
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        loader.success()
+    except subprocess.CalledProcessError as e:
+        loader.error()
+        print(e.stderr)
+        print(scriptutils.error("Не смогли выполнить восстановление бэкапа"))
+        raise e
 
 
 # запускаем контейнер и выполняем команду бэкапа
@@ -484,7 +597,8 @@ def run_xtrabackup_container(backup_path: str, db_config_obj: DbConfig):
             command=restore_command
         )
         loader.success()
-        print(scriptutils.warning("Команда, которая использовалась для восстановления бэкапа: %s" % (' '.join(restore_command))))
+        print(scriptutils.warning(
+            "Команда, которая использовалась для восстановления бэкапа: %s" % (' '.join(restore_command))))
     except docker.errors.ContainerError as e:
         loader.error()
         print(e.stderr)
@@ -501,7 +615,7 @@ def build_option_list(space_dict: dict[int: DbConfig]) -> str:
 Список доступных пространств: '''
 
     for space_id, space in space_dict.items():
-        option_list_str += "%s, " % (space_id)
+        option_list_str += "%s, " % space_id
 
     return option_list_str[:-2] + "\n"
 
@@ -509,7 +623,8 @@ def build_option_list(space_dict: dict[int: DbConfig]) -> str:
 # получить путь до папки с бэкапом пространства
 def get_space_backup_dir_path(current_values: dict, domino_id: str, space_id: str) -> str:
     space_db_path = current_values["company_db_path"]
-    path_str = "%s/backups/%s/%s/mysql_company_%s" % (space_db_path, datetime.today().strftime('%d.%m.%Y_%H:%M:%S'), domino_id, space_id)
+    path_str = "%s/backups/%s/%s/mysql_company_%s" % (space_db_path, datetime.today().strftime('%d.%m.%Y_%H:%M:%S'),
+                                                      domino_id, space_id)
     Path(path_str).mkdir(mode=644, exist_ok=True, parents=True)
     return path_str
 
@@ -522,7 +637,8 @@ def get_space_data_dir_path(current_values: dict, domino_id: str, space: str) ->
 
 
 # сформировать список конфигураций пространств
-def get_space_dict(current_values: dict, backup_path: str, space_backup_info_list: list[SpaceBackupInfo]) -> dict[int: DbConfig]:
+def get_space_dict(current_values: dict, backup_path: str, space_backup_info_list: list[SpaceBackupInfo]) -> dict[
+                                                                                                             int: DbConfig]:
     # формируем список пространств, доступных для бэкапа
     # пространства выбираются по наличию их конфига
     space_config_obj_dict = {}
@@ -561,8 +677,8 @@ def recursive_chown(path, owner, group):
         shutil.chown(dirpath, owner)
         for filename in filenames:
             shutil.chown(os.path.join(dirpath, filename), owner, group)
-        for dirname in dirname:
-            shutil.chown(os.path.join(dirpath, filename), owner, group)
+        for dirname in dirnames:
+            shutil.chown(os.path.join(dirpath, dirname), owner, group)
 
 
 # точка входа в скрипт

@@ -1,0 +1,12 @@
+<?php
+
+namespace Compass\FileNode;
+
+$CONFIG["FILE_AUTO_DELETION"] = [
+    "is_enabled" => {{.file_auto_deletion.is_enabled}},
+    "file_ttl" => {{.file_auto_deletion.file_ttl}},
+	"check_interval" => {{.file_auto_deletion.check_interval}},
+    "need_delete_file_type_list" => {{make_list .file_auto_deletion.need_delete_file_type_list}},
+];
+
+return $CONFIG;

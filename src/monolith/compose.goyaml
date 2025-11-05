@@ -194,6 +194,19 @@ configs:
   icap-conf-file:
     name: "{{.stack_name}}_icap_conf_file-{{.config_revisions.project.file.icap.php}}"
     file: ".project.file.icap.php"
+  pivot-smartapps:
+    name: "{{.stack_name}}_smartapps-{{.config_revisions.project.pivot.smartapps.php}}"
+    file: ".project.pivot.smartapps.php"
+  domino-smartapps:
+    name: "{{.stack_name}}_smartapps-{{.config_revisions.project.domino.smartapps.php}}"
+    file: ".project.domino.smartapps.php"
+  file-auto-deletion-conf:
+    name: "{{.stack_name}}_file_conf-{{.config_revisions.project.file.file_auto_deletion.php}}"
+    file: ".project.file.file_auto_deletion.php"
+  file-node-crontab:
+    name: "{{.stack_name}}_file-crontab-{{.config_revisions.project.file.crontab.cron}}"
+    file: ".project.file.crontab.cron"
+
 {{if eq .database_connection.driver "host"}}
   predefined-db:
     name: "{{.stack_name}}_predefined_db-{{.config_revisions.project.predefined_db.json}}"
@@ -342,7 +355,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:1.27.4"
+    image: "{{.registry_service_path}}/nginx:1.28.0-1"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -813,6 +826,10 @@ services:
     configs:
       - source: "icap-conf-file"
         target: "/app/src/Compass/FileNode/api/conf/icap.php"
+      - source: "file-node-crontab"
+        target: "/app/src/Compass/FileNode/sh/cron/crontab.cron"
+      - source: "file-auto-deletion-conf"
+        target: "/app/src/Compass/FileNode/api/conf/file.php"
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
@@ -921,6 +938,7 @@ services:
       - type: "volume"
         source: "default-file-{{.projects.pivot.service.default_file.tag}}"
         target: "/app/www/default_file/"
+      - "{{.root_mount_path}}/custom_files:/app/www/custom_files/"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -992,6 +1010,10 @@ services:
         target: "/app/src/Compass/Conversation/api/conf/icap.php"
       - source: "icap-conf-thread"
         target: "/app/src/Compass/Thread/api/conf/icap.php"
+      - source: "pivot-smartapps"
+        target: "/app/src/Compass/Pivot/api/conf/smartapps.php"
+      - source: "domino-smartapps"
+        target: "/app/src/Compass/Company/api/conf/smartapps.php"
     {{- if ne .database_encryption.mode "none"}}
     secrets:
       - "compass_database_encryption_secret_key"

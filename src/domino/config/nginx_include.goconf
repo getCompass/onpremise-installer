@@ -70,7 +70,7 @@ location ~* ^{{$space_locprefix}}/api/v1/(company|employeecard|hiring)/([a-zA-Z0
 }
 
 # apiv2 2 level
-location ~* ^{{$space_locprefix}}/api/v2/(userbot|company|premium|notifications|member|tariff)/([a-zA-Z0-9_\-]+)/?$ {
+location ~* ^{{$space_locprefix}}/api/v2/(userbot|company|premium|notifications|member|tariff|smartapp)/([a-zA-Z0-9_\-]+)/?$ {
 
 	root /app/www/;
 	index index.php;
@@ -214,6 +214,21 @@ location ~* ^{{$space_locprefix}}/api/v1/(files)/[a-zA-Z0-9_\-]+/?$ {
 	}
 
 	rewrite ^{{$space_locprefix}}/api/v1/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/file_balancer/v1/index.php?$args&api_method=$1.$2? break;
+	fastcgi_pass $upstream_file_balancer;
+}
+
+# apiv2 2 level
+location ~* ^{{$space_locprefix}}/api/v2/(files)/[a-zA-Z0-9_\-]+/?$ {
+
+	root /app/www/;
+	index index.php;
+
+	# разрешаем только POST запросы
+	limit_except POST {
+		deny all;
+	}
+
+	rewrite ^{{$space_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/file_balancer/v2/index.php?$args&api_method=$1.$2? break;
 	fastcgi_pass $upstream_file_balancer;
 }
 

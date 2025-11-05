@@ -87,18 +87,24 @@ credential_provider_list = {
         "provider_login_field": "account_sid",  # поле для логина
         "provider_password_field": "account_auth_token",  # поле для пароля
     },
+    "idigital_alphanumeric_v1": {
+        "provider_login_field": "api_header_key",  # поле для логина
+        "provider_password_field": "provider_password_field",  # поле для пароля
+    },
 }
 
 provider_names = {
     "sms_agent_alphanumeric_v1": "sms_agent",
     "vonage_alphanumeric_v1": "vonage",
     "twilio_alphanumeric_v1": "twilio",
+    "idigital_alphanumeric_v1": "idigital",
 }
 
 provider_entrypoints = {
     "sms_agent_alphanumeric_v1": "https://api3.sms-agent.ru/v2.0/",
     "vonage_alphanumeric_v1": "https://rest.nexmo.com/",
     "twilio_alphanumeric_v1": "https://api.twilio.com/2010-04-01/",
+    "idigital_alphanumeric_v1": "https://direct.i-dgtl.ru/api/v1/",
 }
 
 # переменные для генерации конфигурационного файла
@@ -142,7 +148,7 @@ conf_generated_values = {
         "provider_password": {
             "type": "password",
             "comment": "Введите пароль провайдера для подключения SMS",
-            "default_value": None,
+            "default_value": "",
             "is_required": True,
         },
         "app_name": {
@@ -157,7 +163,7 @@ conf_generated_values = {
 # вспомогательное сообщение
 help_message = (
     "Для запуска генерации скрипта выполните команду: \r\n"
-    "python3 generate_sms_config.py"
+    "python3 generate_sms_service_configuration.py"
 )
 
 generate_conf_message = (

@@ -803,6 +803,7 @@ class SsoLdapConfig:
             require_cert_strategy: str,
             user_search_base: str,
             user_unique_attribute: str,
+            user_login_attribute: str,
             limit_of_incorrect_auth_attempts: int,
             account_disabling_monitoring_enabled: str,
             on_account_removing: str,
@@ -814,7 +815,11 @@ class SsoLdapConfig:
             user_search_filter: str,
             profile_update_enabled: str,
             profile_update_interval: str,
-            user_profile_update_filter: str
+            empty_attributes_update_enabled: str,
+            user_profile_update_filter: str,
+            authorization_2fa_enabled: bool,
+            compass_mapping_mail_2fa: str,
+            mail_2fa_allowed_domains: list,
     ):
         self.server_host = server_host
         self.server_port = server_port
@@ -822,6 +827,7 @@ class SsoLdapConfig:
         self.require_cert_strategy = require_cert_strategy
         self.user_search_base = user_search_base
         self.user_unique_attribute = user_unique_attribute
+        self.user_login_attribute = user_login_attribute
         self.limit_of_incorrect_auth_attempts = limit_of_incorrect_auth_attempts
         self.account_disabling_monitoring_enabled = account_disabling_monitoring_enabled
         self.on_account_removing = on_account_removing
@@ -834,7 +840,10 @@ class SsoLdapConfig:
         self.user_profile_update_filter = user_profile_update_filter
         self.profile_update_enabled = profile_update_enabled
         self.profile_update_interval = profile_update_interval
-
+        self.empty_attributes_update_enabled = empty_attributes_update_enabled
+        self.authorization_2fa_enabled = authorization_2fa_enabled
+        self.compass_mapping_mail_2fa = compass_mapping_mail_2fa
+        self.mail_2fa_allowed_domains = mail_2fa_allowed_domains
     def input(self):
 
         # получаем значение доступных методов для авторизации
@@ -919,11 +928,27 @@ class SsoLdapConfig:
             ldap_user_unique_attribute = interactive.InteractiveValue(
                 "ldap.user_unique_attribute",
                 "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве username в форме авторизации",
-                "str", config=config, default_value="", is_required=is_required
+                "str", config=config, is_required=is_required, validation="sso_attr"
             ).from_config()
+
+            if ldap_user_unique_attribute is None:
+                ldap_user_unique_attribute = ""
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
             ldap_user_unique_attribute = ""
+
+        try:
+            ldap_user_login_attribute = interactive.InteractiveValue(
+                "ldap.user_login_attribute",
+                "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве логина",
+                "str", config=config, is_required=is_required, validation="sso_attr"
+            ).from_config()
+
+            if ldap_user_login_attribute is None:
+                ldap_user_login_attribute = ""
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_login_attribute = ""
 
         try:
             ldap_user_search_filter = interactive.InteractiveValue(
@@ -1110,12 +1135,56 @@ class SsoLdapConfig:
                     handle_exception("ldap.profile_update_interval",
                                      bcolors.WARNING + "Значение параметра ldap.profile_update_interval не может быть меньше 1 минуты" + bcolors.ENDC)
 
+        try:
+            ldap_empty_attributes_update_enabled = interactive.InteractiveValue(
+                "ldap.empty_attributes_update_enabled",
+                "Требуется ли обновлять значение атрибутов, которые не заполнены для пользователя в LDAP",
+                "bool",
+                config=config, is_required=is_required
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_empty_attributes_update_enabled = False
+
+        try:
+            ldap_authorization_2fa_enabled = interactive.InteractiveValue(
+                "ldap.authorization_2fa_enabled",
+                "Включен ли 2FA при авторизации через LDAP",
+                "bool",
+                config=config, is_required=True
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_authorization_2fa_enabled = False
+
+        try:
+            ldap_compass_mapping_mail_2fa = interactive.InteractiveValue(
+                "ldap.compass_mapping.mail_2fa",
+                "Поле LDAP, содержащее почту",
+                "str",
+                config=config, is_required=False, default_value=""
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_compass_mapping_mail_2fa = ""
+
+        try:
+            ldap_mail_2fa_allowed_domains = interactive.InteractiveValue(
+                "ldap.mail_2fa.allowed_domains",
+                "Разрешенные домены LDAP",
+                "arr",
+                config=config, is_required=False, default_value=[]
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+
         return self.init(ldap_server_host,
                          ldap_server_port,
                          ldap_use_ssl,
                          ldap_require_cert_strategy,
                          ldap_user_search_base,
                          ldap_user_unique_attribute,
+                         ldap_user_login_attribute,
                          ldap_limit_of_incorrect_auth_attempts,
                          ldap_account_disabling_monitoring_enabled,
                          ldap_on_account_removing,
@@ -1127,12 +1196,16 @@ class SsoLdapConfig:
                          ldap_user_search_filter,
                          ldap_profile_update_enabled,
                          ldap_profile_update_interval,
+                         ldap_empty_attributes_update_enabled,
                          ldap_user_profile_update_filter,
+                         ldap_authorization_2fa_enabled,
+                         ldap_compass_mapping_mail_2fa,
+                         ldap_mail_2fa_allowed_domains
                          )
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t"user_profile_update_filter" => "{}",\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"user_login_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t"empty_attributes_update_enabled" => {},\n\t"user_profile_update_filter" => "{}",\n\t"authorization_2fa_enabled" => {},\n\t"mail_mapped_field" => "{}",\n\t"mail_allowed_domains" => {},\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
@@ -1141,6 +1214,7 @@ class SsoLdapConfig:
             self.user_search_page_size,
             self.user_search_filter,
             self.user_unique_attribute,
+            self.user_login_attribute,
             self.limit_of_incorrect_auth_attempts,
             self.account_disabling_monitoring_enabled,
             self.on_account_removing,
@@ -1150,7 +1224,11 @@ class SsoLdapConfig:
             self.account_disabling_monitoring_interval,
             self.profile_update_enabled,
             self.profile_update_interval,
+            self.empty_attributes_update_enabled,
             self.user_profile_update_filter,
+            self.authorization_2fa_enabled,
+            self.compass_mapping_mail_2fa,
+            "[" + (', '.join('"' + item + '"' for item in self.mail_2fa_allowed_domains)) + "]"
         )
 
 
