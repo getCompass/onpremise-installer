@@ -83,6 +83,14 @@ while n <= timeout:
         scriptutils.die(
             'Не был найден необходимый docker-контейнер для запуска скриптов. Убедитесь, что окружение поднялось корректно')
 
+# проверяем наличие default-файлов
+output = found_php_monolith_container.exec_run(user='www-data',
+    cmd=['bash', '-c', 'php src/Compass/Pivot/sh/php/service/wait_default_files.php'])
+if output.exit_code != 0:
+
+    print(output.output.decode("utf-8"))
+    print(scriptutils.error('В docker-контейнере монолита отсутствуют default-файлы приложения'))
+
 smart_app_catalog_id_list = []
 for smart_app in smart_apps_config_values.get("smart_apps.catalog_config", []):
     if not isinstance(smart_app, dict):
