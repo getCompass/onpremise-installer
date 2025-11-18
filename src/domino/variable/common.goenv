@@ -8,7 +8,7 @@ DOMINO_ID="{{$domino.label}}"
 ENTRYPOINT_DOMINO="{{.protocol}}://{{entrypoint (netaddr $domino.code_host $domino.service.nginx.external_https_port) .url_path $domino.url_path 0}}"
 
 # веб-сокет точки входа
-PUBLIC_WEBSOCKET_DOMINO="wss://{{entrypoint $domino.subdomain .domain .url_path $domino.url_path 1}}/ws"
+PUBLIC_WEBSOCKET_DOMINO="wss://{{entrypointWithPort .websocket_port $domino.subdomain .domain .url_path $domino.url_path 1}}/ws"
 
 ANNOUNCEMENT_DOMAIN={{.projects.announcement.subdomain}}.{{.domain}}
 

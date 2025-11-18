@@ -136,7 +136,7 @@ const ConfirmBlock = ({
             <>
                 {text.slice(0, i_privacy)}
                 <a
-                    href="https://getcompass.ru/privacy.pdf"
+                    href="https://getcompass.ru/docs/privacy.pdf"
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
