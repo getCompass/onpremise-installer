@@ -877,6 +877,13 @@ required_root_fields = [
         "ask": False,
         "is_protected": True,
     },
+    {
+        "name": "websocket_port",
+        "comment": "Укажите порт, через который клиентски приложения будут подключаться по websocket протоколу",
+        "default_value": 0,
+        "type": "int",
+        "ask": True,
+    },
 ]
 
 common_project_fields = [

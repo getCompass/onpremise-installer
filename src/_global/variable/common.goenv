@@ -107,8 +107,8 @@ PUBLIC_ADDRESS_START="{{entrypoint .projects.pivot.subdomain_start .domain .url_
 # веб-сокет точки входа
 # разнести по проектам, они не должны пересекаться по идее
 # ==========================================================
-PUBLIC_WEBSOCKET_PIVOT="wss://{{entrypoint .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path 1}}/ws"
-PUBLIC_WEBSOCKET_ANNOUNCEMENT="wss://{{entrypoint .projects.announcement.subdomain .domain .url_path .projects.announcement.url_path 1}}/ws"
+PUBLIC_WEBSOCKET_PIVOT="wss://{{entrypointWithPort .websocket_port .projects.pivot.subdomain .domain .url_path .projects.pivot.url_path 1}}/ws"
+PUBLIC_WEBSOCKET_ANNOUNCEMENT="wss://{{entrypointWithPort .websocket_port .projects.announcement.subdomain .domain .url_path .projects.announcement.url_path 1}}/ws"
 
 # ключи
 SOCKET_KEY_FILE_NODE="{{.security_keys.file.socket_key_file_node}}"

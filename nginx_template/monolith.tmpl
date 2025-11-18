@@ -31,6 +31,7 @@ upstream upstream_integration_nginx_{{.stack_name_prefix}} {
 server {
 
         listen 443 http2 ssl;
+        {{if and (ne 0 .websocket_port) (ne 443 .websocket_port) (ne 80 .websocket_port)}}listen {{.websocket_port}} http2 ssl;{{end}}
 
         server_name     {{.domain}} *.{{.domain}};
         sendfile on;
