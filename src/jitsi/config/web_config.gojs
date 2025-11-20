@@ -29,6 +29,14 @@ config.constraints = {
 	}
 };
 
+config.iosSdkResolution = 720;
+config.iosSdkConstraints = {
+	video: {
+		height: {ideal: 720, max: 720, min: 144},
+		width: {ideal: 1280, max: 1280, min: 256},
+	}
+};
+
 config.maxFullResolutionParticipants = -1;
 
 config.startVideoMuted = 1001;
@@ -194,6 +202,7 @@ config.videoQuality = {
 	// Provides a way to set the codec for screenshare.
 	screenshareCodec: 'H264',
 	mobileScreenshareCodec: 'VP9',
+	iosSdkScreenshareCodec: 'H264',
 
 	// Codec specific settings for scalability modes and max bitrates.
 	av1: {
@@ -271,6 +280,7 @@ config.videoQuality = {
 
 	// Provides a way to set the codec preference on mobile devices, both on RN and mobile browser based endpoint
 	mobileCodecPreferenceOrder: ['VP9', 'H264'],
+	iosSdkCodecPreferenceOrder: ['H264', 'VP9'],
 };
 
 if (typeof navigator !== 'undefined' && typeof navigator.userAgent !== 'undefined' && navigator.userAgent.indexOf('YaBrowser') !== -1) {
