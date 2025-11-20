@@ -99,7 +99,7 @@ const Header = () => {
                     </>
                 } />
                 <a
-                    href="https://doc-onpremise.getcompass.ru/"
+                    href="https://doc-onpremise.getcompass.ru/yandex-cloud.html"
                     target="_blank"
                     rel="noopener noreferrer"
                 >
