@@ -44,7 +44,7 @@ with config_path.open("r") as config_file:
 
 config.update(config_values)
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "-e",

@@ -19,7 +19,7 @@ scriptutils.assert_root()
 script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")
@@ -794,17 +794,19 @@ if not is_restore_db and Version(current_version) < Version("4.1.0"):
 
     loader = Loader("Запускаем пространства...", "Запустили пространства", "Не смогли запустить пространства").start()
 
-    try:
-        result = update_space_configs(found_monolith_container)
-        if result.exit_code != 0:
+    if values_dict.get("database_connection", {}).get("driver") != "host":
+
+        try:
+            result = update_space_configs(found_monolith_container)
+            if result.exit_code != 0:
+                found_monolith_container = get_monolith_container()
+                result = update_space_configs(found_monolith_container)
+        except APIError as e:
             found_monolith_container = get_monolith_container()
             result = update_space_configs(found_monolith_container)
-    except APIError as e:
-        found_monolith_container = get_monolith_container()
-        result = update_space_configs(found_monolith_container)
 
-    if result.exit_code != 0:
-        scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
+        if result.exit_code != 0:
+            scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
 
     loader.success()
 

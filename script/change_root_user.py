@@ -2,42 +2,26 @@
 # pip3 install pyyaml pyopenssl docker mysql_connector_python python-dotenv psutil
 
 # Скрипт выполняет задачу:
-# Показать активные анонсы
+# Смена прав рут пользователя
 
 import sys
+import time
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, psutil
+import argparse, yaml, pwd, psutil
 import docker
+from pathlib import Path
 from utils import scriptutils
 from time import sleep
-from pathlib import Path
+import socket
 
 # ---АГРУМЕНТЫ СКРИПТА---#
-def print_usage():
-    print("""
-Скрипт для отображения активных анонсов
-
-Использование:
-    python3 script/show_announcement.py -v VALUES -e ENVIRONMENT -c COMPANYID
-
-Обязательные параметры:
-    -v, --values        Название values файла окружения (например: compass)
-    -e, --environment   Окружение, в котором развернут проект (например: production)
-    -c, --company-id    Id компании из которой показать анонсы. 0 - если показываем глобальные анонсы
-
-Пример:
-    python3 script/show_announcement.py -v compass -e production -c 0
-    """)
-    sys.exit(1)
-
-parser = argparse.ArgumentParser(add_help=True)
-parser.error = lambda message: print_usage()
+parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')
 parser.add_argument('-e', '--environment', required=False, default="production", type=str, help='Окружение, в котором развернут проект')
-parser.add_argument('-c', '--company-id', required=False, default=0, type=str, help='Id компании в которой хотим посмотреть анонсы')
+parser.add_argument('-c', '--user-id', required=True, type=int, help='ID пользователя которому выдаем права')
 
 args = parser.parse_args()
 
@@ -49,37 +33,38 @@ scriptutils.assert_root()
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
+user_id = args.user_id if args.user_id else 0
 stack_name_prefix = environment + '-' + values_arg
 stack_name = stack_name_prefix + "-monolith"
 
 script_dir = str(Path(__file__).parent.resolve())
-values_file_path = Path('%s/../src/values.%s.yaml' % (script_dir, values_arg))
+values_file_path = Path('%s/../src/values.%s.yaml' % (script_dir, args.values))
 
 if not values_file_path.exists():
     scriptutils.die(('Не найден файл со сгенерированными значениями. Вы развернули приложение?'))
 
-
 with values_file_path.open('r') as values_file:
-
     current_values = yaml.safe_load(values_file)
     current_values = {} if current_values is None else current_values
 
     if current_values == {}:
         scriptutils.die('Не найден файл со сгенерированными значениями. Вы развернули приложение?')
 
-    if current_values.get('projects', {}).get('domino', {}) == {}:
-        scriptutils.die(scriptutils.error('Не был развернут проект domino через скрипт deploy.py'))
-
-    domino_project = current_values['projects']['domino']
-
-    if len(domino_project) < 1:
-        scriptutils.die(scriptutils.error('Не был развернут проект domino через скрипт deploy.py'))
-
-
 # добавляем к префиксу stack-name также пометку сервиса, если такая имеется
 service_label = current_values.get("service_label") if current_values.get("service_label") else ""
 if service_label != "":
     stack_name = stack_name + "-" + service_label
+
+# необходимые пользователи для окружения
+required_user_list = ['www-data']
+
+# проверяем наличие необходимых пользователей
+for user in required_user_list:
+
+    try:
+        pwd.getpwnam(user)
+    except KeyError:
+        scriptutils.die('Необходимо создать пользователя окружения' + user)
 
 client = docker.from_env()
 
@@ -102,32 +87,28 @@ while n <= timeout:
     sleep(5)
     if n == timeout:
         scriptutils.die(
-            "Не был найден необходимый docker-контейнер для работы с анонсами. Убедитесь, что окружение поднято корректно."
+            "Не был найден необходимый docker-контейнер. Убедитесь, что окружение поднялось корректно"
         )
 
-# ---Показываем все активные анонсы---#
-cmd = f"""echo '{args.company_id}
-
-' | php /app/src/Compass/Announcement/sh/php/show_active.php"""
-
+# ---Выдача прав---#
 output = found_php_monolith_container.exec_run(
     user="www-data",
     cmd=[
         "bash",
         "-c",
-        cmd
+        "php /app/src/Compass/Pivot/sh/php/service/change_root_user.php --user-id=%s"
+        % user_id,
     ],
+    stream=True,
 )
 
-if output.exit_code == 0:
-    output_lines = output.output.decode("utf-8").splitlines()
-    filtered_output = "\n".join(output_lines[2:])
-    
-    if filtered_output.strip():
-        print(filtered_output)
+for data in output.output:
+
+    if isinstance(data, bytes):
+        try:
+            print(data.decode('utf-8'))
+        except UnicodeDecodeError:
+
+            print(data.decode('utf-8', errors='replace'))
     else:
-        print(scriptutils.success("Нет активных анонсов"))
-else:
-    print(output.output.decode("utf-8"))
-    print(scriptutils.error("Ошибка - не смогли вывести все активные анонсы"))
-    sys.exit(0)
+        print(data)

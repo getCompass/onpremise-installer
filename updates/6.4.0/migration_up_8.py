@@ -74,7 +74,11 @@ with values_file_path.open('r') as values_file:
     current_values = yaml.safe_load(values_file)
     current_values = {} if current_values is None else current_values
 
-if current_values["database_connection"]["driver"] == "host":
+database_config_path = str(config_path) + "/database.yaml"
+with open(database_config_path, "r") as f:
+    database_config = yaml.safe_load(f)
+
+if database_config["database_connection"]["driver"] == "host":
 
     # обязательно уточняем установлен ли mysqlsh при использовании внешних баз данных
     print(
@@ -131,7 +135,7 @@ space_config_dir = domino["company_config_dir"]
 domino_id = domino["label"]
 
 # если используются внутренние базы данных
-if current_values["database_connection"]["driver"] != "host":
+if database_config["database_connection"]["driver"] != "host":
 
     # --- меняем пароль у каждой компании ---
     client = docker.from_env()
@@ -255,7 +259,7 @@ for space_config in glob.glob("%s/*_company.json" % space_config_dir):
     company_db_host = space_config_dict["mysql"]["host"]
     company_db_port = space_config_dict["mysql"]["port"]
     company_db_root_password = \
-        current_values["database_connection"]["driver_data"]["company_mysql_hosts"][int(space_id) - 1][
+        database_config["database_connection"]["driver_data"]["company_mysql_hosts"][int(space_id) - 1][
             "root_password"]
 
     def run_mysqlsh(sql, parse_output=False):

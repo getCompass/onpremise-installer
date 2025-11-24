@@ -67,7 +67,7 @@ def select_feature():
 
 
 def main():
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument('-v', '--values', required=False, default="compass", type=str,
                         help='Название values файла окружения')
     parser.add_argument('-e', '--environment', required=False, default="production", type=str,

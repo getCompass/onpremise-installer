@@ -13,7 +13,7 @@ from utils.interactive import InteractiveValue, IncorrectValueException
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "-v", "--values", required=False, default="compass", type=str, help="Название values файла окружения"

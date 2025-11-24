@@ -13,7 +13,7 @@ from time import sleep
 import subprocess
 import os
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')
 parser.add_argument('-e', '--environment', required=False, default="production", type=str, help='Окружение, в котором развернут проект')
 parser.add_argument('--from-path', required=False, default="/home/replication_scripts", type=str, help='Путь, откуда копируем скрипты')

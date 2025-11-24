@@ -87,7 +87,7 @@ config.update(smart_apps_config_values)
 
 root_path = script_dir.parent.resolve()
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument(
     "--smart-apps-pivot-config-output-path",
     required=False,

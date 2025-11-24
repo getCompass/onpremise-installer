@@ -20,7 +20,7 @@ scriptutils.assert_root()
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "-dst",

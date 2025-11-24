@@ -287,6 +287,10 @@ configs:
   nginx-include-jitsi:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.jitsi.nginx_include.conf}}"
     file: ".project.jitsi.nginx_include.conf"
+  # настройки nginx license
+  nginx-include-license:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.license.nginx_include.conf}}"
+    file: ".project.license.nginx_include.conf"
 
   # основной конфиг prosody компонента
   prosody-main-cfg:
@@ -400,6 +404,10 @@ services:
         target: "/etc/nginx/includes/userbot.nginx"
       - source: "nginx-include-jitsi"
         target: "/etc/nginx/includes/jitsi.nginx"
+      {{- if .local_license}}
+      - source: "nginx-include-license"
+        target: "/etc/nginx/includes/license.nginx"
+      {{- end}}
     volumes:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
       - "{{get_trusted_cert_path_by_os}}/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
@@ -1245,4 +1253,55 @@ services:
       options:
         max-size: "15m"
         max-file: "3"
+  {{- end}}
+
+  {{- if .local_license}}
+  # GO_LOCAL_LICENSE
+  go-local-license-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/go_local_license:{{.projects.license.service.go_local_license.tag}}"
+    environment:
+      HTTP_PORT: 80
+    env_file:
+      - ".global.common.env"
+      - ".project.license.common.env"
+    networks:
+      monolith-{{$service_label}}-private:
+        aliases:
+          - "go-local-license-{{.projects.license.label}}"
+    <<:
+      - *default-deploy
+      - *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    volumes:
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.license_mount_path}}:/app/license/"
+
+  # GO_LICENSE_MANAGER
+  go-license-manager-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/go_license_manager:{{.projects.license.service.go_license_manager.tag}}"
+    environment:
+      HTTP_PORT: 80
+    env_file:
+      - ".global.common.env"
+      - ".project.license.common.env"
+      - ".project.license.license_manager.env"
+    networks:
+      monolith-{{$service_label}}-private:
+        aliases:
+          - "go-license-manager-{{.projects.license.label}}"
+    <<:
+      - *default-deploy
+      - *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    volumes:
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.license_mount_path}}:/app/license/"
   {{- end}}

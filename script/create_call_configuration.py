@@ -16,7 +16,7 @@ scriptutils.assert_root()
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 

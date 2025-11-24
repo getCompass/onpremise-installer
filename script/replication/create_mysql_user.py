@@ -21,7 +21,7 @@ scriptutils.assert_root()
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
 parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")

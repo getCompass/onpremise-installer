@@ -27,7 +27,7 @@ config.update(global_config_values)
 
 root_path = script_dir.parent.resolve()
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument(
     "--domino-preview-output-path",
     required=False,

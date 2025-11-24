@@ -9,7 +9,7 @@ from subprocess import Popen, PIPE
 
 from utils import scriptutils
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("--validate-only", required=False, action="store_true")
 parser.add_argument("--installer-output", required=False, action="store_true")

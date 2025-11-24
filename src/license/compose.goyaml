@@ -1,0 +1,85 @@
+version: '3.8'
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+{{$network := concatne  "-" .stack_name "private" }}
+# --- DEFINES ---
+networks:
+  license-private:
+    name: "{{$network}}"
+    driver: "overlay"
+    attachable: true
+    ipam:
+      config:
+        - subnet: "{{.projects.license.network.subnet}}"
+
+# файл композиции для license-части
+services:
+
+  # GO_LOCAL_LICENSE
+  go-local-license-{{.projects.license.label}}:
+    image: "{{.registry_compass_path}}/go_local_license:{{.projects.license.service.go_local_license.tag}}"
+    environment:
+      HTTP_PORT: 80
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "license-private"
+    <<:
+      - *default-deploy
+      - *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    volumes:
+      - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.license_mount_path}}:/app/license/"
+
+  # GO_LICENSE_MANAGER
+  go-license-manager-{{.projects.license.label}}:
+    image: "{{.registry_compass_path}}/go_license_manager:{{.projects.license.service.go_license_manager.tag}}"
+    environment:
+      HTTP_PORT: 80
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+      - ".project.license_manager.env"
+    networks:
+      - "license-private"
+    <<:
+      - *default-deploy
+      - *log-rule-default
+    healthcheck:
+      test: "nc -z 127.0.0.1 80"
+      interval: "5s"
+      timeout: "10s"
+      retries: 3
+    volumes:
+      - "{{.license_mount_path}}:/app/license/"

@@ -207,7 +207,7 @@ class CompassDatabaseEncryptionSecretKey(CompassSecretData):
 secret_data_list = [
 
     CompassDatabaseEncryptionSecretKey(
-        "Ключ-секрет шифрования БД. Для создания потребуется ключ шифрования БД и мастер ключ в двоичном или base64 представлении",
+        "Ключ-секрет шифрования БД. Для создания потребуется: ключ шифрования БД и мастер-ключ в двоичном или base64 представлении",
         "Ключ-секрет шифрования БД.",
     )
 ]
@@ -218,11 +218,11 @@ def pick():
 
     i = 1
 
-    print("Доступные для создания секреты: ")
+    print("Доступные типы секретов: ")
     for secret_data in secret_data_list:
-        print(f"{i}) " + secret_data.desc_before)
+        print(f"{i}. " + secret_data.desc_before)
 
-    index = input("Укажите секрет: ")
+    index = input("Выберите тип секрета: ")
 
     if not index.isdigit():
         scriptutils.die("Указан неверный секрет.")

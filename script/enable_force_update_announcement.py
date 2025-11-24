@@ -35,7 +35,7 @@ def print_usage():
     sys.exit(1)
 
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.error = lambda message: print_usage()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')

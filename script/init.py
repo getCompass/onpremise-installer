@@ -111,6 +111,7 @@ deploy_project_list = [
     "integration",
     "jitsi_web",
     "jitsi",
+    "license",
 ]
 
 deploy_saas_project_list = [
@@ -135,6 +136,7 @@ project_ports = {
     "test": 32300,
     "integration": 32500,
     "jitsi_web": 32600,
+    "license": 32700,
 }
 
 domino_ports = {
@@ -159,7 +161,7 @@ database_driver_data_fields = {
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "-e",
@@ -790,6 +792,17 @@ required_root_fields = [
         "post_args": [],
     },
     {
+        "name": "license_mount_path",
+        "comment": "Укажите место хранения локальных лицензий",
+        "default_value": None,
+        "value_function": copy_with_postfix,
+        "args": ["_global.root_mount_path", "/license"],
+        "type": "str",
+        "ask": False,
+        "post_function": create_dir,
+        "post_args": [],
+    },
+    {
         "name": "host_ip",
         "comment": "Укажите хост, на котором будет разворачиваться проект. Указывайте ip в локальной сети, если проекты находятся в ее пределах. Не используйте адрес 127.0.0.1 или localhost!",
         "default_value": None,
@@ -884,6 +897,14 @@ required_root_fields = [
         "type": "int",
         "ask": True,
     },
+    {
+        "name": "local_license",
+        "comment": "Включены ли локальные лицензии",
+        "default_value": False,
+        "type": "bool",
+        "ask": True,
+        "is_required": False
+    }
 ]
 
 common_project_fields = [
@@ -1531,6 +1552,9 @@ def start():
     new_values = init_team(new_values)
     new_values = init_file_auto_deletion(new_values)
     new_values = init_icap(new_values)
+
+    if new_values.get("local_license"):
+        new_values["server_tag_list"] += ["local_license"]
 
     if not project:
         write_to_file(new_values)
