@@ -31,7 +31,7 @@ REPLICA_LAG_STATUS_MORE_LOGS_BEHIND = 4 # реплика отстаёт от м�
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
 parser.add_argument("--is-log-message", required=False, default=0, type=int, help="отобразить ли лог-сообщение")

@@ -63,6 +63,10 @@ security_keys:
   integration:
     socket_key_integration: ""
     integration_authorization_token: ""
+  license:
+    socket_key_license_manager: ""
+    go_license_manager_salt: ""
+    socket_key_local_license: ""
 salt_keys:
   salt_pack_session_v1: ""
   salt_pack_auth_v1: ""

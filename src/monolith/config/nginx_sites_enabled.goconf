@@ -147,4 +147,7 @@ server {
     include includes/domino.nginx;
     include includes/userbot.nginx;
     include includes/jitsi.nginx;
+    {{- if .local_license}}
+    include includes/license.nginx;
+    {{- end}}
 }

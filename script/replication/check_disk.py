@@ -13,7 +13,7 @@ SIMULATION_FAILURE_FLAG_FILE = "/tmp/simulate_keepalived_failure"
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("--path", type=str, required=True, help="Путь к приложению или директории")
 parser.add_argument("--threshold", type=int, default=5, help="Минимальный требуемый процент свободного места")

@@ -48,7 +48,7 @@ def append_step(step: str):
         pass
 
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument("--use-default-values", required=False, action="store_true")
 parser.add_argument("--install-integration", required=False, action="store_true")

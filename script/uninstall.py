@@ -44,7 +44,7 @@ config.update(config_values)
 script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("-e", "--environment", required=False, default="production", type=str,
                     help="Окружение, в котором разворачиваем")
 parser.add_argument("--confirm-all", required=False, action="store_true")
@@ -133,7 +133,6 @@ grep_command = ["grep", stack_name_monolith]
 grep_monolith_command = ["grep", "-v", r"\-company"]
 delete_command = ["xargs", "docker", "stack", "rm"]
 
-# сначала удаляем компанейские стаки
 get_stack_process = subprocess.Popen(get_stack_command, stdout=subprocess.PIPE)
 grep_process = subprocess.Popen(
     grep_command, stdin=get_stack_process.stdout, stdout=subprocess.PIPE

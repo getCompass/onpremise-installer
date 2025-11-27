@@ -13,7 +13,7 @@ from utils import scriptutils
 
 script_dir = str(Path(__file__).parent.resolve())
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "-e",

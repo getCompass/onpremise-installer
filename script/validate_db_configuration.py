@@ -13,7 +13,7 @@ import yaml
 from utils import scriptutils
 
 # region АГРУМЕНТЫ СКРИПТА #
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 parser.add_argument("--validate-only", required=False, action="store_true")
 parser.add_argument("--installer-output", required=False, action="store_true")
 args = parser.parse_args()

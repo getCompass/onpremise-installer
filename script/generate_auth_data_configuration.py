@@ -43,7 +43,7 @@ config.update(config_values)
 
 root_path = str(Path(script_dir + "/../").resolve())
 
-parser = argparse.ArgumentParser(add_help=False)
+parser = argparse.ArgumentParser(add_help=True)
 
 parser.add_argument(
     "--auth-output-path",

@@ -1,0 +1,17 @@
+MYSQL_HOST=mysql-{{.projects.pivot.label}}
+MYSQL_USER=root
+MYSQL_PASS={{.projects.pivot.service.mysql.root_password}}
+MYSQL_ROOT_PASSWORD={{.projects.pivot.service.mysql.root_password}}
+MYSQL_PORT={{.projects.pivot.service.mysql.port}}
+
+SOCKET_KEY_LICENSE_MANAGER="{{.security_keys.license.socket_key_license_manager}}"
+GO_LICENSE_MANAGER_GRPC_HOST=go-license-manager-{{.projects.license.label}}
+GO_LICENSE_MANAGER_GRPC_PORT=2000
+
+STORE_MODE=local
+GO_LICENSE_MANAGER_SALT="{{.security_keys.license.go_license_manager_salt}}"
+LOCAL_LICENSE_PUBKEY_V1="-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAs4gq4sC4AtknyV8bgcKU\nE1mH/f0ob62hzQnBX2Z0mK6/FEXbEdNgMR2QZpeGC145TZ2m5EKcmM3FDEEIttn5\nUwzAKvF9iQzkghM92T8zhjBlXSiCSYhQef+GixEAgn5UoQx4QWTHNhKwHUQBU57e\ndRPR8KxoY6vP6ZCvdg4tQIS1g6jmHs8xCGD3d9Nq3sV9REfGD8rIZ5W/xSqWrpPy\nm4tUZO8icyIyZgCY1ackPbIBAOhwCFx4NNVbeA9OIqDFDxYhBOhmwCdlyZHgUvqu\nZmh7m03z+Wo7NbixIt2QuNdQ0FLdfiINPVHhfJgXRy0+TgTvLwfzQtuHJqcpgc79\nJpHnMzRVsZVGOjiRUevWKIKUdROo8fZzP5oLk9lu1FVKHNd3WKzdqYJIGtnah3wf\nRaqvQZvz3wqYZD4avl+xelxrrmSRQ+a0vW6Df1ufZYWa0fQlsmIuADNbh8zo2eSG\n1l7h1Kl/yKzNRFcMb5HirHjg7TQfrLW+c6ZNGuEFCGFhpVENTueLBw4S6Hk3AS1E\noWZ8sWgon+dmR4GrL3l9VOdWLf6x8cXPDjLLeWYHjCNw4G0e5wuHTlYWDMIFbc1v\n4RIOaVsH/b67+UWsh5u7kAdljgmd8W0a3ouNrpy1M9kEdaXtBLl/SUyo+CJagEYp\nim74Wk/itz8Ht0bsSLTMyKcCAwEAAQ==\n-----END PUBLIC KEY-----"
+
+SOCKET_KEY_LOCAL_LICENSE="{{.security_keys.license.socket_key_local_license}}"
+GO_LOCAL_LICENSE_GRPC_HOST=go-local-license-{{.projects.license.label}}
+GO_LOCAL_LICENSE_GRPC_PORT=2000

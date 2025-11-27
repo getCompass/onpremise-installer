@@ -1,0 +1,63 @@
+{{$license_locprefix := locprefix .url_path .projects.license.url_path}}
+
+set $upstream_local_license go-local-license-{{.projects.license.label}}:80;
+set $upstream_license_manager go-license-manager-{{.projects.license.label}}:80;
+
+#######################################################
+# license
+#######################################################
+
+# запрещаем доступ к скрытым файлам
+location ~ {{$license_locprefix}}/\. {
+  access_log off;
+  log_not_found off;
+  deny all;
+}
+
+# apiv2 2 level
+# для клиентских приложений, роутинг в go_license_manager
+location ~* ^{{$license_locprefix}}/api/v2/premise/([a-zA-Z0-9_\-]+)/?$ {
+
+  root /app/www/;
+  index index.php;
+
+  # разрешаем только POST запросы
+  limit_except POST {
+    deny all;
+  }
+
+  rewrite ^{{$license_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/v2/$1/$2? break;
+  proxy_pass http://$upstream_license_manager;
+}
+
+# apiv2 2 level
+# для клиентских приложений, роутинг в go_local_license
+location ~* ^{{$license_locprefix}}/api/v2/premiseLicense/([a-zA-Z0-9_\-]+)/?$ {
+
+  root /app/www/;
+  index index.php;
+
+  # разрешаем только POST запросы
+  limit_except POST {
+    deny all;
+  }
+
+  rewrite ^{{$license_locprefix}}/api/v2/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/v2/$1/$2? break;
+  proxy_pass http://$upstream_local_license;
+}
+
+# premise api
+# общение premise-сервера и сервера лицензий, роутинг в go_local_license
+location {{$license_locprefix}}/api/premise/license {
+
+  root /app/www/;
+  index index.php;
+
+  # разрешаем только POST запросы
+  limit_except POST {
+    deny all;
+  }
+
+  rewrite ^{{$license_locprefix}}/api/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ /api/$1/$2? break;
+  proxy_pass http://$upstream_local_license;
+}
