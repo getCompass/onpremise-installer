@@ -93,8 +93,8 @@ export const isWelcomeSkippedState = atomWithStorage<number>(
 // видно ли плашку о минимальных характеристиках сервера
 export const serverSpecsAlertState = atom<"visible" | "dismissed" | "unknown">("unknown");
 export const MIN_CPU_COUNT = 10;
-export const MIN_RAM_MB = 16000;
-export const MIN_DISK_SPACE_MB = 100000;
+export const MIN_RAM_MB = 15000;
+export const MIN_DISK_SPACE_MB = 90000;
 
 export const jobIdState = atomWithStorage<string>(
     "job_id",

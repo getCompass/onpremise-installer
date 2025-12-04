@@ -539,7 +539,7 @@ services:
       test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.pivot.service.mysql.root_password}}"
       interval: "5s"
       timeout: "10s"
-      retries: 6
+      retries: 30
     <<: *log-rule-default
   {{- end}}
 
