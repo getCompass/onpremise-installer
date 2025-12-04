@@ -74,7 +74,7 @@ def update_space_configs(monolith_container: docker.models.containers.Container)
 
 def wait_go_database():
     # ждем поднятия go_database
-    timeout = 180
+    timeout = 360
     n = 0
     loader = Loader(
         "Ждем готовности go_database",
@@ -662,7 +662,7 @@ if service_label == "" and current_service_label == "":
 print("Префикс сервисов: %s" % stack_name)
 
 # ждем появления monolith
-timeout = 900
+timeout = 1800
 n = 0
 loader = Loader(
     "Ждем готовности php_monolith",
@@ -717,7 +717,7 @@ else:
     print("php_monolith вернул " + str(e.return_code) + " exit code")
 
 # ждем поднятия nginx
-timeout = 160
+timeout = 320
 n = 0
 loader = Loader(
     "Ждем готовности nginx",

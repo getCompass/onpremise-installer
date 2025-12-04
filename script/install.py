@@ -489,7 +489,7 @@ if install_integration:
 client = docker.from_env()
 
 # ждем появления monolith
-timeout = 900
+timeout = 1800
 n = 0
 loader = Loader(
     "Ждем готовности php_monolith",
@@ -524,7 +524,7 @@ else:
 
 # ждем поднятия nginx
 
-timeout = 60
+timeout = 320
 n = 0
 loader = Loader(
     "Ждем готовности nginx",
