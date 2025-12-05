@@ -592,24 +592,27 @@ container_list = client.containers.list(filters={'name': php_migration_container
 if len(container_list) > 0:
     need_update_migrations_after_deploy = False
 
-# в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
-if not is_restore_db and Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy:
+# выполняем только на мастер сервере
+if scriptutils.is_replication_master_server(values_dict):
 
-    # накатываем миграцию на компании
-    sb = subprocess.run(
-        [
-            "python3",
-            script_resolved_path + "/companies_database_migrations_up.py",
-            "-e",
-            environment,
-            "-v",
-            values_name,
-            "--service-label",
-            current_service_label,
-        ]
-    )
-    if sb.returncode == 1:
-        exit(1)
+    # в 6.0.0 появился php_migration и можем спокойно накатывать миграции ДО update.py
+    if not is_restore_db and Version(current_version) >= Version("6.0.1") and not need_update_migrations_after_deploy:
+
+        # накатываем миграцию на компании
+        sb = subprocess.run(
+            [
+                "python3",
+                script_resolved_path + "/companies_database_migrations_up.py",
+                "-e",
+                environment,
+                "-v",
+                values_name,
+                "--service-label",
+                service_label if current_service_label == "" else current_service_label,
+            ]
+        )
+        if sb.returncode == 1:
+            exit(1)
 
 print("Разворачиваем приложение")
 command = [
@@ -806,7 +809,8 @@ if not is_restore_db and Version(current_version) < Version("4.1.0"):
             result = update_space_configs(found_monolith_container)
 
         if result.exit_code != 0:
-            scriptutils.die("Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
+            scriptutils.die(
+                "Не смогли обновить конфигурацию пространств. Убедитесь, что окружение поднялось корректно.")
 
     loader.success()
 
@@ -827,24 +831,27 @@ if not is_restore_db and Version(current_version) < Version("4.1.0"):
 
     loader.success()
 
-# если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
-if not is_restore_db and Version(current_version) < Version("6.0.1") or need_update_migrations_after_deploy:
+# выполняем только на мастер сервере
+if scriptutils.is_replication_master_server(values_dict):
 
-    # накатываем миграцию на компании
-    sb = subprocess.run(
-        [
-            "python3",
-            script_resolved_path + "/companies_database_migrations_up.py",
-            "-e",
-            environment,
-            "-v",
-            values_name,
-            "--service-label",
-            current_service_label,
-        ]
-    )
-    if sb.returncode == 1:
-        exit(1)
+    # если версия была ниже 6.0.1 - php_migration еще не задеплоен и необходимо накатить один раз миграции ПОСЛЕ update.py
+    if not is_restore_db and Version(current_version) < Version("6.0.1") or need_update_migrations_after_deploy:
+
+        # накатываем миграцию на компании
+        sb = subprocess.run(
+            [
+                "python3",
+                script_resolved_path + "/companies_database_migrations_up.py",
+                "-e",
+                environment,
+                "-v",
+                values_name,
+                "--service-label",
+                service_label if current_service_label == "" else current_service_label,
+            ]
+        )
+        if sb.returncode == 1:
+            exit(1)
 
 print("Запускаем скрипт проверки занятых компаний")
 subprocess.run([

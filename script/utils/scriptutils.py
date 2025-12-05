@@ -10,6 +10,8 @@ from pathlib import Path
 from time import sleep
 import urllib.request
 import requests
+import subprocess
+import time
 
 
 class bcolors:
@@ -389,3 +391,150 @@ def generate_random_password(size: int) -> str:
         required[0], required[j] = required[j], required[0]
 
     return "".join(required)
+
+
+def parse_destination(dst: str):
+    # если строка содержит "user@host:/path" или "host:/path"
+    # и не начинается с "/" (чтобы не спутать с локальным путём)
+    if ":" in dst and not dst.startswith("/"):
+        remote_host, remote_path = dst.split(":", 1)
+        return True, remote_host, remote_path
+    return False, None, dst
+
+
+# проверяем права доступа у пользователя к удаленой директории
+def check_remote_folder(dst: str):
+    is_remote, remote_host, path = parse_destination(dst)
+
+    if is_remote:
+        # проверяем, что у пользователя есть права для записи в директорию
+        # сначала проверяем, существует ли директория. Если нет, создаем ее.
+        cmd = f'ssh {remote_host} "if [ ! -d {path} ]; then mkdir -p {path}; fi && test -w {path}"'
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+        if "ERROR" in result.stdout or result.returncode != 0:
+            die(f"Ошибка: У пользователя нет доступа к удаленой директории {path}")
+    else:
+        # локальная директория
+        if not os.path.exists(path):
+            # создаем директорию, если ее нет
+            try:
+                os.makedirs(path, exist_ok=True)
+            except Exception as e:
+                die(f"Не удалось создать локальную директорию {path}: {str(e)}")
+
+        # проверяем право на запись
+        if not os.path.exists(path):
+            die(f"Локальная директория {path} не существует после попытки создания.")
+        if not os.access(path, os.W_OK):
+            die(f"Нет прав на запись в локальную директорию {path}")
+
+
+# бэкапим базу данных
+def backup_db(installer_dir: str, backups_folder: str = None, backup_name_format: str = None,
+              threshold_percent: str = None, auto_cleaning_limit: str = None, userbot_notice_chat_id: str = None,
+              userbot_notice_token: str = None, userbot_notice_domain: str = None, userbot_notice_text: str = None,
+              need_backup_configs: int = 1, need_backup_spaces: int = 1, need_backup_monolith: int = 1,
+              need_backup_space_id_list: str = None):
+    # путь до скрипта
+    script_path = "%s/script/backup_db.py" % (installer_dir)
+
+    # формируем команду
+    cmd = [
+        "python3",
+        script_path,
+        "--need-backup-configs", str(need_backup_configs),
+        "--need-backup-spaces", str(need_backup_spaces),
+        "--need-backup-monolith", str(need_backup_monolith),
+    ]
+
+    if backups_folder:
+        cmd.extend(["--backups-folder", backups_folder])
+    if backup_name_format:
+        cmd.extend(["--backup-name-format", backup_name_format])
+    if threshold_percent:
+        cmd.extend(["--free-threshold-percent", str(threshold_percent)])
+    if auto_cleaning_limit:
+        cmd.extend(["--auto-cleaning-limit", str(auto_cleaning_limit)])
+    if userbot_notice_chat_id:
+        cmd.extend(["--userbot-notice-chat-id", userbot_notice_chat_id])
+    if userbot_notice_token:
+        cmd.extend(["--userbot-notice-token", userbot_notice_token])
+    if userbot_notice_domain:
+        cmd.extend(["--userbot-notice-domain", userbot_notice_domain])
+    if userbot_notice_text:
+        cmd.extend(["--userbot-notice-text", userbot_notice_text])
+    if need_backup_space_id_list:
+        cmd.extend(["--need-backup-space-id-list", need_backup_space_id_list])
+
+    # запускаем команду
+    start_time = time.time()
+    subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    elapsed_time = time.time() - start_time
+    print(f"Создание резервной копии базы данных заняло: {elapsed_time:.2f} sec")
+
+
+# функция для расчета размера директории
+def get_directory_size(path):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+
+            # пропускаем символические ссылки
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size
+
+
+# отправляем резервную копию в указанное место
+def transfer_data(values_dict: dict, dst: str, hostname: str, backups_folder: str = "", userbot_notice_text: str = None,
+                  userbot_notice_token: str = None, userbot_notice_chat_id: str = None,
+                  userbot_notice_domain: str = None, need_send_root_mount_path: bool = True):
+    # директорию, которую копируем
+    src = values_dict["root_mount_path"]
+    src_dirs = []
+    if need_send_root_mount_path:
+        src_dirs = [values_dict["root_mount_path"]]
+
+    # получим и выведем размер директории src для справки
+    directory_size = get_directory_size(src)
+    print(f"Размер директории с резервной копией {src}: {directory_size / (1024 * 1024):.2f} MB")
+
+    if backups_folder != "":
+        directory_size = get_directory_size(backups_folder)
+        print(f"Размер директории с бэкапами баз данных {backups_folder}: {directory_size / (1024 * 1024):.2f} MB")
+        src_dirs.append(backups_folder)
+
+    # флаги rsync
+    flags = "-avzu"
+
+    # формируем команду
+    cmd = ["rsync", flags, *src_dirs, dst]
+
+    # запускаем команду
+    try:
+
+        start_time = time.time()
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # выводим в рилтайме лог выполнения
+        while True:
+            output = process.stdout.readline()
+            if output == b'' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip().decode())
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Отправка резервной копии заняла: {elapsed_time:.2f} sec")
+    except subprocess.CalledProcessError as e:
+        error_text = "Не удалось отправить резервную копию в указанное место!"
+        print(error(error_text))
+        print(e)
+        print(e.stdout)
+        print(e.stderr)
+        message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else error_text}"
+        send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
+        die("Исправьте проблему и выполните скрипт снова")

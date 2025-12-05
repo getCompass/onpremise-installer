@@ -11,6 +11,9 @@ from pathlib import Path
 from utils import scriptutils, interactive
 from time import sleep
 from loader import Loader
+import os
+import socket
+import re
 
 # ---АГРУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
@@ -30,6 +33,15 @@ parser.add_argument(
     default="production",
     type=str,
     help="Окружение, в котором разворачиваем",
+)
+
+parser.add_argument(
+    "-dst",
+    "--destination",
+    required=False,
+    default=None,
+    type=str,
+    help="место, куда будет отправлена резервная копия созданной компании",
 )
 
 parser.add_argument(
@@ -166,6 +178,10 @@ def create_domino(
         "Создаю domino...", "Создал domino", "Не смог создать domino"
     ).start()
 
+    if not scriptutils.is_replication_master_server(current_values):
+        loader.success()
+        return
+
     if db_driver.driver == "host":
 
         # если драйвер host, то порты нужно добавлять по одному, а не пачкой
@@ -217,6 +233,7 @@ stack_name = stack_name_prefix + "-monolith"
 init = args.init
 validate_only = args.validate_only
 installer_output = args.installer_output
+dst = args.destination
 
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_resolved_path, values_arg))
 
@@ -285,6 +302,13 @@ else:
         "str",
     ).input()
 
+is_need_create_backup = True if (not init
+                                 and scriptutils.is_replication_master_server(current_values)
+                                 and scriptutils.is_replication_enabled(current_values)) else False
+
+if is_need_create_backup and not dst:
+    handle_exception("dst", "При включенной репликации необходимо передавать параметр -dst при создании команды")
+
 if validate_only:
     if installer_output:
         if len(validation_errors) > 0:
@@ -298,6 +322,10 @@ if validate_only:
                 print(error)
             exit(1)
     exit(0)
+
+# проверяем права доступа у пользователя к удаленой директории
+if is_need_create_backup:
+    scriptutils.check_remote_folder(dst)
 
 client = docker.from_env()
 
@@ -370,7 +398,7 @@ if init:
         exit(0)
 
 if scriptutils.is_replication_master_server(current_values):
-    if init == False:
+    if not init:
         loader = Loader(
             "Создаю команду...",
             "Команда создана",
@@ -400,7 +428,7 @@ else:
     print("\n%s" % output.output.decode("utf-8", errors="ignore"))
 
 # настраиваем репликацию на mysql пространства
-if scriptutils.is_replication_enabled(current_values) == True:
+if scriptutils.is_replication_enabled(current_values):
     subprocess.run(
         [
             "python3",
@@ -427,8 +455,23 @@ if scriptutils.is_replication_master_server(current_values):
             'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"' % team_name
         ]
     )
+    output_text = result.output.decode("utf-8", errors="ignore").strip()
+
     if result.exit_code == 0:
-        print(scriptutils.success("\n%s" % result.output.decode("utf-8", errors="ignore")))
+        if scriptutils.is_replication_master_server(current_values) and not init:
+            loader.success()
+
+        m = re.search(r"company_id=(\d+);port=(\d+)", output_text)
+        company_id = None
+        company_port = None
+        if m:
+            company_id = int(m.group(1))
+            company_port = int(m.group(2))
+
+        if company_id is None or company_port is None:
+            print(scriptutils.success("\nУспешно создали команду"))
+        else:
+            print(scriptutils.success("\nУспешно создали команду %s с портом %s" % (company_id, company_port)))
     else:
         print("\n%s" % result.output.decode("utf-8", errors="ignore"))
         if init != False:
@@ -447,3 +490,32 @@ else:
             ]
         )
         loader.success()
+
+# создаем бекап поднятой компании и отправляем его на резервный сервер
+if is_need_create_backup:
+    # путь до директории с инсталятором
+    installer_dir = str(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    hostname = socket.gethostname()
+
+    backup_name_format = ("reserve_company_%s" % company_id)
+    backup_folder = ("%s/backups/" % current_values.get("root_mount_path")) + backup_name_format
+
+    loader = Loader(
+        "Делаем резервную копию базы данных",
+        "Сделали резервную копию базы данных",
+        "Не удалось сделать резервную копию базы данных").start()
+
+    # бэкапим базу данных
+    try:
+        scriptutils.backup_db(installer_dir, backup_name_format=backup_name_format, need_backup_configs=0,
+                              need_backup_monolith=0, need_backup_space_id_list=str(company_id))
+        loader.success()
+    except subprocess.CalledProcessError as e:
+        loader.error()
+        print(e)
+        print(e.stdout)
+        print(e.stderr)
+        scriptutils.die("Исправьте проблему и выполните скрипт снова")
+
+    # отправляем резервную копию
+    scriptutils.transfer_data(current_values, dst, hostname, backup_folder, need_send_root_mount_path=False)

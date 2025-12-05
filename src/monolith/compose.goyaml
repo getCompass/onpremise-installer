@@ -508,15 +508,12 @@ services:
         --max-binlog-size=500M
         --sync-binlog=1
         --server-id={{.mysql_server_id}}
-        --replicate-ignore-table=pivot_company_service.port_registry_{{$domino.label}}
         --replicate-ignore-table=pivot_company_service.domino_registry
-        --replicate-ignore-table=domino_service.port_registry
         --replicate-ignore-table=mysql.user
         --replicate-ignore-table=mysql.db
         --replicate-ignore-table=mysql.tables_priv
         --gtid-mode=ON
         --enforce-gtid-consistency=ON
-        --slave_skip_errors=1007,1032,1050,1054,1060,1061,1062,1091,1396
         --max_binlog_cache_size=10485760
         --ssl=ON
         --ssl-ca="/etc/mysql/ssl/mysqlRootCA.crt"
@@ -563,8 +560,6 @@ services:
       PER_DELIVERY_LIMIT: {{.projects.monolith.service.go_event.per_delivery_limit}}
       DELIVERY_DELAY: {{.projects.monolith.service.go_event.delivery_delay}}
       COURIER_COUNT: {{.projects.monolith.service.go_event.courier_count}}
-      SERVICE_LABEL: {{$service_label}}
-      COMPANIES_RELATIONSHIP_FILE: "reserve_servers_companies_relationship.json"
     env_file:
       - ".global.common.env"
       - ".project.pivot.common.env"
@@ -610,6 +605,7 @@ services:
       - *healthcheck-go-2000
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   # GO_SENDER
   go-sender-{{.projects.monolith.label}}:
@@ -645,6 +641,7 @@ services:
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   ## WEBJOIN PROJECT
   join_web-{{.projects.pivot.label}}:
@@ -699,6 +696,7 @@ services:
       - ".global.common.env"
       - ".project.pivot.common.env"
       - ".project.pivot.go_pivot_cache.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
@@ -712,6 +710,7 @@ services:
       - *log-rule-default
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   # GO_ACTIVITY
   go-activity-{{.projects.pivot.label}}:
@@ -730,6 +729,7 @@ services:
       - ".global.common.env"
       - ".project.pivot.common.env"
       - ".project.pivot.go_activity.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
@@ -743,6 +743,7 @@ services:
       - *log-rule-default
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   # GO_PUSHER
   go-pusher-{{.projects.pivot.label}}:
@@ -763,6 +764,7 @@ services:
       - ".global.solution.env"
       - ".project.pivot.common.env"
       - ".project.pivot.go_pusher.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
@@ -781,6 +783,7 @@ services:
       - *log-rule-default
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   # GO_USERBOT_CACHE
   go-userbot-cache-{{.projects.userbot.label}}:
@@ -797,6 +800,7 @@ services:
     env_file:
       - ".global.common.env"
       - ".project.userbot.common.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
@@ -806,6 +810,7 @@ services:
       - *log-rule-default
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   ## FILE-NODE PROJECT
   # FILE_NODE
@@ -1093,12 +1098,14 @@ services:
       - ".global.common.env"
       - ".project.domino.common.env"
       - ".project.domino.go_company_cache.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
+      - "{{.company_config_mount_path}}:/pivot_config"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1117,12 +1124,14 @@ services:
     env_file:
       - ".global.common.env"
       - ".project.domino.common.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
     volumes:
       - "{{$domino.company_config_dir}}/:/config"
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
+      - "{{.company_config_mount_path}}:/pivot_config"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1143,12 +1152,14 @@ services:
     env_file:
       - ".global.common.env"
       - ".project.domino.common.env"
+      - ".project.monolith.env"
       - ".project.override.env"
     networks:
       - "monolith-{{$service_label}}-private"
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{$domino.company_config_dir}}/:/config"
+      - "{{.company_config_mount_path}}:/pivot_config"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1188,6 +1199,7 @@ services:
       - ".global.common.env"
       - ".project.domino.common.env"
       - ".project.domino.php_pivot.env"
+      - ".project.monolith.env"
       - ".project.override.env"
       - ".project.domino.go_database_controller.env"
     ports:
@@ -1199,6 +1211,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "{{.company_db_path}}/{{$domino.label}}:{{.company_db_path}}/{{$domino.label}}"
       - "{{.root_mount_path}}/mysql_ssl:/etc/mysql/ssl"
+      - "{{.company_config_mount_path}}:/pivot_config"
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1221,8 +1234,11 @@ services:
       - ".global.common.env"
       - ".project.file.common.env"
       - ".project.file.go_file_auth.env"
+      - ".project.monolith.env"
     networks:
       - "monolith-{{$service_label}}-private"
+    volumes:
+      - "{{.company_config_mount_path}}:/pivot_config"
     environment:
       TCP_PORT: 1000
       GRPC_PORT: 2000
@@ -1264,6 +1280,7 @@ services:
     env_file:
       - ".global.common.env"
       - ".project.license.common.env"
+      - ".project.monolith.env"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -1279,6 +1296,7 @@ services:
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.license_mount_path}}:/app/license/"
+      - "{{.company_config_mount_path}}:/pivot_config"
 
   # GO_LICENSE_MANAGER
   go-license-manager-{{.projects.monolith.label}}:
@@ -1289,6 +1307,7 @@ services:
       - ".global.common.env"
       - ".project.license.common.env"
       - ".project.license.license_manager.env"
+      - ".project.monolith.env"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -1304,4 +1323,5 @@ services:
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.license_mount_path}}:/app/license/"
+      - "{{.company_config_mount_path}}:/pivot_config"
   {{- end}}

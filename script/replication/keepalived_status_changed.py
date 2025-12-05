@@ -18,6 +18,8 @@ from pathlib import Path
 from time import sleep
 from typing import Dict, List
 
+script_dir = str(Path(__file__).parent.resolve())
+
 # ---АГРУМЕНТЫ СКРИПТА---#
 
 parser = argparse.ArgumentParser(add_help=True)
@@ -53,9 +55,11 @@ MASTER_STATE_CHANGED_SLEEP = 10
 
 client = docker.from_env()
 
+
 # класс конфига БД
 class DbConfig:
-    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str, container_name : str) -> None:
+    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str,
+                 container_name: str) -> None:
         self.domino_id = domino_id
         self.space_id = space_id
         self.host = host
@@ -63,6 +67,7 @@ class DbConfig:
         self.root_user = root_user
         self.root_password = root_password
         self.container_name = container_name
+
 
 # настройка логирования
 logging.basicConfig(filename='/var/log/keepalived-state.log', level=logging.INFO,
@@ -76,7 +81,6 @@ values_file_path = Path("%s/../src/values.%s.yaml" % (installer_dir, values_name
 
 
 def start(state):
-
     logging.info(f"--- Keepalived state changed to: {state} ---")
 
     current_values = get_values()
@@ -110,7 +114,7 @@ def start(state):
 
     # действия при переходе в FAULT
     elif state == "FAULT":
-        fault_state_changed(current_values)
+        fault_state_changed(current_values, monolith, space_config_obj_dict)
 
     else:
         scriptutils.die("Некорректное значение state")
@@ -118,13 +122,7 @@ def start(state):
 
 # выполняем действия если state стал master
 def master_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
-
     logging.info("This server is now MASTER")
-
-    # выключаем read-only режим баз данных
-    disable_read_mode_db_list([monolith])
-    disable_read_mode_db_list(space_config_obj_dict)
-    logging.info("Disabled read-only mode in DB on Master")
 
     # ждём некоторое время пока другой сервер станет backup/fault
     logging.info("Waiting for server states to change")
@@ -146,10 +144,14 @@ def master_state_changed(current_values: Dict, monolith: DbConfig, space_config_
     stop_replication_db_list(space_config_obj_dict)
     logging.info("Stopped replication on Master")
 
+    # выключаем read-only режим баз данных
+    disable_read_mode_db_list([monolith])
+    disable_read_mode_db_list(space_config_obj_dict)
+    logging.info("Disabled read-only mode in DB on Master")
+
 
 # выполняем действия если state стал backup
 def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
-
     logging.info("This server is now BACKUP")
 
     # останавливаем lsyncd файлов и конфигов
@@ -165,13 +167,44 @@ def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_
     logging.info("Locked tables in DB")
 
     # меняем master_service_label
-    change_master_service_label(current_values)
+    success = change_master_service_label(current_values)
     logging.info("Changed master_service_label on Backup")
+
+    if not success:
+        return
+
+    result = subprocess.run(
+        [
+            "sudo",
+            "python3",
+            script_dir + "/reset_slave_replication.py",
+            "--all-types",
+            "--all-teams",
+        ]
+    ).returncode
+
+    if result != 0:
+        logging.info("Reset replication failed")
+        return
+
+    result = subprocess.run(
+        [
+            "sudo",
+            "python3",
+            script_dir + "/start_slave_replication.py",
+            "--all-types",
+            "--all-teams",
+        ]
+    ).returncode
+    if result == 0:
+        logging.info("Replication started")
+        return
+
+    logging.info("Start replication failed")
 
 
 # выполняем действия если state стал fault
-def fault_state_changed(current_values: Dict):
-
+def fault_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
     logging.info("This server is now FAULT")
 
     # останавливаем lsyncd файлов и конфигов
@@ -194,7 +227,6 @@ def fault_state_changed(current_values: Dict):
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> List[DbConfig]:
-
     # получаем название домино
     keys_list = list(current_values["projects"]["domino"].keys())
     domino = current_values["projects"]["domino"][keys_list[0]]
@@ -216,10 +248,10 @@ def get_space_dict(current_values: Dict) -> List[DbConfig]:
             continue
 
         space_id = s.group(1)
-        f = open (space_config, "r")
+        f = open(space_config, "r")
         space_config_dict = json.loads(f.read())
         f.close()
-        if space_config_dict["status"] not in [1,2]:
+        if space_config_dict["status"] not in [1, 2]:
             continue
 
         # формируем объект конфигурации пространства
@@ -230,7 +262,8 @@ def get_space_dict(current_values: Dict) -> List[DbConfig]:
             space_config_dict["mysql"]["port"],
             "root",
             "root",
-            "%s-%s-%s-company_mysql-%d" % (stack_name_prefix, service_label, domino_id, space_config_dict["mysql"]["port"])
+            "%s-%s-%s-company_mysql-%d" % (stack_name_prefix, service_label, domino_id,
+                                           space_config_dict["mysql"]["port"])
         )
 
         space_config_obj_dict.append(space_config_obj)
@@ -240,7 +273,6 @@ def get_space_dict(current_values: Dict) -> List[DbConfig]:
 
 # получить данные окружения из values
 def get_values() -> Dict:
-
     if not values_file_path.exists():
         scriptutils.die("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
 
@@ -262,9 +294,9 @@ def get_values() -> Dict:
 
 # меняем master_service_label в файле для связи между серверами
 def change_master_service_label(current_values: Dict, master_service_label: str = ""):
-
     # получаем путь к файлу для связи компаний между серверами
-    servers_companies_relationship_file_path = current_values.get("company_config_mount_path") + "/" + current_values.get("servers_companies_relationship_file")
+    servers_companies_relationship_file_path = current_values.get(
+        "company_config_mount_path") + "/" + current_values.get("servers_companies_relationship_file")
 
     # получаем текущий service_label
     current_service_label = current_values.get("service_label")
@@ -280,17 +312,24 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
             with open(servers_companies_relationship_file_path, "r") as file:
 
                 reserve_relationship_str = file.read()
-                reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
+                reserve_relationship_dict = json.loads(
+                    reserve_relationship_str) if reserve_relationship_str != "" else {}
 
                 for label, data in reserve_relationship_dict.items():
+                    new_data = data
                     if "master" in data and data["master"] == True and label != current_service_label:
                         logging.info("set \"master\" = true for %s" % label)
                         master_service_label = label
-                        data["master"] = True
+                        new_data["master"] = True
                         reserve_relationship_dict[label] = data
                     if current_service_label == label and label != master_service_label:
-                        data["master"] = False
+                        new_data["master"] = False
                         reserve_relationship_dict[label] = data
+
+                    if new_data != data:
+                        f = open(servers_companies_relationship_file_path, "w")
+                        f.write(json.dumps(reserve_relationship_dict))
+                        f.close()
 
             # если определили master_service_label, то останавливаем цикл
             if master_service_label != "":
@@ -303,7 +342,7 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
             sleep(2)
             if n == timeout:
                 logging.warning("Got empty master_service_label")
-                return
+                return False
     else:
 
         with open(servers_companies_relationship_file_path, "r") as file:
@@ -337,6 +376,8 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
 
     write_to_file(new_values)
 
+    return True
+
 
 def write_to_file(new_values: Dict):
     new_path = Path(str(values_file_path.resolve()))
@@ -346,15 +387,15 @@ def write_to_file(new_values: Dict):
 
 # выключаем read-only режим баз данных
 def disable_read_mode_db_list(db_list: list[DbConfig]):
-
     for db in db_list:
 
-        container_list = client.containers.list(filters= {"name": db.container_name})
+        container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die("Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            scriptutils.die(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
 
-        space_container : docker.models.containers.Container = container_list[0]
+        space_container: docker.models.containers.Container = container_list[0]
 
         # mysql команда для выполнения
         mysql_command = "SET GLOBAL super_read_only = OFF; SET GLOBAL read_only = OFF; UNLOCK TABLES;"
@@ -369,15 +410,15 @@ def disable_read_mode_db_list(db_list: list[DbConfig]):
 
 # останавливаем репликацию БД
 def stop_replication_db_list(db_list: list[DbConfig]):
-
     for db in db_list:
 
-        container_list = client.containers.list(filters= {"name": db.container_name})
+        container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die("Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            scriptutils.die(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
 
-        space_container : docker.models.containers.Container = container_list[0]
+        space_container: docker.models.containers.Container = container_list[0]
 
         # mysql команда для выполнения
         mysql_command = "STOP SLAVE; RESET SLAVE;"
@@ -392,15 +433,15 @@ def stop_replication_db_list(db_list: list[DbConfig]):
 
 # лочим запись в БД
 def lock_write_db_list(db_list: list[DbConfig]):
-
     for db in db_list:
 
-        container_list = client.containers.list(filters= {"name": db.container_name})
+        container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die("Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            scriptutils.die(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
 
-        space_container : docker.models.containers.Container = container_list[0]
+        space_container: docker.models.containers.Container = container_list[0]
 
         # mysql команда для выполнения
         mysql_command = "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; FLUSH TABLES WITH READ LOCK;"
