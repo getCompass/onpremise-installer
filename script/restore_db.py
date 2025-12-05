@@ -129,10 +129,11 @@ def start():
                                                                                                  backup_path)
 
     # останавливаем окружение
-    stop_environment(stack_name if service_label != "" else stack_name_prefix)
+    if len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
+        stop_environment(stack_name if service_label != "" else stack_name_prefix)
 
     # восстанавливаем конфигурацию
-    if "production" in current_values["server_tag_list"]:
+    if "production" in current_values["server_tag_list"] and config_archive_name != "":
         start_config_restore(backup_path, config_archive_name)
 
     # начинаем бэкап монолита
@@ -142,12 +143,13 @@ def start():
     start_space_restore(current_values, backup_path, space_backup_info_list)
 
     # запускаем окружение
-    start_environment(current_values)
+    if len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
+        start_environment(current_values)
 
     monolith_container: docker.models.containers.Container = wait_monolith_container(stack_name)
 
     # если передали ip - меняем
-    if host_ip != "":
+    if host_ip != "" and len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
         update_host_ip(monolith_container, host_ip)
 
     # обновляем конфиги пространств
@@ -332,6 +334,9 @@ def start_dev_environment():
 
 # восстанавливаем базу монолита
 def start_monolith_restore(current_values: dict, backup_path: str, monolith_backup_name: str):
+    if monolith_backup_name == "":
+        return
+
     monolith = DbConfig(
         "",
         0,
@@ -414,10 +419,11 @@ def validate_backup_contents(current_values: dict, backup_path: str):
     with open("%s/control.json" % backup_path, "r") as control_file:
         control_dict = json.load(control_file)
 
-    monolith_backup_path = Path("%s/%s" % (backup_path, control_dict["monolith_backup_name"]))
+    if control_dict.get("monolith_backup_name") is not None:
+        monolith_backup_path = Path("%s/%s" % (backup_path, control_dict.get("monolith_backup_name")))
 
-    if not monolith_backup_path.exists():
-        scriptutils.die("В бэкапе нет архива с основной БД")
+        if not monolith_backup_path.exists():
+            scriptutils.die("В бэкапе нет архива с основной БД")
 
     space_backup_info_list = []
 
@@ -438,13 +444,16 @@ def validate_backup_contents(current_values: dict, backup_path: str):
 
         space_backup_info_list.append(SpaceBackupInfo(domino_id, space_id, backup_name))
 
-    if "production" in current_values["server_tag_list"]:
-        config_archive_path = Path("%s/%s" % (backup_path, control_dict["config_archive_name"]))
+    if control_dict.get("config_archive_name") is not None:
 
-        if not config_archive_path.exists():
-            scriptutils.die("В бэкапе отсутствуют конфиги с секретами сервера")
+        if "production" in current_values["server_tag_list"]:
+            config_archive_path = Path("%s/%s" % (backup_path, control_dict.get("config_archive_name")))
 
-    return control_dict["monolith_backup_name"], space_backup_info_list, control_dict.get("config_archive_name", "")
+            if not config_archive_path.exists():
+                scriptutils.die("В бэкапе отсутствуют конфиги с секретами сервера")
+
+    return control_dict.get("monolith_backup_name", ""), space_backup_info_list, control_dict.get("config_archive_name",
+                                                                                                  "")
 
 
 # восстанавливаем выбранные БД

@@ -41,6 +41,14 @@ parser.add_argument("--userbot-notice-domain", required=False, default="", type=
                     help="домен, на который отправляется запрос уведомления")
 parser.add_argument("--userbot-notice-text", required=False, default="", type=str,
                     help="текст уведомления от бота в случае, если не смогли создать бэкап")
+parser.add_argument("--need-backup-configs", required=False, default=1, type=int,
+                    help="0 если не нужно бекапить конфиги")
+parser.add_argument("--need-backup-spaces", required=False, default=1, type=int,
+                    help="0 если не нужно бекапить mysql пространств")
+parser.add_argument("--need-backup-monolith", required=False, default=1, type=int,
+                    help="0 если не нужно бекапить mysql монолита")
+parser.add_argument("--need-backup-space-id-list", required=False, type=str, default="",
+                    help="ID пространств через запятую, которые необходимо забекапить, например: 1,2,4. Если не указано — бэкапим все")
 args = parser.parse_args()
 
 values_name = args.values
@@ -53,11 +61,16 @@ userbot_notice_chat_id = args.userbot_notice_chat_id
 userbot_notice_token = args.userbot_notice_token
 userbot_notice_domain = args.userbot_notice_domain
 userbot_notice_text = args.userbot_notice_text
+need_backup_configs = args.need_backup_configs
+need_backup_spaces = args.need_backup_spaces
+need_backup_monolith = args.need_backup_monolith
+
+if args.need_backup_space_id_list.strip():
+    input_space_list = [int(x) for x in args.need_backup_space_id_list.split(",") if x.strip()]
+else:
+    input_space_list = None
 
 stack_name_prefix = f"{environment}-{values_name}"
-
-need_backup_spaces = True
-need_backup_monolith = True
 
 client = docker.from_env()
 script_dir = str(Path(__file__).parent.resolve())
@@ -121,7 +134,7 @@ def start():
     backup_path_str = create_backup_folder(backup_dir_str)
 
     # начинаем бэкап конфигов
-    if "production" in current_values["server_tag_list"]:
+    if "production" in current_values["server_tag_list"] and need_backup_configs == 1:
         start_configs_backup(current_values, backup_path_str)
 
     # начинаем бэкап монолита
@@ -195,7 +208,7 @@ def start_configs_backup(current_values: dict, backup_path_str: str):
 
 # делаем бэкап монолита
 def start_monolith_backup(current_values: dict, backup_path_str: str, stack_name_monolith: str):
-    if not need_backup_monolith:
+    if need_backup_monolith == 0:
         print(scriptutils.error("БД монолита не выбрана, как необходимая для бэкапа"))
         return
 
@@ -239,7 +252,7 @@ def start_monolith_backup(current_values: dict, backup_path_str: str, stack_name
 
 # запускаем бэкап пространств
 def start_space_backup(current_values: dict, backup_path_str: str, stack_name_domino: str):
-    if not need_backup_spaces:
+    if need_backup_spaces == 0:
         print(scriptutils.error("БД пространств не выбраны, как необходимые для бэкапа"))
         return
 
@@ -249,15 +262,14 @@ def start_space_backup(current_values: dict, backup_path_str: str, stack_name_do
     if len(space_config_obj_dict) < 1:
         scriptutils.die("Не найдено ни одного пространства на сервере. Окружение поднято?")
 
-    # даем пользователю выбрать, какие пространства надо бэкапить
-    input_space_list = ['']
+    allowed_id_list = set(input_space_list) if input_space_list else None
 
     need_backup_space_obj_list = []
 
     # формируем список пространств для бэкапа
     for space_id, space_config_obj in space_config_obj_dict.items():
 
-        if str(space_id) in input_space_list or input_space_list == ['']:
+        if allowed_id_list is None or space_id in allowed_id_list:
             need_backup_space_obj_list.append(space_config_obj)
 
     # начинаем бэкап пространств
@@ -685,7 +697,8 @@ def old_backups_auto_clean(backup_dir_str: str):
                 print(f"Ошибка удаления {folder_path.name}: {e}")
 
             message_text = f"*{hostname}*: {userbot_notice_text if userbot_notice_text.strip() else delete_text}"
-            scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain, message_text)
+            scriptutils.send_userbot_notice(userbot_notice_token, userbot_notice_chat_id, userbot_notice_domain,
+                                            message_text)
 
 
 # точка входа в скрипт
