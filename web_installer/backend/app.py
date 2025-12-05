@@ -198,8 +198,8 @@ class ConfigParams(BaseModel):
     def as_form(
             cls,
             domain: str = Form(...),
-            cert: str = Form(...),
-            private_key: str = Form(...),
+            cert: str = Form(''),
+            private_key: str = Form(''),
             auth_methods: List[str] = Form(...),
             sms_providers: List[str] = Form([]),
             sms_agent_app_name: str = Form(''),
