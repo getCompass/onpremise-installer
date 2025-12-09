@@ -169,6 +169,7 @@ const LANG_CONFIG: LangConfig = {
                 install_title: "Устанавливаем приложение",
                 activate_title: "Активируем сервер",
                 desc: "Обычно установка занимает 7-10 минут",
+                desc_slow_disk: "Обычно установка занимает 15-20 минут",
             },
             install_success: {
                 title: "Установка завершена",
@@ -183,6 +184,7 @@ const LANG_CONFIG: LangConfig = {
                 error_install_title: "Ошибка установки",
                 error_server_activate_title: "Ошибка активации сервера",
                 desc: "Обычно установка занимает 7-10 минут",
+                desc_slow_disk: "Обычно установка занимает 15-20 минут",
                 back_to_configure_button: "Вернуться к конфигурации",
                 download_logs_dialog: {
                     title: "Логи установки",

@@ -31,7 +31,7 @@ import {
     autoCertsState,
     checkboxAccountDisablingMonitoringEnabledCheckedState,
     checkboxLdapUseSslCheckedState,
-    domainFormState,
+    domainFormState, installStartedAtState,
     jobIdState, MIN_CPU_COUNT, MIN_DISK_SPACE_MB, MIN_RAM_MB,
     selectedSsoProviderState,
     serverSpecsAlertState,
@@ -58,6 +58,7 @@ import { normalizeBackendInvalidKeys } from "@/lib/functions.ts";
 import ImagePreview from "@/components/ImagePreview.tsx";
 import domainTooltipUrl from "@/img/domain-tooltip-image.png";
 import NoNetworkError from "@/components/NoNetworkError.tsx";
+import dayjs from "dayjs";
 
 /* =========================
    Свитчеры
@@ -2287,7 +2288,8 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                                             side="top"
                                             sideOffset={-10}
                                         >
-                                            <Text size="s" className="whitespace-pre-line text-center tracking-[-0.15px]">
+                                            <Text size="s"
+                                                  className="whitespace-pre-line text-center tracking-[-0.15px]">
                                                 {t("install_page.configure.admin_block.admin_email_password_input_error")}
                                             </Text>
                                         </Tooltip>
@@ -2366,6 +2368,7 @@ const PageContentInstallConfigure = () => {
     const authSettings = useAuthSettings();
     const [ serverSpecsAlert, setServerSpecsAlert ] = useAtom(serverSpecsAlertState);
     const setJobId = useSetAtom(jobIdState);
+    const setInstallStartedAt = useSetAtom(installStartedAtState);
 
     const [ domainForm, setDomainForm ] = useAtom(domainFormState);
     const [ authForm, setAuthForm ] = useAtom(authFormState);
@@ -2753,6 +2756,7 @@ const PageContentInstallConfigure = () => {
 
                         if (runJson.success) {
                             setJobId(runJson.job_id);
+                            setInstallStartedAt(dayjs().unix());
                             navigateToNextPage();
                         }
                         return;

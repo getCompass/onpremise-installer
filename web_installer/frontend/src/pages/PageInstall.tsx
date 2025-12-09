@@ -2,7 +2,7 @@ import { useLangString } from "@/lib/getLangString.ts";
 import { Text } from "@/components/ui/text.tsx";
 import CompassWithYandexCloudLogo from "@/components/icons/CompassWithYandexCloudLogo.tsx";
 import ButtonWithIcon from "@/components/ButtonWithIcon.tsx";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigatePageContent } from "@/components/hooks.ts";
 import PageContentInstallConfigure from "@/pages/install/PageContentInstallConfigure.tsx";
 import CustomDialog from "@/components/CustomDialog.tsx";
@@ -11,8 +11,8 @@ import PageContentInstallSuccess from "@/pages/install/PageContentInstallSuccess
 import PageContentInstallFailed from "@/pages/install/PageContentInstallFailed.tsx";
 import UnsavedChangesGuard from "@/components/UnsavedChangesGuard.tsx";
 import useIsInstallDirty from "@/lib/useIsInstallDirty.ts";
-import { useAtom, useAtomValue } from "jotai";
-import { jobIdState, MIN_CPU_COUNT, MIN_DISK_SPACE_MB, MIN_RAM_MB, serverSpecsAlertState } from "@/api/_stores.ts";
+import { useAtomValue } from "jotai";
+import { jobIdState } from "@/api/_stores.ts";
 import navigatePages from "@/lib/navigatePages.ts";
 
 const Header = () => {
@@ -111,44 +111,11 @@ const Header = () => {
     );
 }
 
-type ServerInfoResponseStruct = {
-    success: boolean;
-    cpu_cores: number;
-    ram_mb: number;
-    disk_mb: number;
-};
 const PageInstall = () => {
     const { activePageContent } = useNavigatePageContent();
     const { navigateToNextPage } = navigatePages();
     const isDirty = useIsInstallDirty();
     const jobId = useAtomValue(jobIdState);
-    const [ serverSpecsAlert, setServerSpecsAlert ] = useAtom(serverSpecsAlertState);
-
-    useEffect(() => {
-
-        if (serverSpecsAlert === "unknown") {
-
-            (async function checkServerSpecs() {
-
-                const response = await fetch("/api/server/info");
-                if (!response.ok) {
-                    console.log(`Failed to get server info: ${response.status} ${response.statusText}`);
-                    return;
-                }
-                const json = (await response.json()) as ServerInfoResponseStruct;
-                if (!json.success) {
-                    console.log("Failed to get server info");
-                    return;
-                }
-
-                if (json.cpu_cores < MIN_CPU_COUNT || json.ram_mb < MIN_RAM_MB || json.disk_mb < MIN_DISK_SPACE_MB) {
-
-                    setServerSpecsAlert("visible");
-                    return;
-                }
-            })();
-        }
-    }, [])
 
     const content = useMemo(() => {
 

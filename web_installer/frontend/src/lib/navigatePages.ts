@@ -1,7 +1,7 @@
 import { useNavigatePage, useNavigatePageContent } from "@/components/hooks.ts";
 import { useSetAtom } from "jotai";
 import {
-    activateServerStatusState, INITIAL_JOB_STATUS_RESPONSE,
+    activateServerStatusState, INITIAL_JOB_STATUS_RESPONSE, installStartedAtState,
     isWelcomeSkippedState,
     jobIdState,
     jobStatusResponseState,
@@ -14,6 +14,7 @@ const useNavigatePages = () => {
     const setIsWelcomeSkipped = useSetAtom(isWelcomeSkippedState);
     const setProgressBar = useSetAtom(progressBarState);
     const setJobId = useSetAtom(jobIdState);
+    const setInstallStartedAt = useSetAtom(installStartedAtState);
     const setActivateServerStatus = useSetAtom(activateServerStatusState);
     const setJobStatusResponse = useSetAtom(jobStatusResponseState);
 
@@ -48,6 +49,7 @@ const useNavigatePages = () => {
                     case "install_failed":
 
                         setJobId("");
+                        setInstallStartedAt(0);
                         setJobStatusResponse(INITIAL_JOB_STATUS_RESPONSE);
                         setActivateServerStatus("not_activated");
                         setProgressBar(0);

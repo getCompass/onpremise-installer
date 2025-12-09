@@ -346,3 +346,32 @@ input[type=number] {
 .bg-domain-tooltip-image {
     background-image: url(/src/img/domain-tooltip-image.png);
 }
+
+/* блик, который едет слева направо по заполненной части прогресс бара */
+@keyframes progress-shine {
+    0% {
+        background-position: -36px 0; /* блик полностью слева за пределами */
+    }
+    100% {
+        background-position: calc(100% + 36px) 0; /* блик у правого края за пределами */
+    }
+}
+
+/* элемент, внутри которого ездит градиент */
+.progress-bar-slide {
+    display: block;
+    width: 100%;
+    height: 100%;
+
+    /* блик */
+    background-image: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.65),
+            rgba(255, 255, 255, 0.65),
+            rgba(255, 255, 255, 0)
+    );
+    background-repeat: no-repeat;
+    background-size: 36px 100%; /* ширина блика */
+    animation: progress-shine 4s linear infinite;
+}
