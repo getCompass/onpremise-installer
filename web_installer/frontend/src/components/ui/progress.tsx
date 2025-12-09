@@ -22,11 +22,13 @@ function Progress({
         >
             <ProgressPrimitive.Indicator
                 data-slot="progress-indicator"
-                className={cn("bg-[rgba(255,255,255,0.8)] h-full w-full flex-1 transition-all rounded-[12px]",
+                className={cn("relative bg-[rgba(255,255,255,0.75)] h-full w-full flex-1 overflow-hidden rounded-[12px]",
                     classNameIndicator
                 )}
                 style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-            />
+            >
+                <span className="progress-bar-slide block h-full w-full" />
+            </ProgressPrimitive.Indicator>
         </ProgressPrimitive.Root>
     )
 }

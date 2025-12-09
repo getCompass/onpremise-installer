@@ -92,11 +92,18 @@ export const isWelcomeSkippedState = atomWithStorage<number>(
 
 // видно ли плашку о минимальных характеристиках сервера
 export const serverSpecsAlertState = atom<"visible" | "dismissed" | "unknown">("unknown");
+export const isSlowDiskSpeedState = atom<boolean>(true);
 export const MIN_CPU_COUNT = 10;
 export const MIN_RAM_MB = 15000;
 export const MIN_DISK_SPACE_MB = 90000;
+export const RECOMMENDED_DISK_SPACE_MB = 190000;
 
 export const jobIdState = atomWithStorage<string>(
     "job_id",
     JSON.parse(localStorage.getItem("job_id") ?? '""')
+);
+
+export const installStartedAtState = atomWithStorage<number>(
+    "started_at",
+    JSON.parse(localStorage.getItem("started_at") ?? '0')
 );

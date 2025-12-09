@@ -2,7 +2,7 @@ import { Text } from "@/components/ui/text.tsx";
 import { useLangString } from "@/lib/getLangString.ts";
 import { Progress } from "@/components/ui/progress.tsx";
 import { useAtomValue } from "jotai";
-import { activateServerStatusState, jobIdState, progressBarState } from "@/api/_stores.ts";
+import { activateServerStatusState, isSlowDiskSpeedState, jobIdState, progressBarState } from "@/api/_stores.ts";
 import { Button } from "@/components/ui/button.tsx";
 import useNavigatePages from "@/lib/navigatePages.ts";
 import { useCallback, useMemo, useState } from "react";
@@ -26,6 +26,7 @@ const PageContentInstallFailed = () => {
     const [ activateServerStatus, _ ] = useAtom(activateServerStatusState);
     const setActivateServerStatus = useSetAtom(activateServerStatusState);
     const jobId = useAtomValue(jobIdState);
+    const isSlowDiskSpeed = useAtomValue(isSlowDiskSpeedState);
     const [ loading, setLoading ] = useState<boolean>(false);
     const [ downloading, setDownloading ] = useState<boolean>(false);
     const [ logsDownloaded, setLogsDownloaded ] = useState<boolean>(false);
@@ -108,7 +109,7 @@ const PageContentInstallFailed = () => {
                             : t("install_page.install_failed.error_server_activate_title")}
                     </Text>
                     <Text size="s" color="inactive" className="tracking-[-0.15px]">
-                        {t("install_page.install_failed.desc")}
+                        {isSlowDiskSpeed ? t("install_page.install_failed.desc_slow_disk") : t("install_page.install_failed.desc")}
                     </Text>
                 </div>
                 {logsDownloaded ? (

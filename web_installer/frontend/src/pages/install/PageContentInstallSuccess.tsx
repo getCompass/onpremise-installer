@@ -5,7 +5,13 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input.tsx";
 import { cn } from "@/lib/utils.ts";
 import { copyToClipboard } from "@/lib/copyToClipboard.ts";
-import { INITIAL_JOB_STATUS_RESPONSE, jobIdState, jobStatusResponseState, progressBarState } from "@/api/_stores.ts";
+import {
+    INITIAL_JOB_STATUS_RESPONSE,
+    installStartedAtState,
+    jobIdState,
+    jobStatusResponseState,
+    progressBarState
+} from "@/api/_stores.ts";
 import { useSetAtom } from "jotai";
 import type { AuthMethod } from "@/api/_types.ts";
 import { useAtom } from "jotai/index";
@@ -29,6 +35,7 @@ type ResultDataStruct = {
 const PageContentInstallSuccess = () => {
     const t = useLangString();
     const [ jobId, setJobId ] = useAtom(jobIdState);
+    const setInstallStartedAt = useSetAtom(installStartedAtState);
     const setProgressBar = useSetAtom(progressBarState);
     const setJobStatusResponse = useSetAtom(jobStatusResponseState);
     const [ data, setData ] = useState<ResultDataStruct>({});
@@ -55,6 +62,7 @@ const PageContentInstallSuccess = () => {
                 if (json.status === "not_found") {
 
                     setJobId("");
+                    setInstallStartedAt(0);
                     setJobStatusResponse(INITIAL_JOB_STATUS_RESPONSE);
                     setProgressBar(0);
                     navigateToPageContent("configure");

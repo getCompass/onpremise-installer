@@ -1,12 +1,14 @@
 import { Text } from "@/components/ui/text.tsx";
 import { useLangString } from "@/lib/getLangString.ts";
 import { Progress } from "@/components/ui/progress.tsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useNavigatePages from "@/lib/navigatePages.ts";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
     activateServerStatusState,
     INITIAL_JOB_STATUS_RESPONSE,
+    installStartedAtState,
+    isSlowDiskSpeedState,
     jobIdState,
     jobStatusResponseState,
     progressBarState
@@ -14,6 +16,7 @@ import {
 import { INSTALL_STEP_LIST, type StatusResponse } from "@/api/_types.ts";
 import { useNavigatePageContent } from "@/components/hooks.ts";
 import NoNetworkError from "@/components/NoNetworkError.tsx";
+import dayjs from "dayjs";
 
 type ActivateServerResponseStruct = { success: boolean };
 
@@ -26,12 +29,23 @@ const PageContentInstallInProgress = () => {
     const [ progressBar, setProgressBar ] = useAtom(progressBarState);
     const [ jobStatusResponse, setJobStatusResponse ] = useAtom(jobStatusResponseState);
     const [ jobId, setJobId ] = useAtom(jobIdState);
+    const [ installStartedAt, setInstallStartedAt ] = useAtom(installStartedAtState);
     const setActivateServerStatus = useSetAtom(activateServerStatusState);
+    const isSlowDiskSpeed = useAtomValue(isSlowDiskSpeedState);
     const [ errorCount, setErrorCount ] = useState(0);
+    const firstStepInstallTime = useMemo(() => {
+
+        if (isSlowDiskSpeed) {
+            return 20 * 60;
+        }
+
+        return 10 * 60;
+    }, [ isSlowDiskSpeed ]);
 
     const clearToConfigure = useCallback(() => {
         startedRef.current = false;
         setJobId("");
+        setInstallStartedAt(0);
         setJobStatusResponse(INITIAL_JOB_STATUS_RESPONSE);
         setProgressBar(0);
         navigateToPageContent("configure");
@@ -71,7 +85,21 @@ const PageContentInstallInProgress = () => {
                 // вычисляем прогресс по выполненным шагам
                 const total = INSTALL_STEP_LIST.length || 1;
                 const done = Math.min(json.completed_step_list?.length ?? 0, total);
-                const percent = Math.round((done / total) * 100);
+                let percent = Math.round((done / total) * 100);
+
+                // первый этап долгий - показываем "движущийся" прогресс, чтобы не было ощущения что все зависло
+                if (done < 1) {
+                    const now = dayjs().unix();
+
+                    const elapsedTime = Math.max(0, now - installStartedAt);
+                    const firstStepMaxPercent = 100 / total;
+
+                    // прогресс внутри первого шага от 0 до 1
+                    const progressInsideStep = Math.min(elapsedTime / firstStepInstallTime, 1);
+
+                    // линейно размазываем до 25%
+                    percent = Math.round(firstStepMaxPercent * progressInsideStep);
+                }
                 setProgressBar(percent);
 
                 if (json.status === "not_found") {
@@ -134,7 +162,7 @@ const PageContentInstallInProgress = () => {
             startedRef.current = false;
             lastCancel?.();
         };
-    }, [ jobId ]);
+    }, [ jobId, installStartedAt ]);
 
     useEffect(() => {
 
@@ -153,7 +181,7 @@ const PageContentInstallInProgress = () => {
                             : "install_page.install_in_progress.install_title")}
                     </Text>
                     <Text size="s" color="inactive" className="tracking-[-0.15px]">
-                        {t("install_page.install_in_progress.desc")}
+                        {isSlowDiskSpeed ? t("install_page.install_in_progress.desc_slow_disk") : t("install_page.install_in_progress.desc")}
                     </Text>
                 </div>
                 <NoNetworkError
