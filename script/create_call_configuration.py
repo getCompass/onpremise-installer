@@ -6,17 +6,20 @@ sys.dont_write_bytecode = True
 
 from pathlib import Path
 from utils import scriptutils
-from loader import Loader
 import collections.abc
-import re, socket, yaml, argparse, readline
+import yaml
 from utils.interactive import InteractiveValue
 
 scriptutils.assert_root()
 
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-# ---АГРУМЕНТЫ СКРИПТА---#
-
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации конфига для звонков.",
+    usage="python3 script/create_call_configuration.py",
+    epilog="Пример: python3 script/create_call_configuration.py",
+)
+args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
 
@@ -83,7 +86,7 @@ def get_subnet_number(subnet_mask: str) -> int:
 
 
 def get_free_subnet(
-    project_name: str, project_values: dict, global_values: dict
+        project_name: str, project_values: dict, global_values: dict
 ) -> int:
     min_subnet_number = global_values["start_octet"] + 1
     max_subnet_number = 254
@@ -127,11 +130,11 @@ def copy(project_name: str, project_values: dict, global_values: dict, keys: str
 
 
 def copy_with_postfix(
-    project_name: str,
-    project_values: dict,
-    global_values: dict,
-    keys: str,
-    postfix: str,
+        project_name: str,
+        project_values: dict,
+        global_values: dict,
+        keys: str,
+        postfix: str,
 ):
     keys = keys.split(".", 1)
 
@@ -142,11 +145,11 @@ def copy_with_postfix(
 
 
 def copy_with_custom_postfix(
-    project_name: str,
-    project_values: dict,
-    global_values: dict,
-    keys: str,
-    postfix: str,
+        project_name: str,
+        project_values: dict,
+        global_values: dict,
+        keys: str,
+        postfix: str,
 ):
     keys = keys.split(".", 1)
     if keys[0] == "_project":
@@ -262,7 +265,7 @@ found_external_ports = {}
 
 
 def process_field(
-    field: dict, project: str, label: str, project_values: dict, new_values: dict
+        field: dict, project: str, label: str, project_values: dict, new_values: dict
 ):
     search_field = field["name"]
 
@@ -308,13 +311,13 @@ def start():
             return
 
     while (
-        input(
-            (
-                "Добавляем новый TURN-сервер? Без него невозможна работа звонков[y/n]. На данный момент добавлено: %i\n"
-                % turn_server_count
+            input(
+                (
+                        "Добавляем новый TURN-сервер? Без него невозможна работа звонков[y/n]. На данный момент добавлено: %i\n"
+                        % turn_server_count
+                )
             )
-        )
-        == "y"
+            == "y"
     ):
         turn_server_count = turn_server_count + 1
         turn_server_list.append(init_turn(turn_server_count))

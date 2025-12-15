@@ -9,7 +9,7 @@ from pathlib import Path
 script_dir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 json_file_path = os.path.join(script_dir, "conversation_key_list.json")
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')

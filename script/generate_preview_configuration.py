@@ -27,23 +27,20 @@ config.update(global_config_values)
 
 root_path = script_dir.parent.resolve()
 
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument(
-    "--domino-preview-output-path",
-    required=False,
-    default=root_path / "src" / "domino" / "config" / "preview_parsing.gophp",
-    help="Путь до выходного файла preview конфига для превью ссылок",
+parser = scriptutils.create_parser(
+    "Скрипт для создания конфигурации парсинга превью ссылок.",
+    usage="python3 script/generate_preview_configuration.py [--domino-preview-output-path DOMINO_PREVIEW_OUTPUT_PATH] [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/generate_preview_configuration.py --domino-preview-output-path /home/compass/src/domino/config/preview_parsing.gophp --validate-only --installer-output",
 )
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action="store_true"
-)
+
+parser.add_argument("--domino-preview-output-path", required=False,
+                    default=root_path / "src" / "domino" / "config" / "preview_parsing.gophp",
+                    help="Путь до выходного файла preview конфига для превью ссылок")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
+
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#

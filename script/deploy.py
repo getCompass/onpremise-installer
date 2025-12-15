@@ -10,7 +10,7 @@ from utils import scriptutils
 from subprocess import Popen
 import hashlib, readline
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument(

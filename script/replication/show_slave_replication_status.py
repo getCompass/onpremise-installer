@@ -18,17 +18,26 @@ from pathlib import Path
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument(
-    "-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)", choices=["monolith", "team"]
+parser = scriptutils.create_parser(
+    description="Скрипт для проверки статуса репликации mysql-изменений с master сервера.",
+    usage="python3 script/replication/show_slave_replication_status.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team] [--all-teams] [--all-types]",
+    epilog="Пример: python3 script/replication/show_slave_replication_status.py -v compass -e production --all-teams --all-types",
 )
-parser.add_argument("--all-teams", required=False, action="store_true", help="выбрать все команды")
-parser.add_argument("--all-types", required=False, action="store_true", help="выбрать все типы mysql")
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument(
+    "-t", "--type", required=False, default="monolith", type=str,
+    help="На каком типе mysql запускаем (monolith или team)",
+    choices=["monolith", "team"]
+)
+parser.add_argument("--all-teams", required=False, action="store_true",
+                    help="Выбрать все созданные команды для выполнения скрипта")
+parser.add_argument("--all-types", required=False, action="store_true",
+                    help="Выбрать все типы mysql для выполнения скрипта")
 
 args = parser.parse_args()
 values_name = args.values
@@ -36,8 +45,8 @@ mysql_type = args.type.lower()
 is_all_teams = args.all_teams
 is_all_types = args.all_types
 
-
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -48,6 +57,7 @@ class DbConfig:
         self.port = port
         self.root_user = root_user
         self.root_password = root_password
+
 
 # получить данные окружение из values
 def get_values() -> Dict:
@@ -110,7 +120,8 @@ def start():
             print("Не удалось найти контейнер pivot mysql.")
             sys.exit(1)
 
-        is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
+        is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
+                                                                      mysql_pass)
         loader.success()
         print(status_text)
 
@@ -133,16 +144,20 @@ def start():
 
             chosen_space_index = input(space_option_str)
 
-            if (not chosen_space_index.isdigit()) or int(chosen_space_index) < 0 or int(chosen_space_index) > (len(space_id_list) + 1):
+            if (not chosen_space_index.isdigit()) or int(chosen_space_index) < 0 or int(chosen_space_index) > (
+                    len(space_id_list) + 1):
                 scriptutils.die("Выбран некорректный вариант")
 
         # проходимся по каждому пространству
         if is_all_teams or int(chosen_space_index) == (len(space_id_list) + 1):
             is_all_success = True
             for space_id, space_config_obj in space_config_obj_dict.items():
-                loader = Loader("Статус репликации в команде %s:" % space_id, "Статус репликации в команде %s:" % space_id).start()
-                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
-                is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
+                loader = Loader("Статус репликации в команде %s:" % space_id,
+                                "Статус репликации в команде %s:" % space_id).start()
+                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE,
+                                                                             domino_id, space_config_obj.port)
+                is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
+                                                                              mysql_pass)
                 loader.success()
                 print(status_text)
                 if is_success == False:
@@ -150,9 +165,12 @@ def start():
         else:
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
-            loader = Loader("Статус репликации в команде %s:" % space_id, "Статус репликации в команде %s:" % space_id).start()
-            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
-            is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass)
+            loader = Loader("Статус репликации в команде %s:" % space_id,
+                            "Статус репликации в команде %s:" % space_id).start()
+            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
+                                                                         space_config_obj.port)
+            is_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
+                                                                          mysql_pass)
             loader.success()
             print(status_text)
 
@@ -164,9 +182,10 @@ def start():
         log_text += "- проверьте ошибки в полях Last_IO_Error и Last_SQL_Error.\n"
         print(log_text)
 
-# получить статус репликации в полученном контейнере
-def mysql_show_slave_replication_status(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str, mysql_pass: str):
 
+# получить статус репликации в полученном контейнере
+def mysql_show_slave_replication_status(found_container: docker.models.containers.Container, mysql_host: str,
+                                        mysql_user: str, mysql_pass: str):
     cmd = f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_pass} -e \"SHOW SLAVE STATUS\\G\""
 
     try:
@@ -249,11 +268,13 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
     else:
         slave_sql_running = result.get("Slave_SQL_Running")
     slave_status_text = slave_status_text + "\n" + "Slave_SQL_Running: %s" % slave_sql_running
-    slave_status_text = slave_status_text + "\n" + "Seconds_Behind_Master: %s seconds" % result.get("Seconds_Behind_Master")
+    slave_status_text = slave_status_text + "\n" + "Seconds_Behind_Master: %s seconds" % result.get(
+        "Seconds_Behind_Master")
     slave_status_text = slave_status_text + "\n\n" + "Last_IO_Error: %s" % result.get("Last_IO_Error")
     slave_status_text = slave_status_text + "\n" + "Last_SQL_Error: %s" % result.get("Last_SQL_Error") + "\n"
 
     return is_success, slave_status_text
+
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
@@ -295,6 +316,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 # точка входа в скрипт
 start()

@@ -6,14 +6,24 @@ import sys
 import os
 from datetime import datetime
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.insert(0, parent_dir)
+
+from utils import scriptutils
+
 # куда логируем состояние диска
 LOG_FILE = "/var/log/keepalived_health.log"
 
 SIMULATION_FAILURE_FLAG_FILE = "/tmp/simulate_keepalived_failure"
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    "Скрипт для проверки состояния диска.",
+    usage="python3 script/replication/check_disk.py [--path PATH] [--threshold THRESHOLD]",
+    epilog="Пример: python3 script/replication/check_disk.py --path /home/compass --threshold 10",
+)
 
 parser.add_argument("--path", type=str, required=True, help="Путь к приложению или директории")
 parser.add_argument("--threshold", type=int, default=5, help="Минимальный требуемый процент свободного места")

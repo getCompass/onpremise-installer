@@ -37,35 +37,25 @@ config.update(team_config_values)
 
 root_path = script_dir.parent.resolve()
 
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument(
-    "--pivot-restrictions-output-path",
-    required=False,
-    default=root_path / "src" / "pivot" / "config" / "restrictions.gophp",
-    help="Путь до выходного файла restrictions конфига для ограничений",
+parser = scriptutils.create_parser(
+    "Скрипт для создания конфигурации ограничений.",
+    usage="python3 script/generate_restrictions_configuration.py [--pivot-restrictions-output-path PIVOT_RESTRICTIONS_OUTPUT_PATH] [--domino-restrictions-output-path DOMINO_RESTRICTIONS_OUTPUT_PATH] [--integration-restrictions-output-path INTEGRATION_RESTRICTIONS_OUTPUT_PATH] [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/generate_restrictions_configuration.py --pivot-restrictions-output-path /home/compass/src/pivot/config/restrictions.gophp --domino-restrictions-output-path /home/compass/src/domino/config/company_restrictions.gophp --integration-restrictions-output-path /home/compass/src/integration/config/restrictions.gophp --validate-only --installer-output",
 )
-parser.add_argument(
-    "--domino-restrictions-output-path",
-    required=False,
-    default=root_path / "src" / "domino" / "config" / "company_restrictions.gophp",
-    help="Путь до выходного файла restrictions конфига для ограничений",
-)
-parser.add_argument(
-    "--integration-restrictions-output-path",
-    required=False,
-    default=root_path / "src" / "integration" / "config" / "restrictions.gophp",
-    help="Путь до выходного файла restrictions конфига для ограничений",
-)
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action="store_true"
-)
+
+parser.add_argument("--pivot-restrictions-output-path", required=False,
+                    default=root_path / "src" / "pivot" / "config" / "restrictions.gophp",
+                    help="Путь до выходного файла pivot конфига ограничений")
+parser.add_argument("--domino-restrictions-output-path", required=False,
+                    default=root_path / "src" / "domino" / "config" / "company_restrictions.gophp",
+                    help="Путь до выходного файла domino конфига ограничений")
+parser.add_argument("--integration-restrictions-output-path", required=False,
+                    default=root_path / "src" / "integration" / "config" / "restrictions.gophp",
+                    help="Путь до выходного файла integration конфига ограничений")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#

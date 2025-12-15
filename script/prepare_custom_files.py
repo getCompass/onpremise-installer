@@ -11,7 +11,7 @@ from utils import scriptutils
 import json
 import hashlib
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str,

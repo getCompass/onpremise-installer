@@ -32,7 +32,8 @@ config_path = Path(str(script_path) + "/../configs/global.yaml")
 config = {}
 
 if not config_path.exists():
-    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(config_path.resolve())) +  "Запустите скрипт create_configs.py и заполните конфигурацию")
+    print(scriptutils.error("Отсутствует файл конфигурации %s." % str(
+        config_path.resolve())) + "Запустите скрипт create_configs.py и заполните конфигурацию")
     exit(1)
 
 with config_path.open("r") as config_file:
@@ -40,39 +41,19 @@ with config_path.open("r") as config_file:
 
 config.update(config_values)
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    default="production",
-    required=False,
-    type=str,
-    help="среда, для которой производим развертывание",
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации ssl сертификатов для mysql.",
+    usage="python3 script/generate_mysql_ssl_certificates.py [-v VALUES] [-e ENVIRONMENT] [--force] [--validate-only]",
+    epilog="Пример: python3 script/generate_mysql_ssl_certificates.py -v compass -e production --force --validate-only",
 )
-
-parser.add_argument(
-    "-v",
-    "--values",
-    default="compass",
-    required=False,
-    type=str,
-    help="название файла со значениями для развертывания",
-)
-
-parser.add_argument(
-    "--force",
-    required=False,
-    action='store_true',
-    help="форсированная регенерация сертификатов",
-)
-
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--force", required=False, action='store_true',
+                    help="Повторная генерация сертификатов, если они уже сгенерированы", )
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
 args = parser.parse_args()
 
 host = None
@@ -94,10 +75,12 @@ if values_file_path.exists():
 if current_values.get("host_ip") is not None:
     host = current_values["host_ip"]
 
-def start():
 
+def start():
     if config.get("host_ip") is None:
-        print(scriptutils.error("Отсутствует значение у поля host_ip в конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(config_path.resolve())))
+        print(scriptutils.error(
+            "Отсутствует значение у поля host_ip в конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
+                config_path.resolve())))
         exit(1)
 
     if validate_only:
@@ -118,6 +101,7 @@ def start():
     if scriptutils.is_replication_master_server(current_values):
         generate_mysql_ssl("mysql-master", ssl_path)
         generate_mysql_ssl("mysql-replica", ssl_path)
+
 
 def get_root_certificate_path(ssl_path: Path) -> Tuple[Path, Path]:
     CN = "mysqlRootCA"
@@ -214,7 +198,6 @@ def create_root_certificate(output_dir: Path) -> Tuple[Path, Path]:
 
 
 def generate_mysql_ssl(common_name: str, output_dir: Path, validity_days: int = 365):
-
     new_cert_path = f"{output_dir}/{common_name}-cert.pem"
     new_key_path = f"{output_dir}/{common_name}-key.pem"
 
@@ -277,6 +260,7 @@ def generate_mysql_ssl(common_name: str, output_dir: Path, validity_days: int = 
 
     print(f"Создан сертификат для {common_name}")
 
+
 def should_generate_cert(cert_path: str, key_path: str, min_valid_days: int = 30) -> bool:
     # проверяем существование сертов
     if not Path(cert_path).exists() or not Path(key_path).exists():
@@ -302,5 +286,6 @@ def should_generate_cert(cert_path: str, key_path: str, min_valid_days: int = 30
     except Exception as e:
         print(scriptutils.warning(f"Ошибка при проверке наличия сертификатов для mysql. {e}. Генерируем новые..."))
         return True
+
 
 start()

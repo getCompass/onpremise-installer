@@ -7,7 +7,7 @@ import yaml
 from utils import scriptutils
 from utils import interactive
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -18,7 +18,7 @@ config = {}
 
 if not config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             config_path.resolve())))
     exit(1)
 
@@ -29,33 +29,20 @@ config.update(config_values)
 
 root_path = str(Path(script_dir + "/../").resolve())
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "--add-app-list",
-    required=False,
-    nargs="+",
-    help="Список дополнительных приложений, для которых генерируем конфиг",
-)
-parser.add_argument(
-    "--output-path",
-    required=False,
-    default=root_path + "/src/pivot/config/pivot_captcha.gophp",
-    help="Путь до выходного файла",
+parser = scriptutils.create_parser(
+    "Скрипт для генерации конфигов капчи.",
+    usage="python3 script/generate_captcha_configuration.py [--output-path OUTPUT_PATH] [--validate-only] [--installer-output] [--confirm-all]",
+    epilog="Пример: python3 script/generate_captcha_configuration.py --output-path /home/compass/src/pivot/config/pivot_captcha.gophp --validate-only --installer-output --confirm-all",
 )
 
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action='store_true'
-)
-parser.add_argument("--confirm-all", required=False, action="store_true")
+parser.add_argument("--output-path", required=False, default=root_path + "/src/pivot/config/pivot_captcha.gophp",
+                    help="Путь до выходного файла", )
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
+parser.add_argument("--confirm-all", required=False, action="store_true",
+                    help='Автоматическое подтверждение всех вопросов')
 
 args = parser.parse_args()
 
@@ -66,15 +53,10 @@ allowed_provider_list = ["enterprise_google", "yandex_cloud"]
 required_app_list = ["compass"]
 
 # получаем список приложений, для которых дополнительно генерируем конфиг
-added_app_list = args.add_app_list
 app_list = required_app_list
 validate_only = args.validate_only
 installer_output = args.installer_output
 confirm_all = args.confirm_all
-
-# формируем финальный список приложений
-if added_app_list:
-    app_list += added_app_list
 
 conf_path = args.output_path
 conf_path = Path(conf_path)

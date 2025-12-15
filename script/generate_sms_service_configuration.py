@@ -1,12 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from operator import truediv
+import json
 import os.path
-import sys, yaml, json
-from utils.interactive import InteractiveValue, IncorrectValueException
+import sys
+import yaml
 from pathlib import Path
+
 from utils import scriptutils
-import argparse
+from utils.interactive import InteractiveValue, IncorrectValueException
 
 
 # -------------------------------------------------------
@@ -27,10 +28,16 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    "Скрипт для генерации смс конфигурации.",
+    usage="python3 script/generate_sms_service_configuration.py [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/generate_sms_service_configuration.py --validate-only --installer-output",
+)
 
-parser.add_argument("--validate-only", required=False, action="store_true")
-parser.add_argument("--installer-output", required=False, action="store_true")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 
 args = parser.parse_args()
 validate_only = args.validate_only
@@ -48,7 +55,7 @@ validation_errors = []
 if not config_path.exists():
     print(
         scriptutils.error(
-            "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+            "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию"
             % str(config_path.resolve())
         )
     )

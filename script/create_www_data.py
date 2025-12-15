@@ -9,19 +9,27 @@ from subprocess import Popen, PIPE
 
 from utils import scriptutils
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    "Скрипт для создания пользователя www-data.",
+    usage="python3 script/create_www_data.py [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/create_www_data.py --validate-only --installer-output",
+)
 
-parser.add_argument("--validate-only", required=False, action="store_true")
-parser.add_argument("--installer-output", required=False, action="store_true")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 args = parser.parse_args()
 validate_only = args.validate_only
 installer_output = args.installer_output
 
 QUIET = (validate_only and installer_output)
 
+
 def log(*args, **kwargs):
     if not QUIET:
         print(*args, **kwargs)
+
 
 exec_user_name = "www-data"
 exec_user_uid = 33
@@ -29,8 +37,8 @@ exec_user_uid = 33
 # проверяем, что запустили от рута
 scriptutils.assert_root()
 
-def add_user(name: str, uid: int):
 
+def add_user(name: str, uid: int):
     # запускаем процесс
     if scriptutils.is_rpm_os():
         p = Popen(["groupadd", name], stdout=PIPE, stderr=PIPE)

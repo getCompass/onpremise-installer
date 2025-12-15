@@ -3,11 +3,9 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, re, yaml, json, glob
+import yaml, json
 import os
-import logging
-import docker, subprocess
-import docker.errors, docker.models, docker.models.containers, docker.types
+import docker
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -15,14 +13,17 @@ sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
 from pathlib import Path
-from time import sleep
-from typing import Dict, List
+from typing import Dict
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
+parser = scriptutils.create_parser(
+    description="Скрипт для проверки является ли текущий сервер мастером.",
+    usage="python3 script/replication/check_current_master_server.py [-v VALUES]",
+    epilog="Пример: python3 script/replication/check_current_master_server.py -v compass",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
 args = parser.parse_args()
 
 values_name = args.values
@@ -33,21 +34,25 @@ installer_dir = str(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 values_file_name = "values.%s.yaml" % values_name
 values_file_path = Path("%s/../src/%s" % (installer_dir, values_file_name))
 
-def start():
 
+def start():
     current_values = get_values()
 
     if current_values.get("company_config_mount_path") is None or current_values.get("company_config_mount_path") == "":
         scriptutils.die("В файле для деплоя %s отсутствует значение для company_config_mount_path" % values_file_name)
 
-    if current_values.get("servers_companies_relationship_file") is None or current_values.get("servers_companies_relationship_file") == "":
-        scriptutils.die("В файле для деплоя %s отсутствует значение для servers_companies_relationship_file" % values_file_name)
+    if current_values.get("servers_companies_relationship_file") is None or current_values.get(
+            "servers_companies_relationship_file") == "":
+        scriptutils.die(
+            "В файле для деплоя %s отсутствует значение для servers_companies_relationship_file" % values_file_name)
 
     # получаем путь к файлу для связи компаний между серверами
-    servers_companies_relationship_file_path = current_values.get("company_config_mount_path") + "/" + current_values.get("servers_companies_relationship_file")
+    servers_companies_relationship_file_path = current_values.get(
+        "company_config_mount_path") + "/" + current_values.get("servers_companies_relationship_file")
 
     if not Path(servers_companies_relationship_file_path).exists():
-        scriptutils.die("Не найден файл для связи компаний между серверами: %s" % servers_companies_relationship_file_path)
+        scriptutils.die(
+            "Не найден файл для связи компаний между серверами: %s" % servers_companies_relationship_file_path)
 
     if current_values.get("service_label") is None or current_values.get("service_label") == "":
         scriptutils.die("В файле для деплоя %s отсутствует значение для service_label" % values_file_name)
@@ -72,7 +77,6 @@ def start():
 
 # получить данные окружения из values
 def get_values() -> Dict:
-
     if not values_file_path.exists():
         scriptutils.die("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
 

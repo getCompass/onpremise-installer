@@ -12,10 +12,17 @@ import yaml
 
 from utils import scriptutils
 
-# region АГРУМЕНТЫ СКРИПТА #
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument("--validate-only", required=False, action="store_true")
-parser.add_argument("--installer-output", required=False, action="store_true")
+# region АРГУМЕНТЫ СКРИПТА #
+parser = scriptutils.create_parser(
+    "Скрипт для проверки, что конфигурация баз данных корректно заполнена.",
+    usage="python3 script/validate_db_configuration.py [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/validate_db_configuration.py --validate-only --installer-output",
+)
+
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 args = parser.parse_args()
 
 script_dir = str(Path(__file__).parent.resolve())
@@ -78,7 +85,7 @@ if config.get("root_mount_path") is not None:
         with known_database_path.open("r") as known_database_file:
             known_database_config = yaml.load(known_database_file, Loader=yaml.BaseLoader)
 
-# endregion АГРУМЕНТЫ СКРИПТА #
+# endregion АРГУМЕНТЫ СКРИПТА #
 
 # известные виды драйверов
 allowed_driver_list = ["docker", "host"]

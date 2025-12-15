@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml, shutil
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values-path', required=True, type=str, help='Путь до values файла')

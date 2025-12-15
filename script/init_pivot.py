@@ -17,7 +17,7 @@ from pathlib import Path
 from utils import scriptutils
 from time import sleep
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')

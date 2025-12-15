@@ -19,32 +19,23 @@ import ipaddress
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="окружение",
+parser = scriptutils.create_parser(
+    description="Скрипт для восстановления приложения из бэкапа.",
+    usage="python3 script/restore_db.py [-v VALUES] [-e ENVIRONMENT] [--yes] [--force-update-company-db FORCE_UPDATE_COMPANY_DB] [--backups-folder BACKUPS_FOLDER]",
+    epilog="Пример: python3 script/restore_db.py -v compass -e production --yes --force-update-company-db 1 --backups-folder backups",
 )
-
-parser.add_argument(
-    "-v",
-    "--values",
-    required=False,
-    default="compass",
-    type=str,
-    help="название файла со значениями для деплоя",
-)
-
-parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument('-y', '--yes', required=False, action='store_true',
+                    help='Автоматическое подтверждение всех вопросов')
 parser.add_argument('--force-update-company-db', required=False, default=1, type=int,
-                    help='форсим обновление баз данных компаний')
-parser.add_argument("--backups-folder", required=False, default="", type=str, help="директория для хранения бэкапов")
+                    help='Принудительное обновление конфигов пространств')
+parser.add_argument("--backups-folder", required=False, default="", type=str,
+                    help="Название директории для хранения бэкапов")
 args = parser.parse_args()
 
 values_name = args.values

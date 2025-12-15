@@ -16,7 +16,7 @@ from utils import scriptutils
 scriptutils.assert_root()
 script_dir = str(Path(__file__).parent.resolve())
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, type=str, help='Название values файла окружения')

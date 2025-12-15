@@ -4,34 +4,26 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, pwd
+import yaml, pwd
 import docker
 from pathlib import Path
 from utils import scriptutils
 from time import sleep
 from utils.interactive import InteractiveValue, IncorrectValueException
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-v", "--values", required=False, default="compass", type=str, help="Название values файла окружения"
+parser = scriptutils.create_parser(
+    description="Скрипт для привязки sso логина к главному пользователю.",
+    usage="python3 script/add_root_user_sso_login.py [-v VALUES] [-e ENVIRONMENT] [--validate-only]",
+    epilog="Пример: python3 script/add_root_user_sso_login.py -v compass -e production --validate-only",
 )
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="Окружение, в котором разворачиваем",
-)
-
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
 
 args = parser.parse_args()
 
@@ -201,9 +193,11 @@ if output.exit_code == 0:
     print(output.output.decode("utf-8"))
     print(scriptutils.success("Успешно добавлены данные %s для авторизации через SSO" % sso_login))
 elif output.exit_code == 1:
-    print(scriptutils.warning("Повторное добавление данных невозможно. Используйте ранее привязанные данные для авторизации через SSO."))
+    print(scriptutils.warning(
+        "Повторное добавление данных невозможно. Используйте ранее привязанные данные для авторизации через SSO."))
 elif output.exit_code == 2:
-    print(scriptutils.warning("Не смогли применить данные из configs/team.yaml, некорректный формат заполнения поля root_user.sso_login"))
+    print(scriptutils.warning(
+        "Не смогли применить данные из configs/team.yaml, некорректный формат заполнения поля root_user.sso_login"))
 elif output.exit_code == 3:
     print(scriptutils.warning(
         "Не смогли применить данные из configs/team.yaml, возникла ошибка в выполнении скрипта добавления данных, попробуйте запустить скрипт напрямую из контейнера php_monolith - php src/Compass/Pivot/sh/php/migration/add_root_user_sso_login.php --dry=0 --is-root --sso_login=<значение>"))

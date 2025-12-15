@@ -67,11 +67,15 @@ def select_feature():
 
 
 def main():
-    parser = argparse.ArgumentParser(add_help=True)
+    parser = scriptutils.create_parser(
+        description="Скрипт для установки клиентского ограничения для выбранных фич.",
+        usage="python3 script/set_client_application_version_restriction.py [-v VALUES] [-e ENVIRONMENT]",
+        epilog="Пример: python3 script/set_client_application_version_restriction.py -v compass -e production",
+    )
     parser.add_argument('-v', '--values', required=False, default="compass", type=str,
-                        help='Название values файла окружения')
+                        help='Название values файла окружения (например: compass)')
     parser.add_argument('-e', '--environment', required=False, default="production", type=str,
-                        help='Окружение, в котором развернут проект')
+                        help='Окружение, в котором развернут проект (например: production)')
     args = parser.parse_args()
 
     scriptutils.assert_root()

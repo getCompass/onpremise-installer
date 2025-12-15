@@ -18,30 +18,38 @@ from pathlib import Path
 LOG_FILE_PREFIX_NAME = "/var/log/mysql_replication_lag"
 
 # конфигурация
-MAX_LAG = 5          # максимально допустимый лаг (сек)
-HISTORY_WINDOW = 300 # анализировать только последние 300 сек
-MIN_SAMPLES = 5      # минимальное количество записей
+MAX_LAG = 5  # максимально допустимый лаг (сек)
+HISTORY_WINDOW = 300  # анализировать только последние 300 сек
+MIN_SAMPLES = 5  # минимальное количество записей
 
 # статусы лага репликации
-REPLICA_LAG_STATUS_OK = 0               # статус ок
-REPLICA_LAG_STATUS_BEHIND_MASTER_OK = 1 # статус ок, реплика догоняет мастер
-REPLICA_LAG_STATUS_NOT_EXIST_LOGS = 2   # отсутствуют данные по реплике
-REPLICA_LAG_STATUS_PAUSE = 3            # реплика на паузе
-REPLICA_LAG_STATUS_MORE_LOGS_BEHIND = 4 # реплика отстаёт от мастера
+REPLICA_LAG_STATUS_OK = 0  # статус ок
+REPLICA_LAG_STATUS_BEHIND_MASTER_OK = 1  # статус ок, реплика догоняет мастер
+REPLICA_LAG_STATUS_NOT_EXIST_LOGS = 2  # отсутствуют данные по реплике
+REPLICA_LAG_STATUS_PAUSE = 3  # реплика на паузе
+REPLICA_LAG_STATUS_MORE_LOGS_BEHIND = 4  # реплика отстаёт от мастера
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument("--is-log-message", required=False, default=0, type=int, help="отобразить ли лог-сообщение")
-parser.add_argument("--is-get-lag-count", required=False, default=0, type=int, help="получить значение лага репликации")
+parser = scriptutils.create_parser(
+    description="Скрипт для проверки, что нет зависшего отставания от master сервера при репликации и записи mysql-изменений.",
+    usage="python3 script/replication/check_replication_lag.py [-v VALUES] [-e ENVIRONMENT] [--is-log-message IS_LOG_MESSAGE] [--is-get-lag-count IS_GET_LAG_COUNT]",
+    epilog="Пример: python3 script/replication/check_replication_lag.py -v compass -e production --is-log-message 1 --is-get-lag-count 1",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--is-log-message", required=False, default=0, type=int, help="1 - вывести логи выполнения")
+parser.add_argument("--is-get-lag-count", required=False, default=0, type=int,
+                    help="1 - получить значение зависшего отставания репликации")
 args = parser.parse_args()
 values_name = args.values
 is_log_message = bool(args.is_log_message == 1)
 is_get_lag_count = bool(args.is_get_lag_count == 1)
 
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -52,6 +60,7 @@ class DbConfig:
         self.port = port
         self.root_user = root_user
         self.root_password = root_password
+
 
 def parse_log(space_id: int):
     """Читает и парсит лог-файл"""
@@ -89,6 +98,7 @@ def parse_log(space_id: int):
 
     return valid_entries, last_valid_lag
 
+
 def analyze_replication(entries, last_lag):
     """Анализирует состояние репликации"""
     if not entries or len(entries) == 0:
@@ -110,6 +120,7 @@ def analyze_replication(entries, last_lag):
         return REPLICA_LAG_STATUS_MORE_LOGS_BEHIND, f"P95 лага {p95} > {MAX_LAG} сек"
     else:
         return REPLICA_LAG_STATUS_OK, f"Репликация в норме (P95: {p95}, текущий: {last_lag})"
+
 
 # получить данные окружение из values
 def get_values() -> Dict:
@@ -133,6 +144,7 @@ def get_values() -> Dict:
         scriptutils.die("Файл со значениями невалиден. Окружение было ранее развернуто?")
 
     return current_values
+
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
@@ -173,6 +185,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_config_obj_dict[space_config_obj.space_id] = space_config_obj
         space_id_list.append(space_config_obj.space_id)
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 if __name__ == "__main__":
 

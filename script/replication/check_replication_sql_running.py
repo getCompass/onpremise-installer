@@ -4,10 +4,9 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, sys, os, time, re, glob, json
+import argparse, yaml, sys, os, re, glob, json
 import docker
 from typing import Dict
-from datetime import datetime
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -16,16 +15,22 @@ sys.path.insert(0, parent_dir)
 from utils import scriptutils
 from pathlib import Path
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
+parser = scriptutils.create_parser(
+    description="Скрипт для проверки, что репликация запущена.",
+    usage="python3 script/replication/check_replication_sql_running.py [-v VALUES] [-e ENVIRONMENT]",
+    epilog="Пример: python3 script/replication/check_replication_sql_running.py -v compass -e production",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
 args = parser.parse_args()
 values_name = args.values
 
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -36,6 +41,7 @@ class DbConfig:
         self.port = port
         self.root_user = root_user
         self.root_password = root_password
+
 
 # получить данные окружение из values
 def get_values() -> Dict:
@@ -110,9 +116,10 @@ def start():
     sql_running = mysql_get_sql_running(found_container, mysql_host, mysql_user, mysql_pass, 0)
     print(sql_running)
 
-# получить статус репликации в полученном контейнере
-def mysql_get_sql_running(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
 
+# получить статус репликации в полученном контейнере
+def mysql_get_sql_running(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
+                          mysql_pass: str, space_id: int):
     cmd = f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_pass} -e \"SHOW SLAVE STATUS\\G\""
 
     try:
@@ -165,6 +172,7 @@ def mysql_get_sql_running(found_container: docker.models.containers.Container, m
 
     return 1 if slave_sql_running == "Yes" else 0
 
+
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
     # получаем название домино
@@ -204,6 +212,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 # точка входа в скрипт
 start()

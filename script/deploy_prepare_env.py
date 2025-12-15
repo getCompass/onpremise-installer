@@ -7,7 +7,7 @@ import os, argparse
 from dotenv import dotenv_values
 from pathlib import Path
 
-#---АГРУМЕНТЫ СКРИПТА---#
+#---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-i', '--input-file', required=True, type=str, help='Путь до входного файла')

@@ -19,16 +19,28 @@ from pathlib import Path
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument("-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)")
-parser.add_argument('-y', '--yes', required=False, action='store_true', help='Согласиться на все')
-parser.add_argument("--is_logs", required=False, default=1, type=int, help="нужны ли логи при создании mysql-пользователя")
-parser.add_argument("--is-create-team", required=False, default=0, type=int, help="создание новой команды")
+parser = scriptutils.create_parser(
+    description="Скрипт для создания mysql-пользователя для репликации.",
+    usage="python3 script/replication/create_mysql_user.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team] [--yes] [--is-logs IS_LOGS] [--is-create-team IS_CREATE_TEAM]",
+    epilog="Пример: python3 script/replication/create_mysql_user.py -v compass -e production --type monolith --yes --is-logs 1 --is-create-team 1",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument(
+    "-t", "--type", required=False, default="monolith", type=str,
+    help="На каком типе mysql запускаем (monolith или team)",
+    choices=["monolith", "team"]
+)
+parser.add_argument('-y', '--yes', required=False, action='store_true',
+                    help='Автоматическое подтверждение всех вопросов')
+parser.add_argument("--is-logs", required=False, default=1, type=int,
+                    help="1 - записываем логи при создании mysql-пользователя")
+parser.add_argument("--is-create-team", required=False, default=0, type=int,
+                    help="1 - если пользователь создается в новой команде")
 
 args = parser.parse_args()
 values_name = args.values
@@ -38,6 +50,7 @@ is_logs = bool(is_logs == 1)
 is_create_team = bool(args.is_create_team == 1)
 
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -88,7 +101,8 @@ def start():
     replicator_user = security["replication"]["mysql_user"]
     replicator_pass = security["replication"]["mysql_pass"]
 
-    mysql_command = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s';" % (replicator_user, replicator_pass) + \
+    mysql_command = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s';" % (
+        replicator_user, replicator_pass) + \
                     "GRANT REPLICATION SLAVE ON *.* TO '%s'@'%%';" % replicator_user + \
                     "FLUSH PRIVILEGES;"
 
@@ -135,14 +149,16 @@ def start():
             for space_id, space_config_obj in space_config_obj_dict.items():
                 if is_logs:
                     print("Создаём mysql-пользователя для компании %s" % space_id)
-                found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
+                found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id,
+                                                                             space_config_obj.port)
                 result = found_container.exec_run(cmd)
         else:
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
             if is_logs:
                 print("Создаём mysql-пользователя для компании %s" % space_id)
-            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
+            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id,
+                                                                         space_config_obj.port)
             result = found_container.exec_run(cmd)
     else:
         mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
@@ -164,6 +180,7 @@ def start():
     else:
         if is_logs:
             print(scriptutils.success("Пользователь для mysql успешно создан!"))
+
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
@@ -205,6 +222,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 # точка входа в скрипт
 start()

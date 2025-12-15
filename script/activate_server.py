@@ -12,7 +12,7 @@ from utils import scriptutils
 from loader import Loader
 from time import sleep
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str,

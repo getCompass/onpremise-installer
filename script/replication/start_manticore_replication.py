@@ -4,10 +4,9 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, sys, os, subprocess, re, json
+import yaml, sys, os, re, json
 import docker
 import glob
-import logging
 from typing import Dict
 from time import sleep
 
@@ -20,15 +19,22 @@ from pathlib import Path
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument("-t", "--type", required=False, default="master", type=str, help="тип репликации (master|reserve)")
+parser = scriptutils.create_parser(
+    description="Скрипт для запуска репликации сервиса manticore.",
+    usage="python3 script/replication/start_manticore_replication.py [-v VALUES] [-e ENVIRONMENT] [--type master|reserve] [--master-mysql-server-id MASTER_MYSQL_SERVER_ID] [--need-update-company NEED_UPDATE_COMPANY]",
+    epilog="Пример: python3 script/replication/start_manticore_replication.py -v compass -e production --type reserve --master-mysql-server-id 1 --need-update-company 0",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("-t", "--type", required=False, default="master", type=str,
+                    help="Тип репликации. Возможные значения: master - создаем новый кластер manticore; reserve - подключаемся к существующему кластеру manticore")
 parser.add_argument("--master-mysql-server-id", required=False, default=1, type=int, help="server_id мастер сервера")
-parser.add_argument('--need-update-company', required=False, default=0, type=int, help='нужно ли обновление для компаний')
+parser.add_argument('--need-update-company', required=False, default=0, type=int,
+                    help='1 - нужно подключить созданные команды к кластеру')
 
 args = parser.parse_args()
 environment = args.environment
@@ -38,6 +44,7 @@ master_mysql_server_id = args.master_mysql_server_id
 need_update_company = args.need_update_company
 
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -150,15 +157,14 @@ def start():
 
     print("Обновляем команды - прикрепляем созданные ранее таблицы manticore к кластеру")
     for space_id, space_config_obj in space_config_obj_dict.items():
-
         print("Прикрепляем к кластеру команду %s" % space_id)
         mysql_command = "ALTER CLUSTER %s ADD main_%s;" % (manticore_cluster_name, space_id)
         manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
 
 
 # запускаем репликацию мантикоры
-def manticore_replication(found_container: docker.models.containers.Container, mysql_command: str, manticore_host: str, manticore_external_port: int, is_need_log: int):
-
+def manticore_replication(found_container: docker.models.containers.Container, mysql_command: str, manticore_host: str,
+                          manticore_external_port: int, is_need_log: int):
     cmd = "mariadb --skip-ssl -h %s -P %s -e \"%s\"" % (manticore_host, manticore_external_port, mysql_command)
 
     try:
@@ -175,6 +181,7 @@ def manticore_replication(found_container: docker.models.containers.Container, m
             if result.output:
                 print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
             sys.exit(result.exit_code)
+
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
@@ -213,6 +220,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
 
         space_config_obj_dict[space_config_obj.space_id] = space_config_obj
     return space_config_obj_dict
+
 
 # точка входа в скрипт
 start()

@@ -10,6 +10,7 @@ from pathlib import Path
 from time import sleep
 import urllib.request
 import requests
+import argparse
 import subprocess
 import time
 
@@ -391,6 +392,22 @@ def generate_random_password(size: int) -> str:
         required[0], required[j] = required[j], required[0]
 
     return "".join(required)
+
+
+# создает ArgumentParser с едиными настройками форматирования
+def create_parser(description: str = None, add_help: bool = True, usage: str = None,
+                  epilog: str = None) -> argparse.ArgumentParser:
+    return argparse.ArgumentParser(
+        add_help=add_help,
+        description=description,
+        usage=usage,
+        epilog=epilog,
+        formatter_class=lambda prog: argparse.HelpFormatter(
+            prog,
+            max_help_position=100,
+            width=600
+        )
+    )
 
 
 def parse_destination(dst: str):

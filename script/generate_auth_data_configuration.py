@@ -12,7 +12,7 @@ import imaplib
 import requests
 import json
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -24,12 +24,12 @@ config = {}
 
 if not config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             config_path.resolve())))
     exit(1)
 if not captcha_config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             captcha_config_path.resolve())))
     exit(1)
 
@@ -43,54 +43,28 @@ config.update(config_values)
 
 root_path = str(Path(script_dir + "/../").resolve())
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "--auth-output-path",
-    required=False,
-    default=root_path + "/src/pivot/config/pivot_auth.gophp",
-    help="Путь до выходного файла auth конфига для авторизации/регистрации",
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации конфигов авторизации.",
+    usage="python3 script/generate_auth_data_configuration.py [--auth-output-path AUTH_OUTPUT_PATH] [--smtp-output-path SMTP_OUTPUT_PATH] [--sso-output-path SSO_OUTPUT_PATH] [--sso-oidc-output-path SSO_OIDC_OUTPUT_PATH] [--sso-ldap-output-path SSO_LDAP_OUTPUT_PATH] [--pivot-ldap-output-path PIVOT_LDAP_OUTPUT_PATH] [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/generate_auth_data_configuration.py --auth-output-path /home/compass/src/pivot/config/pivot_auth.gophp --smtp-output-path /home/compass/src/pivot/config/pivot_mail.gophp --sso-output-path /home/compass/src/federation/config/sso.gophp --sso-oidc-output-path /home/compass/src/federation/config/oidc.gophp --sso-ldap-output-path /home/compass/src/federation/config/ldap.gophp --pivot-ldap-output-path /home/compass/src/pivot/config/ldap.gophp --validate-only --installer-output",
 )
 
-parser.add_argument(
-    "--smtp-output-path",
-    required=False,
-    default=root_path + "/src/pivot/config/pivot_mail.gophp",
-    help="Путь до выходного файла smtp конфига для почты",
-)
-
-parser.add_argument(
-    "--sso-output-path",
-    required=False,
-    default=root_path + "/src/federation/config/sso.gophp",
-    help="Путь до выходного файла конфига для SSO",
-)
-
-parser.add_argument(
-    "--sso-oidc-output-path",
-    required=False,
-    default=root_path + "/src/federation/config/oidc.gophp",
-    help="Путь до выходного файла конфига для SSO",
-)
-
-parser.add_argument(
-    "--sso-ldap-output-path",
-    required=False,
-    default=root_path + "/src/federation/config/ldap.gophp",
-    help="Путь до выходного файла конфига для LDAP",
-)
-
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action='store_true'
-)
+parser.add_argument("--auth-output-path", required=False, default=root_path + "/src/pivot/config/pivot_auth.gophp",
+                    help="Путь до выходного файла auth конфига для авторизации/регистрации", )
+parser.add_argument("--smtp-output-path", required=False, default=root_path + "/src/pivot/config/pivot_mail.gophp",
+                    help="Путь до выходного файла smtp конфига почты", )
+parser.add_argument("--sso-output-path", required=False, default=root_path + "/src/federation/config/sso.gophp",
+                    help="Путь до выходного файла конфига для SSO", )
+parser.add_argument("--sso-oidc-output-path", required=False, default=root_path + "/src/federation/config/oidc.gophp",
+                    help="Путь до выходного файла конфига для OIDC", )
+parser.add_argument("--sso-ldap-output-path", required=False, default=root_path + "/src/federation/config/ldap.gophp",
+                    help="Путь до выходного файла конфига для LDAP", )
+parser.add_argument("--pivot-ldap-output-path",required=False, default=root_path + "/src/pivot/config/ldap.gophp",
+                    help="Путь до выходного файла конфига для LDAP в Pivot",)
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 
 args = parser.parse_args()
 
@@ -105,11 +79,13 @@ smtp_conf_path = args.smtp_output_path
 sso_conf_path = args.sso_output_path
 sso_oidc_conf_path = args.sso_oidc_output_path
 sso_ldap_conf_path = args.sso_ldap_output_path
+pivot_ldap_conf_path = args.pivot_ldap_output_path
 sso_conf_path = Path(sso_conf_path)
 auth_conf_path = Path(auth_conf_path)
 smtp_conf_path = Path(smtp_conf_path)
 sso_oidc_conf_path = Path(sso_oidc_conf_path)
 sso_ldap_conf_path = Path(sso_ldap_conf_path)
+pivot_ldap_conf_path = Path(pivot_ldap_conf_path)
 validation_errors = []
 
 
@@ -844,6 +820,7 @@ class SsoLdapConfig:
         self.authorization_2fa_enabled = authorization_2fa_enabled
         self.compass_mapping_mail_2fa = compass_mapping_mail_2fa
         self.mail_2fa_allowed_domains = mail_2fa_allowed_domains
+
     def input(self):
 
         # получаем значение доступных методов для авторизации
@@ -938,19 +915,6 @@ class SsoLdapConfig:
             ldap_user_unique_attribute = ""
 
         try:
-            ldap_user_login_attribute = interactive.InteractiveValue(
-                "ldap.user_login_attribute",
-                "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве логина",
-                "str", config=config, is_required=is_required, validation="sso_attr"
-            ).from_config()
-
-            if ldap_user_login_attribute is None:
-                ldap_user_login_attribute = ""
-        except interactive.IncorrectValueException as e:
-            handle_exception(e.field, e.message)
-            ldap_user_login_attribute = ""
-
-        try:
             ldap_user_search_filter = interactive.InteractiveValue(
                 "ldap.user_search_filter",
                 "Фильтр для поиска учетной записи LDAP в момент авторизации пользователя в приложении", "str",
@@ -968,6 +932,24 @@ class SsoLdapConfig:
                     "ldap.user_search_filter",
                     "В поле ldap.user_search_filter отсутствует уникальный аттрибут"
                 )
+
+        user_login_attribute_required = False
+        if (("sso" in available_methods and sso_protocol == "ldap") or (
+                "sso" in available_guest_methods and sso_protocol == "ldap")) and len(ldap_user_search_filter) < 1:
+            user_login_attribute_required = True
+
+        try:
+            ldap_user_login_attribute = interactive.InteractiveValue(
+                "ldap.user_login_attribute",
+                "Название атрибута учетной записи LDAP, значение которого будет использоваться в качестве логина",
+                "str", config=config, is_required=user_login_attribute_required, validation="sso_attr"
+            ).from_config()
+
+            if ldap_user_login_attribute is None:
+                ldap_user_login_attribute = ""
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_user_login_attribute = ""
 
         try:
             ldap_user_profile_update_filter = interactive.InteractiveValue(
@@ -1301,6 +1283,7 @@ def generate_config():
     # генерируем данные для sso ldap
     sso_ldap_config_list = generate_sso_ldap_config()
     sso_ldap_output = make_ldap_output(sso_ldap_config_list)
+    pivot_ldap_output = make_pivot_ldap_output(sso_ldap_config_list)
 
     # если только валидируем данные, то файлы не пишем
     if validate_only:
@@ -1329,6 +1312,7 @@ def generate_config():
     write_file(sso_output, sso_conf_path)
     write_file(sso_oidc_output, sso_oidc_conf_path)
     write_file(sso_ldap_output, sso_ldap_conf_path)
+    write_file(pivot_ldap_output, pivot_ldap_conf_path)
 
 
 # получаем содержимое конфига для аутентификации
@@ -1444,6 +1428,20 @@ return $CONFIG;'''.format(
         ldap_main_config.make_output(),
     )
 
+def make_pivot_ldap_output(ldap_config_list: list):
+    ldap_main_config = ldap_config_list[0]
+    return r'''<?php
+
+namespace Compass\Pivot;
+
+/** параметры подключения LDAP провайдера */
+$CONFIG["LDAP"] = [
+	{}
+];
+
+return $CONFIG;'''.format(
+        ldap_main_config.make_output(),
+    )
 
 # генерируем данные для аутентификации
 def generate_auth_config() -> dict:

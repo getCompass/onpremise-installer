@@ -16,6 +16,7 @@ if (subdomain) {
 }
 config.hosts.muc = 'conference.' + subdomain + 'meet.jitsi';
 config.bosh = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'http-bind';
+config.websocket = 'wss://{{.projects.jitsi.domain}}/' + subdir + 'xmpp-websocket';
 config.conferenceRequestUrl = '{{.protocol}}://{{.projects.jitsi.domain}}/' + subdir + 'conference-request/v1';
 
 // Video configuration.
@@ -186,7 +187,11 @@ config.securityUi = {
 // Deployment information.
 //
 
-config.deploymentInfo = {};
+config.deploymentInfo = {
+	shard: "shard1",
+	region: "europe",
+	userRegion: "asia",
+};
 
 // Deep Linking
 config.disableDeepLinking = false;

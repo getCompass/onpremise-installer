@@ -11,36 +11,24 @@ from utils import scriptutils
 from time import sleep
 from utils.interactive import InteractiveValue, IncorrectValueException
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-v", "--values", required=False, default="compass", type=str, help="Название values файла окружения"
-)
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="Окружение, в котором разворачиваем",
+parser = scriptutils.create_parser(
+    description="Скрипт для создания главного пользователя.",
+    usage="python3 script/create_root_user.py [-v VALUES] [-e ENVIRONMENT] [--validate-only] [--installer-output] [--service-label SERVICE_LABEL]",
+    epilog="Пример: python3 script/create_root_user.py -v compass -e production --validate-only --installer-output --service-label primary",
 )
 
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-
-parser.add_argument('--service_label', required=False, default="", type=str, help='Метка сервиса, к которому закреплён стак')
-
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action="store_true"
-)
-
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
+parser.add_argument('--service-label', required=False, default="", type=str,
+                    help='Метка сервисов, к которому закреплен контейнер php-monolith')
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -60,7 +48,7 @@ validation_errors = []
 if not config_path.exists():
     print(
         scriptutils.error(
-            "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+            "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию"
             % str(config_path.resolve())
         )
     )
@@ -69,7 +57,7 @@ if not config_path.exists():
 if not auth_config_path.exists():
     print(
         scriptutils.error(
-            "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+            "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию"
             % str(auth_config_path.resolve())
         )
     )
@@ -119,6 +107,7 @@ if not validate_only:
 service_label = current_values.get("service_label") if current_values.get("service_label") else ""
 if service_label != "":
     stack_name = stack_name + "-" + service_label
+
 
 def handle_exception(field, message: str):
     if validate_only:

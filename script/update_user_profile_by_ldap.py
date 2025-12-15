@@ -14,7 +14,7 @@ import docker
 from utils import scriptutils
 from time import sleep
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')

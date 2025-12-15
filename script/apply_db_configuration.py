@@ -1,33 +1,27 @@
 #!/usr/bin/env python3
-import argparse
-
-import docker.models
-import docker.models.containers
-import yaml, subprocess, docker
 
 from pathlib import Path
-from utils import scriptutils
 from time import sleep
-from loader import Loader
 
-# region АГРУМЕНТЫ СКРИПТА #
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument(
-    "-v",
-    "--values",
-    required=False,
-    default="compass",
-    type=str,
-    help="Название values файла окружения",
+import docker
+import docker.models
+import docker.models.containers
+import subprocess
+import yaml
+
+from loader import Loader
+from utils import scriptutils
+
+# region АРГУМЕНТЫ СКРИПТА #
+parser = scriptutils.create_parser(
+    description="Скрипт для применения изменений конфига внешних баз данных.",
+    usage="python3 script/apply_db_configuration.py [-v VALUES] [-e ENVIRONMENT]",
+    epilog="Пример: python3 script/apply_db_configuration.py -v compass -e production",
 )
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="Окружение, в котором разворачиваем",
-)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
 args = parser.parse_args()
 
 values_arg = args.values if args.values else ""
@@ -82,11 +76,13 @@ with config_path.open("r") as config_file:
 if db_config.get("database_connection", {}).get("driver") != "host":
     scriptutils.die("Скрипт можно выполнить только для host драйвера")
 
+
 class DBDriverConf:
 
     def __init__(self, driver: str, data: any):
         self.driver = driver
         self.data = data
+
 
 class DominoCredentials:
 
@@ -94,6 +90,7 @@ class DominoCredentials:
         self.domino_id = domino_id
         self.company_mysql_user = company_mysql_user
         self.company_mysql_pass = company_mysql_pass
+
 
 def load_domino_credentials() -> DominoCredentials:
     """Загрузить информацию о домино, необходимую для создания порта"""
@@ -124,7 +121,9 @@ def load_domino_credentials() -> DominoCredentials:
     first_key = list(domino_project)[0]
     first_domino = domino_project[first_key]
 
-    return DominoCredentials(first_domino["label"], first_domino["company_mysql_user"], first_domino["company_mysql_password"])
+    return DominoCredentials(first_domino["label"], first_domino["company_mysql_user"],
+                             first_domino["company_mysql_password"])
+
 
 def get_pivot_container() -> docker.models.containers.Container:
     """Получить контейнер пивота"""
@@ -144,7 +143,7 @@ def get_pivot_container() -> docker.models.containers.Container:
         )
 
         if len(docker_container_list) > 0:
-            found_pivot_container : docker.models.containers.Container = docker_container_list[0]
+            found_pivot_container: docker.models.containers.Container = docker_container_list[0]
             break
         n = n + 5
         sleep(5)
@@ -152,8 +151,9 @@ def get_pivot_container() -> docker.models.containers.Container:
             scriptutils.die(
                 "Не был найден необходимый docker-контейнер для создания команды. Убедитесь, что окружение поднялось корректно"
             )
-    
+
     return found_pivot_container
+
 
 def add_ports(pivot_container: docker.models.containers.Container, db_driver: DBDriverConf) -> None:
     """Функция для добавления портов на домино"""
@@ -166,7 +166,8 @@ def add_ports(pivot_container: docker.models.containers.Container, db_driver: DB
 
     domino_credentials = load_domino_credentials()
 
-    loader = Loader("Применяем конфигурацию БД...", "Успешно применили конфигурацию БД", "Не смогли применить конфигурацию БД")
+    loader = Loader("Применяем конфигурацию БД...", "Успешно применили конфигурацию БД",
+                    "Не смогли применить конфигурацию БД")
     output = pivot_container.exec_run(
         user="www-data",
         cmd=[
@@ -182,40 +183,42 @@ def add_ports(pivot_container: docker.models.containers.Container, db_driver: DB
         loader.error()
         print(output.output.decode("utf-8"))
 
-def start() -> None:
 
-    db_driver = DBDriverConf(db_config["database_connection"]["driver"], db_config["database_connection"].get("driver_data", None))
+def start() -> None:
+    db_driver = DBDriverConf(db_config["database_connection"]["driver"],
+                             db_config["database_connection"].get("driver_data", None))
 
     # валидируем конфигурацию БД
     subprocess.run(
-    [
-        "python3",
-        script_dir + "/validate_db_configuration.py",
-        "--validate-only"
-    ]
+        [
+            "python3",
+            script_dir + "/validate_db_configuration.py",
+            "--validate-only"
+        ]
     ).returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации БД")
 
     confirm = input(scriptutils.warning("Применяем конфигурацию БД, заданную в %s?[y/n]" % str(config_path.resolve())))
 
     if confirm != "y":
         scriptutils.die("Выполнение скрипта прервано")
-    
+
     # применяем конфигурацию БД
     subprocess.run(
-    [
-        "python3",
-        script_dir + "/validate_db_configuration.py",
-    ]
+        [
+            "python3",
+            script_dir + "/validate_db_configuration.py",
+        ]
     ).returncode == 0 or scriptutils.die("Ошибка при фиксировании конфигурации БД")
 
     print("Обновляем приложение")
     subprocess.run([
         "python3",
         "%s/update.py" % script_dir,
-        ])
-        
+    ])
+
     # добавляем порты
     add_ports(get_pivot_container(), db_driver)
+
 
 start()
 print(scriptutils.success("Успешно обновили конфигурацию баз данных"))
