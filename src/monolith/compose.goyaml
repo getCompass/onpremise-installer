@@ -167,6 +167,9 @@ configs:
   federation-ldap:
     name: "{{.stack_name}}_federation_ldap-{{.config_revisions.project.federation.ldap.php}}"
     file: ".project.federation.ldap.php"
+  pivot-ldap:
+    name: "{{.stack_name}}_pivot_ldap-{{.config_revisions.project.pivot.ldap.php}}"
+    file: ".project.pivot.ldap.php"
   pivot-restrictions:
     name: "{{.stack_name}}_pivot_restrictions-{{.config_revisions.project.pivot.restrictions.php}}"
     file: ".project.pivot.restrictions.php"
@@ -985,6 +988,8 @@ services:
         target: "/app/src/Compass/Federation/api/conf/oidc.php"
       - source: "federation-ldap"
         target: "/app/src/Compass/Federation/api/conf/ldap.php"
+      - source: "pivot-ldap"
+        target: "/app/src/Compass/Pivot/api/conf/ldap.php"
       - source: "bot-conf"
         target: "/app/src/Compass/Pivot/sh/start/bot_info_list.json"
       - source: "tariff-conf-conversation-{{$domino.label}}"

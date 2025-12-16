@@ -44,38 +44,19 @@ with config_path.open("r") as config_file:
 
 config.update(config_values)
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    default="production",
-    required=False,
-    type=str,
-    help="среда, для которой производим развертывание",
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации ssl сертификатов.",
+    usage="python3 script/generate_ssl_certificates.py [-v VALUES] [-e ENVIRONMENT] [--force] [--validate-only]",
+    epilog="Пример: python3 script/generate_ssl_certificates.py -v compass -e production --force --validate-only",
 )
-
-parser.add_argument(
-    "-v",
-    "--values",
-    default="compass",
-    required=False,
-    type=str,
-    help="название файла со значениями для развертывания",
-)
-
-parser.add_argument(
-    "--force",
-    required=False,
-    action='store_true',
-    help="форсированная регенерация сертификатов",
-)
-
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--force", required=False, action='store_true',
+                    help="Повторная генерация сертификатов, если они уже сгенерированы", )
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
 
 args = parser.parse_args()
 
@@ -240,7 +221,6 @@ def get_file_hash(filepath):
 
 # копируем серты в доверенные
 def ca_cert_copy(pubkey: str, pubkey_path: str):
-
     try:
         if scriptutils.is_rpm_os():
             shutil.copy2(pubkey_path, "%s/%s" % (RPM_CA_TRUST_CERT_PATH, pubkey))

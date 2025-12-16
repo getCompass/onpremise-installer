@@ -35,31 +35,31 @@ dlp_config = {}
 
 if not config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             config_path.resolve())))
     exit(1)
 
 if not database_config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             database_config_path.resolve())))
     exit(1)
 
 if not replication_config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             replication_config_path.resolve())))
     exit(1)
 
 if not team_config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             team_config_path.resolve())))
     exit(1)
 
 if not dlp_config_path.exists():
     print(scriptutils.error(
-        "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию" % str(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             dlp_config_path.resolve())))
     exit(1)
 with config_path.open("r") as config_file:
@@ -159,53 +159,29 @@ database_driver_data_fields = {
     "docker": [],
 }
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=True,
-    type=str,
-    help="среда, для которой производим развертывание",
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации values.",
+    usage="python3 script/init.py [-v VALUES] [-p PROJECT] [-e ENVIRONMENT] [--project-name-override PROJECT_NAME_OVERRIDE] [--use-default-values] [--install-integration] [--validate-only] [--installer-output]",
+    epilog="Пример: python3 script/init.py -v compass -p monolith -e production --project-name-override public --use-default-values --install-integration --validate-only --installer-output",
 )
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
 parser.add_argument(
-    "-p", "--project", required=False, type=str, help="проект, который развертываем"
+    "-p", "--project", required=False, type=str, help="Название проекта, который разворачиваем (например: monolith)"
 )
-parser.add_argument(
-    "-v",
-    "--values",
-    required=True,
-    type=str,
-    help="название файла со значениями для развертывания",
-)
-parser.add_argument(
-    "--project-name-override",
-    required=False,
-    type=str,
-    help="оверрайд для имени проекта",
-)
-parser.add_argument(
-    "--use-default-values",
-    required=False,
-    action='store_true'
-)
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
-parser.add_argument(
-    "--install-integration",
-    required=False,
-    action='store_true'
-)
-parser.add_argument(
-    "--installer-output",
-    required=False,
-    action="store_true"
-)
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--project-name-override", required=False, type=str, help="Название для перезаписи имени проекта")
+parser.add_argument("--use-default-values", required=False, action='store_true',
+                    help="Использовать значения из дефолтного values.yaml")
+parser.add_argument("--install-integration", required=False, action='store_true',
+                    help="Установка модуля интеграций с внешним сервисом")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
 args = parser.parse_args()
 
 

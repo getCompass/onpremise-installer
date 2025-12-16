@@ -53,6 +53,36 @@ location = /http-bind {
     proxy_pass http://$prosody_upstream/http-bind?prefix=$prefix&$args;
 }
 
+# xmpp websockets
+location = /xmpp-websocket {
+    proxy_pass http://$prosody_upstream/xmpp-websocket?prefix=$prefix&$args;
+
+    #shard & region that matches config.deploymentInfo.shard/region -  See [note 1] below
+    add_header 'x-jitsi-shard' 'shard1';
+    add_header 'x-jitsi-region' 'europe';
+    add_header 'Access-Control-Expose-Headers' 'X-Jitsi-Shard, X-Jitsi-Region';
+
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Host meet.jitsi;
+
+    proxy_http_version 1.1;
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+    proxy_busy_buffers_size  256k;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    tcp_nodelay on;
+}
+
+# colibri (JVB) websockets for jvb1
+location ~ ^/colibri-ws/(jvb)/(.*) {
+    proxy_pass http://$1:9090/colibri-ws/$1/$2$is_args$args;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    tcp_nodelay on;
+}
+
 location ~ ^/conference-request/v1(\/.*)?$ {
     proxy_pass http://jicofo-{{.projects.jitsi.label}}:8888/conference-request/v1$1;
     add_header "Cache-Control" "no-cache, no-store";
@@ -91,6 +121,14 @@ location ~ ^/([^/?&:'"]+)/http-bind {
     set $prefix "$1";
 
     rewrite ^/(.*)$ /http-bind;
+}
+# websockets for subdomains
+location ~ ^/([^/?&:'"]+)/xmpp-websocket {
+    set $subdomain "$1.";
+    set $subdir "$1/";
+    set $prefix "$1";
+
+    rewrite ^/(.*)$ /xmpp-websocket;
 }
 # Anything that didn't match above, and isn't a real file, assume it's a room name and redirect to /
 location ~ ^/([^/?&:'"]+)/(.*)$ {

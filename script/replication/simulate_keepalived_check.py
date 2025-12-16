@@ -5,7 +5,7 @@ from pathlib import Path
 
 SIMULATION_FAILURE_FLAG_FILE = "/tmp/simulate_keepalived_failure"
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 simulate_type = sys.argv[1]
 check_name = sys.argv[2] if len(sys.argv) > 2 else ""
 

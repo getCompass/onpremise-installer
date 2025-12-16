@@ -9,6 +9,24 @@ location /http-bind {
 	proxy_set_header Connection "upgrade";
 }
 
+location /xmpp-websocket {
+
+	proxy_pass https://$upstream_jitsi_web;
+    proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "upgrade";
+    tcp_nodelay on;
+}
+
+location /colibri-ws {
+
+	proxy_pass https://$upstream_jitsi_web;
+    proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "upgrade";
+    tcp_nodelay on;
+}
+
 location /api/room {
 
 	proxy_set_header Host "conference.meet.jitsi";
@@ -57,6 +75,16 @@ location ~* ^/(c)/[a-zA-Z0-9_\-]+ {
 location ~ ^/(libs|css|static|images|fonts|lang|sounds|connection_optimization|.well-known)/(.*)$ {
 
 	proxy_pass https://$upstream_jitsi_web;
+}
+
+# location для jitsi web компонента вебсокет
+location {{.projects.jitsi.subdir}}/xmpp-websocket {
+
+	proxy_pass https://$upstream_jitsi_web;
+    proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "upgrade";
+    tcp_nodelay on;
 }
 
 # location для jitsi web компонента

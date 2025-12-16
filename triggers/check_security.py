@@ -4,7 +4,7 @@ import os, argparse, yaml
 import OpenSSL.crypto, OpenSSL.SSL
 from datetime import datetime
 
-#---АГРУМЕНТЫ СКРИПТА---#
+#---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-v', '--values-path', required=True, type=str, help='Путь до values файла')

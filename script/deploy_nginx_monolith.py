@@ -12,7 +12,7 @@ import shutil
 from typing import Union
 from loader import Loader
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-e', '--environment', required=True, type=str, help='окружение, на котором разворачиваем')

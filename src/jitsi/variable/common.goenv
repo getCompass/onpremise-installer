@@ -26,10 +26,12 @@ JVB_PORT={{.projects.jitsi.service.jvb.media_port}}
 JICOFO_REST_PORT={{.projects.jitsi.service.jicofo.port}}
 HTTPS_PORT={{.projects.jitsi.service.web.https_port}}
 
-# отключаем xmpp/colibri websocket
+# включаем xmpp/colibri websocket
 ENABLE_SCTP=1
-ENABLE_COLIBRI_WEBSOCKET=0
-ENABLE_XMPP_WEBSOCKET=0
+ENABLE_COLIBRI_WEBSOCKET=1
+JVB_WS_DOMAIN="{{.projects.jitsi.domain}}:443"
+JVB_WS_SERVER_ID="jvb1"
+ENABLE_XMPP_WEBSOCKET=1
 
 # jicofo
 ENABLE_CODEC_VP9=1
@@ -38,7 +40,8 @@ ENABLE_CODEC_H264=1
 VISITORS_MAX_PARTICIPANTS=100
 VISITORS_MAX_VISITORS_PER_NODE=400
 JICOFO_VISITORS_REQUIRE_MUC_CONFIG=0
-JICOFO_ENABLE_HEALTH_CHECKS=1
+JICOFO_ENABLE_HEALTH_CHECKS=0
+MAX_BRIDGE_PARTICIPANTS="-1"
 
 # prosody
 ENABLE_VISITORS=1

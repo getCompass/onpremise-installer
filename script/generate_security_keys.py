@@ -13,23 +13,16 @@ from utils import scriptutils
 
 script_dir = str(Path(__file__).parent.resolve())
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=True,
-    type=str,
-    help="среда, для которой производим развертывание",
+parser = scriptutils.create_parser(
+    description="Скрипт для генерации секретных ключей.",
+    usage="python3 script/generate_security_keys.py [-v VALUES] [-e ENVIRONMENT]",
+    epilog="Пример: python3 script/generate_security_keys.py -v compass -e production",
 )
 
-parser.add_argument(
-    "-v",
-    "--values",
-    required=True,
-    type=str,
-    help="название файла со значениями для развертывания",
-)
+parser.add_argument('-v', '--values', required=True, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=True, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
 args = parser.parse_args()
 
 values_name = args.values

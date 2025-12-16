@@ -16,7 +16,7 @@ from pathlib import Path
 from time import sleep
 from loader import Loader
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument(

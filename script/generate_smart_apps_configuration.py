@@ -87,24 +87,20 @@ config.update(smart_apps_config_values)
 
 root_path = script_dir.parent.resolve()
 
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument(
-    "--smart-apps-pivot-config-output-path",
-    required=False,
-    default=root_path / "src" / "pivot" / "config" / "smartapps.gophp",
-    help="Путь до выходного файла smart_apps конфигурации",
+parser = scriptutils.create_parser(
+    "Скрипт для генерации конфигурации smart apps.",
+    usage="python3 script/generate_smart_apps_configuration.py [--smart-apps-pivot-config-output-path SMART_APPS_PIVOT_CONFIG_OUTPUT_PATH] [--smart-apps-domino-config-output-path SMART_APPS_DOMINO_CONFIG_OUTPUT_PATH] [--validate-only]",
+    epilog="Пример: python3 script/generate_smart_apps_configuration.py --smart-apps-pivot-config-output-path /home/compass/src/pivot/config/smartapps.gophp --smart-apps-domino-config-output-path /home/compass/src/domino/config/smartapps.gophp --validate-only",
 )
-parser.add_argument(
-    "--smart-apps-domino-config-output-path",
-    required=False,
-    default=root_path / "src" / "domino" / "config" / "smartapps.gophp",
-    help="Путь до выходного файла конфигурации ограничений smart_apps",
-)
-parser.add_argument(
-    "--validate-only",
-    required=False,
-    action='store_true'
-)
+
+parser.add_argument("--smart-apps-pivot-config-output-path", required=False,
+                    default=root_path / "src" / "pivot" / "config" / "smartapps.gophp",
+                    help="Путь до выходного файла smart_apps конфигурации", )
+parser.add_argument("--smart-apps-domino-config-output-path", required=False,
+                    default=root_path / "src" / "domino" / "config" / "smartapps.gophp",
+                    help="Путь до выходного файла конфигурации ограничений smart_apps", )
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
 args = parser.parse_args()
 
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#

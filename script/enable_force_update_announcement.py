@@ -8,40 +8,24 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, psutil
+import yaml, psutil
 import docker
 from utils import scriptutils
 from time import sleep
 from pathlib import Path
 
-
-# ---АГРУМЕНТЫ СКРИПТА---#
-def print_usage():
-    print("""
-Скрипт для установки анонса принудительного обновления приложения
-
-Использование:
-    python3 script/enable_force_update_announcement.py -v VALUES -e ENVIRONMENT -p PLATFORM -c VERSION
-
-Обязательные параметры:
-    -v, --values        Название values файла окружения (например: compass)
-    -e, --environment   Окружение, в котором развернут проект (например: production)
-    -p, --platform      Платформа (electron/ios/android)
-    -c, --code-version  Версия кода (например: 1001111)
-
-Пример:
-    python3 script/enable_force_update_announcement.py -v compass -e production -p ios -c 1001111
-    """)
-    sys.exit(1)
-
-
-parser = argparse.ArgumentParser(add_help=True)
-parser.error = lambda message: print_usage()
-
-parser.add_argument('-v', '--values', required=False, default="compass", type=str, help='Название values файла окружения')
-parser.add_argument('-e', '--environment', required=False, default="production", type=str, help='Окружение, в котором развернут проект')
+# ---АРГУМЕНТЫ СКРИПТА---#
+parser = scriptutils.create_parser(
+    description="Скрипт для установки анонсов принудительного обновления клиентских приложений.",
+    usage="python3 script/enable_force_update_announcement.py [-v VALUES] [-e ENVIRONMENT] [-p PLATFORM] [-c VERSION]",
+    epilog="Пример: python3 script/enable_force_update_announcement.py -v compass -e production -p ios -c 1001111",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
 parser.add_argument('-p', '--platform', required=True, type=str, choices=['electron', 'ios', 'android'],
-                    help='Платформа (electron/ios/android)')
+                    help='Платформа. Возможные значения: electron/ios/android')
 parser.add_argument('-c', '--code-version', required=True, type=str, help='Версия кода (например: 1102339)')
 
 args = parser.parse_args()

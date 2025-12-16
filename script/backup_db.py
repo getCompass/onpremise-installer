@@ -19,28 +19,33 @@ import socket
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    description="Скрипт для бэкапов баз данных.",
+    usage="python3 script/backup_db.py [-v VALUES] [-e ENVIRONMENT] [--backups-folder BACKUPS_FOLDER] [--backup-name-format BACKUP_NAME_FORMAT] [--free-threshold-percent FREE_THRESHOLD_PERCENT] [--auto-cleaning-limit AUTO_CLEANING_LIMIT] [--userbot-notice-chat-id USERBOT_NOTICE_CHAT_ID] [--userbot-notice-token USERBOT_NOTICE_TOKEN] [--userbot-notice-domain USERBOT_NOTICE_DOMAIN] [--userbot-notice-text USERBOT_NOTICE_TEXT]",
+    epilog="Пример: python3 script/backup_db.py -v compass -e production --backups-folder backups --backup-name-format %d_%m_%Y --free-threshold-percent 10 --auto-cleaning-limit 15 --userbot-notice-chat-id PEHneUlL7nM... --userbot-notice-token f47f9384-sk4f-4d1c-8193-7a9b9384952e --userbot-notice-domain https://example.com/ --userbot-notice-text \"Ошибка при создании бэкапа на сервере!\"",
+)
 
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str,
-                    help="название файла со значениями для деплоя")
-parser.add_argument("--backups-folder", required=False, default="", type=str, help="директория для хранения бэкапов")
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--backups-folder", required=False, default="", type=str, help="Название директории для хранения бэкапов")
 parser.add_argument("--backup-name-format", required=False, default="%d_%m_%Y", type=str,
-                    help="формат имени папки бэкапа")
+                    help="Формат названия папки бэкапа")
 parser.add_argument("--free-threshold-percent", required=False, default=0, type=int,
-                    help="пороговое значение свободного места в процентах для возможности создания бэкапа")
+                    help="Минимальное значение свободного места в процентах, при котором будут создаваться бэкапы")
 parser.add_argument("--auto-cleaning-limit", required=False, default=0, type=int,
-                    help="лимит для автоматической очистки бэкапов, если их количество превышает указанный лимит")
+                    help="Максимальное количество хранимых бэкапов, при превышении значения самые старые бэкапы будут автоматически удаляться")
 parser.add_argument("--userbot-notice-chat-id", required=False, default="", type=str,
-                    help="id чата для отправки уведомления")
+                    help="ID чата, в который будут отправляться уведомления")
 parser.add_argument("--userbot-notice-token", required=False, default="", type=str,
-                    help="токен бота для отправки уведомления")
+                    help="Токен бота, который будет отправлять уведомления")
 parser.add_argument("--userbot-notice-domain", required=False, default="", type=str,
-                    help="домен, на который отправляется запрос уведомления")
+                    help="Домен приложения compass, на который отправляются уведомления")
 parser.add_argument("--userbot-notice-text", required=False, default="", type=str,
-                    help="текст уведомления от бота в случае, если не смогли создать бэкап")
+                    help="Текст отправляемого уведомления, когда не смогли создать бэкап")
 parser.add_argument("--need-backup-configs", required=False, default=1, type=int,
                     help="0 если не нужно бекапить конфиги")
 parser.add_argument("--need-backup-spaces", required=False, default=1, type=int,

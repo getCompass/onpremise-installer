@@ -7,9 +7,15 @@ import yaml
 
 from utils import scriptutils
 
-# region АГРУМЕНТЫ СКРИПТА #
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument("--validate-only", required=False, action="store_true")
+# region АРГУМЕНТЫ СКРИПТА #
+parser = scriptutils.create_parser(
+    "Скрипт для валидации конфига team.yaml.",
+    usage="python3 script/validate_team_configuration.py [--validate-only]",
+    epilog="Пример: python3 script/validate_team_configuration.py --validate-only",
+)
+
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
 args = parser.parse_args()
 
 script_dir = str(Path(__file__).parent.resolve())
@@ -44,11 +50,11 @@ try:
     with team_config_path.open("r") as team_config_file:
         team_config: dict = yaml.load(team_config_file, Loader=yaml.BaseLoader)
 except:
-    scriptutils.die("Не смогли прочитать конфигурацию %s. Поправьте её и запустите установку снова." % str(team_config_path.resolve()))
+    scriptutils.die("Не смогли прочитать конфигурацию %s. Поправьте её и запустите установку снова." % str(
+        team_config_path.resolve()))
 
 
 def start():
-
     file_access_mode = team_config.get("file.access_restriction_mode", None)
     if file_access_mode is None:
         scriptutils.die("не заполнен параметр file.access_restriction_mode")

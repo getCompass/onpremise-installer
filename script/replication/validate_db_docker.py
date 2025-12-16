@@ -13,11 +13,17 @@ sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
 
-# region АГРУМЕНТЫ СКРИПТА #
-parser = argparse.ArgumentParser(add_help=True)
+# region АРГУМЕНТЫ СКРИПТА #
+parser = scriptutils.create_parser(
+    "Скрипт для проверки, что внешние базы данных не используются при настройке репликации.",
+    usage="python3 script/replication/validate_db_docker.py [-v VALUES] [-e ENVIRONMENT]",
+    epilog="Пример: python3 script/replication/validate_db_docker.py -v compass -e production",
+)
 
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
 args = parser.parse_args()
 
 script_dir = str(Path(__file__).parent.resolve())

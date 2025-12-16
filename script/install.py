@@ -48,18 +48,26 @@ def append_step(step: str):
         pass
 
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("--use-default-values", required=False, action="store_true")
-parser.add_argument("--install-integration", required=False, action="store_true")
-parser.add_argument("--confirm-all", required=False, action="store_true")
-parser.add_argument("--validate-only", required=False, action="store_true")
-parser.add_argument("--installer-output", required=False, action="store_true")
-parser.add_argument("-e", "--environment", required=False, default="production", type=str,
-                    help="Окружение, в котором разворачиваем")
+parser = scriptutils.create_parser(
+    description="Скрипт для установки приложения compass.",
+    usage="python3 script/install.py [-e ENVIRONMENT] [--confirm-all] [--validate-only] [--installer-output] [--use-default-values] [--install-integration] [--data DATA]",
+    epilog="Пример: python3 script/install.py -e production --confirm-all --validate-only --installer-output --use-default-values --install-integration --data {\"product_type\":\"dev\"}",
+)
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--confirm-all", required=False, action="store_true",
+                    help='Автоматическое подтверждение всех вопросов')
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--installer-output", required=False, action="store_true",
+                    help='Вывод ошибок в формате JSON')
+parser.add_argument("--use-default-values", required=False, action='store_true',
+                    help="Использовать значения из дефолтного values.yaml")
+parser.add_argument("--install-integration", required=False, action='store_true',
+                    help="Установка модуля интеграций с внешним сервисом")
 # ВНИМАНИЕ - в data передается json
 parser.add_argument(
-    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+    "--data", required=False, type=json.loads, help="Произвольные дополнительные данные"
 )
 args = parser.parse_args()
 use_default_values = args.use_default_values
@@ -565,7 +573,7 @@ if scriptutils.is_replication_enabled(values_dict) == True:
             values_name,
             "--type",
             "monolith",
-            "--is_logs",
+            "--is-logs",
             str(0)
         ]
     )
@@ -596,7 +604,7 @@ if scriptutils.is_replication_master_server(values_dict):
     # создаем первого пользователя
     log("Создаем первого пользователя")
     subprocess.run(
-        ["python3", script_resolved_path + "/create_root_user.py", "-e", environment, "--service_label", service_label])
+        ["python3", script_resolved_path + "/create_root_user.py", "-e", environment, "--service-label", service_label])
 else:
     log("Запускаем репликацию mysql в monolith")
     subprocess.run(

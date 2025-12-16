@@ -4,7 +4,7 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, sys, os, time, re, glob, json
+import yaml, sys, os, re, glob, json
 import docker
 from typing import Dict
 from datetime import datetime
@@ -18,20 +18,30 @@ from pathlib import Path
 
 scriptutils.assert_root()
 
-LOG_FILE_NAME="/var/log/mysql_replication_lag"
+LOG_FILE_NAME = "/var/log/mysql_replication_lag"
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument("-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)")
+parser = scriptutils.create_parser(
+    description="Скрипт для записи времени отставания от master сервера применяемых mysql-изменений репликации.",
+    usage="python3 script/replication/set_slave_replication_lag.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team]",
+    epilog="Пример: python3 script/replication/set_slave_replication_lag.py -v compass -e production --type monolith",
+)
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument(
+    "-t", "--type", required=False, default="monolith", type=str,
+    help="На каком типе mysql запускаем (monolith или team)",
+    choices=["monolith", "team"]
+)
 args = parser.parse_args()
 values_name = args.values
 mysql_type = args.type.lower()
 
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -42,6 +52,7 @@ class DbConfig:
         self.port = port
         self.root_user = root_user
         self.root_password = root_password
+
 
 # получить данные окружение из values
 def get_values() -> Dict:
@@ -97,7 +108,8 @@ def start():
 
         # проходимся по каждому пространству
         for space_id, space_config_obj in space_config_obj_dict.items():
-            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id, space_config_obj.port)
+            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id,
+                                                                         space_config_obj.port)
             mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass, space_id)
     else:
         mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
@@ -110,9 +122,10 @@ def start():
 
         mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass, 0)
 
-# получить статус репликации в полученном контейнере
-def mysql_show_slave_replication_status(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
 
+# получить статус репликации в полученном контейнере
+def mysql_show_slave_replication_status(found_container: docker.models.containers.Container, mysql_host: str,
+                                        mysql_user: str, mysql_pass: str, space_id: int):
     cmd = f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_pass} -e \"SHOW SLAVE STATUS\\G\""
 
     try:
@@ -174,6 +187,7 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
     except Exception as e:
         print(f"Ошибка: {e}")
 
+
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
     # получаем название домино
@@ -213,6 +227,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 # точка входа в скрипт
 start()

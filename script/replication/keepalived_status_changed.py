@@ -20,28 +20,18 @@ from typing import Dict, List
 
 script_dir = str(Path(__file__).parent.resolve())
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument(
-    "-e",
-    "--environment",
-    required=False,
-    default="production",
-    type=str,
-    help="окружение",
+parser = scriptutils.create_parser(
+    description="Скрипт для переключения состояния сервера.",
+    usage="python3 script/replication/keepalived_status_changed.py [-v VALUES] [-e ENVIRONMENT] [--state MASTER|BACKUP|FAULT]",
+    epilog="Пример: python3 script/replication/keepalived_status_changed.py -v compass -e production --state BACKUP",
 )
-
-parser.add_argument(
-    "-v",
-    "--values",
-    required=False,
-    default="compass",
-    type=str,
-    help="название файла со значениями для деплоя",
-)
-parser.add_argument("--state", required=True, type=str, help="состояние сервера")
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--state", required=True, type=str, help="Переключить сервер в указанное состояние. Возможные значения: MASTER|BACKUP|FAULT")
 args = parser.parse_args()
 
 values_name = args.values
@@ -105,39 +95,35 @@ def start(state):
     logging.info("Spaces configs for this server have been retrieved.")
 
     # действия при переходе в MASTER
-    if state == "MASTER":
+    if state.lower() == "master":
         master_state_changed(current_values, monolith, space_config_obj_dict)
 
     # действия при переходе в BACKUP
-    elif state == "BACKUP":
+    elif state.lower() == "backup":
         backup_state_changed(current_values, monolith, space_config_obj_dict)
 
     # действия при переходе в FAULT
-    elif state == "FAULT":
+    elif state.lower() == "fault":
         fault_state_changed(current_values, monolith, space_config_obj_dict)
 
     else:
-        scriptutils.die("Некорректное значение state")
+        logging.error(scriptutils.error("Некорректное значение state"))
 
 
 # выполняем действия если state стал master
 def master_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
     logging.info("This server is now MASTER")
 
-    # ждём некоторое время пока другой сервер станет backup/fault
-    logging.info("Waiting for server states to change")
-    sleep(MASTER_STATE_CHANGED_SLEEP)
+    change_master_flag(current_values, current_values.get("service_label"))
+    logging.info("Changed master flag on Master")
 
     # меняем master_service_label, что текущий сервер стал master
     change_master_service_label(current_values, current_values.get("service_label"))
     logging.info("Changed master_service_label on Master")
 
-    # запускаем lsyncd файлов и конфигов
-    try:
-        subprocess.run(["sudo", "systemctl", "restart", "lsyncd"], check=True)
-    except subprocess.CalledProcessError as e:
-        logging.info(f"Ошибка при рестарте службы lsyncd: {e}")
-    logging.info("Restarted lsyncd on Master")
+    # ждём некоторое время пока другой сервер станет backup/fault
+    logging.info("Waiting for server states to change")
+    sleep(MASTER_STATE_CHANGED_SLEEP)
 
     # останавливаем репликацию
     stop_replication_db_list([monolith])
@@ -154,17 +140,13 @@ def master_state_changed(current_values: Dict, monolith: DbConfig, space_config_
 def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
     logging.info("This server is now BACKUP")
 
-    # останавливаем lsyncd файлов и конфигов
-    try:
-        subprocess.run(["sudo", "systemctl", "stop", "lsyncd"], check=True)
-    except subprocess.CalledProcessError as e:
-        logging.info(f"Ошибка при остановке службы lsyncd: {e}")
-    logging.info("Stopped lsyncd on Backup")
-
     # блочим запись в бд
     lock_write_db_list([monolith])
     lock_write_db_list(space_config_obj_dict)
     logging.info("Locked tables in DB")
+
+    change_master_flag(current_values)
+    logging.info("Changed master flag on Backup")
 
     # меняем master_service_label
     success = change_master_service_label(current_values)
@@ -207,18 +189,13 @@ def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_
 def fault_state_changed(current_values: Dict, monolith: DbConfig, space_config_obj_dict: list[DbConfig]):
     logging.info("This server is now FAULT")
 
-    # останавливаем lsyncd файлов и конфигов
-    try:
-        subprocess.run(["sudo", "systemctl", "stop", "lsyncd"], check=True)
-    except subprocess.CalledProcessError as e:
-        logging.info(f"Ошибка при остановке службы lsyncd: {e}")
-
-    logging.info("Stopped lsyncd on Fault")
-
     # блочим запись в бд
     lock_write_db_list([monolith])
     lock_write_db_list(space_config_obj_dict)
     logging.info("Locked tables in DB")
+
+    change_master_flag(current_values)
+    logging.info("Changed master flag on Fault")
 
     # меняем master_service_label
     change_master_service_label(current_values)
@@ -292,6 +269,61 @@ def get_values() -> Dict:
     return current_values
 
 
+# меняем master flag в файле для связи между серверами
+def change_master_flag(current_values: Dict, master_service_label: str = ""):
+    # получаем путь к файлу для связи компаний между серверами
+    servers_companies_relationship_file_path = current_values.get(
+        "company_config_mount_path") + "/" + current_values.get("servers_companies_relationship_file")
+
+    # получаем текущий service_label
+    current_service_label = current_values.get("service_label")
+
+    if master_service_label == "":
+
+        # читаем содержимое файла
+        logging.info("Try changed master flag...")
+        with open(servers_companies_relationship_file_path, "r") as file:
+            reserve_relationship_str = file.read()
+            reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
+
+            for label, data in reserve_relationship_dict.items():
+                new_data = data
+                if "master" in data and data["master"] == True and label != current_service_label:
+                    master_service_label = label
+                    logging.info("set \"master\" = true for %s" % label)
+                    data["master"] = True
+                    reserve_relationship_dict[label] = data
+                if current_service_label == label and label != master_service_label:
+                    data["master"] = False
+                    reserve_relationship_dict[label] = data
+        f = open(servers_companies_relationship_file_path, "w")
+        f.write(json.dumps(reserve_relationship_dict))
+        f.close()
+    else:
+
+        with open(servers_companies_relationship_file_path, "r") as file:
+            reserve_relationship_str = file.read()
+            reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
+
+            # меняем флаг master = true/false для серверов
+            if reserve_relationship_dict.get(current_service_label) is None:
+                logging.info("Changed \"master\" = true in current-values for %s" % current_service_label)
+                data = {"master": True}
+                reserve_relationship_dict[current_service_label] = data
+            for label, data in reserve_relationship_dict.items():
+                if label == master_service_label and ("master" not in data or data["master"] != True):
+                    logging.info("Changed \"master\" = true in current-values for %s" % label)
+                    data["master"] = True
+                if label != master_service_label:
+                    logging.info("Changed \"master\" = false in current-values for %s" % label)
+                    data["master"] = False
+                reserve_relationship_dict[label] = data
+
+        f = open(servers_companies_relationship_file_path, "w")
+        f.write(json.dumps(reserve_relationship_dict))
+        f.close()
+
+
 # меняем master_service_label в файле для связи между серверами
 def change_master_service_label(current_values: Dict, master_service_label: str = ""):
     # получаем путь к файлу для связи компаний между серверами
@@ -316,20 +348,8 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
                     reserve_relationship_str) if reserve_relationship_str != "" else {}
 
                 for label, data in reserve_relationship_dict.items():
-                    new_data = data
                     if "master" in data and data["master"] == True and label != current_service_label:
-                        logging.info("set \"master\" = true for %s" % label)
                         master_service_label = label
-                        new_data["master"] = True
-                        reserve_relationship_dict[label] = data
-                    if current_service_label == label and label != master_service_label:
-                        new_data["master"] = False
-                        reserve_relationship_dict[label] = data
-
-                    if new_data != data:
-                        f = open(servers_companies_relationship_file_path, "w")
-                        f.write(json.dumps(reserve_relationship_dict))
-                        f.close()
 
             # если определили master_service_label, то останавливаем цикл
             if master_service_label != "":
@@ -343,29 +363,6 @@ def change_master_service_label(current_values: Dict, master_service_label: str 
             if n == timeout:
                 logging.warning("Got empty master_service_label")
                 return False
-    else:
-
-        with open(servers_companies_relationship_file_path, "r") as file:
-            reserve_relationship_str = file.read()
-            reserve_relationship_dict = json.loads(reserve_relationship_str) if reserve_relationship_str != "" else {}
-
-            # меняем флаг master = true/false для серверов
-            if reserve_relationship_dict.get(current_service_label) is None:
-                logging.info("Changed \"master\" = true in current-values for %s" % current_service_label)
-                data = {"master": True}
-                reserve_relationship_dict[current_service_label] = data
-            for label, data in reserve_relationship_dict.items():
-                if label == master_service_label and ("master" not in data or data["master"] != True):
-                    logging.info("Changed \"master\" = true in current-values for %s" % label)
-                    data["master"] = True
-                if label != master_service_label:
-                    logging.info("Changed \"master\" = false in current-values for %s" % label)
-                    data["master"] = False
-                reserve_relationship_dict[label] = data
-
-        f = open(servers_companies_relationship_file_path, "w")
-        f.write(json.dumps(reserve_relationship_dict))
-        f.close()
 
     logging.info("Changed \"master_service_label\" = %s in current-values" % master_service_label)
 
@@ -392,8 +389,8 @@ def disable_read_mode_db_list(db_list: list[DbConfig]):
         container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die(
-                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            logging.error(scriptutils.error(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id))
 
         space_container: docker.models.containers.Container = container_list[0]
 
@@ -405,7 +402,7 @@ def disable_read_mode_db_list(db_list: list[DbConfig]):
 
         if result.exit_code != 0:
             print(result.output)
-            scriptutils.die("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id)
+            logging.error(scriptutils.error("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id))
 
 
 # останавливаем репликацию БД
@@ -415,8 +412,9 @@ def stop_replication_db_list(db_list: list[DbConfig]):
         container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die(
-                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            logging.warning(scriptutils.warning(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id))
+            return
 
         space_container: docker.models.containers.Container = container_list[0]
 
@@ -428,7 +426,7 @@ def stop_replication_db_list(db_list: list[DbConfig]):
 
         if result.exit_code != 0:
             print(result.output)
-            scriptutils.die("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id)
+            logging.error(scriptutils.error("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id))
 
 
 # лочим запись в БД
@@ -438,8 +436,8 @@ def lock_write_db_list(db_list: list[DbConfig]):
         container_list = client.containers.list(filters={"name": db.container_name})
 
         if len(container_list) < 1:
-            scriptutils.die(
-                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id)
+            logging.error(scriptutils.error(
+                "Пространство %d не имеет рабочего контейнера, хотя отмечена как активная. Проверьте корректность поднятого окружения." % db.space_id))
 
         space_container: docker.models.containers.Container = container_list[0]
 
@@ -451,7 +449,7 @@ def lock_write_db_list(db_list: list[DbConfig]):
 
         if result.exit_code != 0:
             print(result.output)
-            scriptutils.die("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id)
+            logging.error(scriptutils.error("Не смогли выполнить mysql команду в mysql пространства %d" % db.space_id))
 
 
 start(state)

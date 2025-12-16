@@ -29,7 +29,7 @@ config_path = Path(script_dir + "/../configs/global.yaml")
 if not config_path.exists():
     print(
         scriptutils.error(
-            "Отсутствует файл конфигурации %s. Запустите скрит create_configs.py и заполните конфигурацию"
+            "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию"
             % str(config_path.resolve())
         )
     )
@@ -44,13 +44,18 @@ config.update(config_values)
 script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
-parser = argparse.ArgumentParser(add_help=True)
-parser.add_argument("-e", "--environment", required=False, default="production", type=str,
-                    help="Окружение, в котором разворачиваем")
-parser.add_argument("--confirm-all", required=False, action="store_true")
+parser = scriptutils.create_parser(
+    description="Скрипт для удаления compass с сервера.",
+    usage="python3 script/uninstall.py [-e ENVIRONMENT] [--confirm-all] [--data DATA]",
+    epilog="Пример: python3 script/uninstall.py -e production --confirm-all --data {\"product_type\":\"dev\"}",
+)
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--confirm-all", required=False, action="store_true",
+                    help='Автоматическое подтверждение всех вопросов')
 # ВНИМАНИЕ - в data передается json
 parser.add_argument(
-    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+    "--data", required=False, type=json.loads, help="Произвольные дополнительные данные"
 )
 args = parser.parse_args()
 override_data = args.data if args.data else {}

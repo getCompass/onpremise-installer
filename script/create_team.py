@@ -15,7 +15,7 @@ import os
 import socket
 import re
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
@@ -439,7 +439,7 @@ if scriptutils.is_replication_enabled(current_values):
             values_arg,
             "--type",
             "team",
-            "--is_logs",
+            "--is-logs",
             str(0),
             "--is-create-team",
             str(1)

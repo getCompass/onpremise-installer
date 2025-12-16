@@ -18,17 +18,26 @@ from pathlib import Path
 
 scriptutils.assert_root()
 
-# ---АГРУМЕНТЫ СКРИПТА---#
+# ---АРГУМЕНТЫ СКРИПТА---#
 
-parser = argparse.ArgumentParser(add_help=True)
-
-parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="окружение")
-parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="название файла со значениями для деплоя")
-parser.add_argument(
-    "-t", "--type", required=False, default="monolith", type=str, help="тип mysql (monolith|team)", choices=["monolith", "team"]
+parser = scriptutils.create_parser(
+    description="Скрипт для остановки и сброса репликации, а также отключения read-only режима.",
+    usage="python3 script/replication/reset_slave_replication.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team] [--all-teams] [--all-types]",
+    epilog="Пример для монолита: python3 script/replication/reset_slave_replication.py -v compass -e production --all-teams --all-types"
 )
-parser.add_argument("--all-teams", required=False, action="store_true", help="выбрать все команды")
-parser.add_argument("--all-types", required=False, action="store_true", help="выбрать все типы mysql")
+parser.add_argument('-v', '--values', required=False, default="compass", type=str,
+                    help='Название values файла окружения (например: compass)')
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument(
+    "-t", "--type", required=False, default="monolith", type=str,
+    help="На каком типе mysql останавливаем (monolith или team)",
+    choices=["monolith", "team"]
+)
+parser.add_argument("--all-teams", required=False, action="store_true",
+                    help="Выбрать все созданные команды для выполнения скрипта")
+parser.add_argument("--all-types", required=False, action="store_true",
+                    help="Выбрать все типы mysql для выполнения скрипта")
 
 args = parser.parse_args()
 environment = args.environment
@@ -37,8 +46,8 @@ mysql_type = args.type.lower()
 is_all_teams = args.all_teams
 is_all_types = args.all_types
 
-
 script_dir = str(Path(__file__).parent.resolve())
+
 
 # класс конфига пространства
 class DbConfig:
@@ -128,7 +137,8 @@ def start():
 
             chosen_space_index = input(space_option_str)
 
-            if (not chosen_space_index.isdigit()) or int(chosen_space_index) < 0 or int(chosen_space_index) > (len(space_id_list) + 1):
+            if (not chosen_space_index.isdigit()) or int(chosen_space_index) < 0 or int(chosen_space_index) > (
+                    len(space_id_list) + 1):
                 scriptutils.die("Выбран некорректный вариант")
 
         # проходимся по каждому пространству
@@ -140,21 +150,24 @@ def start():
                 if len(space_config_obj_dict.items()) > 1:
                     log_text = log_text + " (%s из %s)" % (space_iteration, len(space_config_obj_dict.items()))
                 print(log_text)
-                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
+                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE,
+                                                                             domino_id, space_config_obj.port)
                 mysql_restart_replication(found_container, mysql_host, mysql_user, mysql_pass, space_id)
                 space_iteration += 1
         else:
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
             print("Выполняем сброс репликации для команды %s" % space_id)
-            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id, space_config_obj.port)
+            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
+                                                                         space_config_obj.port)
             mysql_restart_replication(found_container, mysql_host, mysql_user, mysql_pass, space_id)
 
     print(scriptutils.success("Сброс репликации завершён"))
 
-# выполняем рестарт репликации в полученном контейнере
-def mysql_restart_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int):
 
+# выполняем рестарт репликации в полученном контейнере
+def mysql_restart_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
+                              mysql_pass: str, space_id: int):
     mysql_command = "STOP SLAVE; RESET SLAVE;" + \
                     "SET GLOBAL super_read_only = OFF;" + \
                     "SET GLOBAL read_only = OFF;"
@@ -169,6 +182,7 @@ def mysql_restart_replication(found_container: docker.models.containers.Containe
     if result.exit_code != 0:
         print("Ошибка при рестарте репликации")
         sys.exit(result.exit_code)
+
 
 # сформировать список конфигураций пространств
 def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
@@ -210,6 +224,7 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
 
 # точка входа в скрипт
 start()

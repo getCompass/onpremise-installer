@@ -19,18 +19,26 @@ scriptutils.assert_root()
 script_path = Path(__file__).parent
 script_resolved_path = str(script_path.resolve())
 
-parser = argparse.ArgumentParser(add_help=True)
+parser = scriptutils.create_parser(
+    description="Скрипт для обновления compass.",
+    usage="python3 script/update.py [-e ENVIRONMENT] [--docker-prune] [--use-default-values] [--data DATA] [--is-restore-db IS_RESTORE_DB] [--install-integration]",
+    epilog="Пример: python3 script/update.py -e production --docker-prune --use-default-values --data {\"product_type\":\"dev\"} --is-restore-db 1 --install-integration",
+)
 
-parser.add_argument("--use-default-values", required=False, action="store_true")
-parser.add_argument("--install-integration", required=False, action="store_true")
-parser.add_argument("--docker-prune", required=False, action="store_true")
-parser.add_argument("-e", "--environment", required=False, default="production", type=str,
-                    help="Окружение, в котором разворачиваем")
+parser.add_argument('-e', '--environment', required=False, default="production", type=str,
+                    help='Окружение, в котором развернут проект (например: production)')
+parser.add_argument("--docker-prune", required=False, action="store_true",
+                    help="Очистка неиспользуемых docker образов и контейнеров до начала обновления")
+parser.add_argument("--use-default-values", required=False, action='store_true',
+                    help="Использовать значения из дефолтного values.yaml")
 # ВНИМАНИЕ - в data передается json
 parser.add_argument(
-    "--data", required=False, type=json.loads, help="дополнительные данные для развертывания"
+    "--data", required=False, type=json.loads, help="Произвольные дополнительные данные"
 )
-parser.add_argument("--is-restore-db", required=False, default=0, type=int, help="запуск от скрипта бекапа")
+parser.add_argument("--is-restore-db", required=False, default=0, type=int,
+                    help="1 - не нужно обновлять структуру таблиц mysql, если были изменения")
+parser.add_argument("--install-integration", required=False, action='store_true',
+                    help="Установка модуля интеграций с внешним сервисом")
 args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
