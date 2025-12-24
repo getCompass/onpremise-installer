@@ -27,6 +27,7 @@ src/domino/config/company_restrictions.gophp
 src/domino/config/preview_parsing.gophp
 src/domino/config/smartapps.gophp
 src/federation/config/ldap.gophp
+src/pivot/config/ldap.gophp
 src/federation/config/oidc.gophp
 src/federation/config/sso.gophp
 src/integration/config/restrictions.gophp
