@@ -88,7 +88,7 @@ for migration_folder in sorted(config_files_path.glob("*")):
                     script_path = str(migration_files_path.resolve() / script)
 
                     # запуск скрипта в отдельном процессе с выводом в реальном времени
-                    process = Popen(["python3", script_path, 
+                    process = Popen([sys.executable, script_path, 
                                      "-e",
                                     environment,
                                     "-v",

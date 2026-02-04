@@ -97,6 +97,7 @@ const PageContentInstallSuccess = () => {
                 <Text size="xs">{t("install_page.install_success.admin_mail_password_title")}</Text>
                 <div className="flex justify-between select-text">
                     <Input
+                        className="truncate"
                         type={showPassword ? "text" : "password"}
                         readOnly
                         value={data.credentials?.mail_password} />
@@ -144,7 +145,7 @@ const PageContentInstallSuccess = () => {
                         <InputItem
                             label={t("install_page.install_success.admin_phone_number_title")}
                             value={data.credentials?.phone_number ?? ""}
-                            className={cn("rounded-t-[12px]", data.auth_methods?.length === 1 ? "rounded-b-[12px]" : "")}
+                            className={cn("truncate", "rounded-t-[12px]", data.auth_methods?.length === 1 ? "rounded-b-[12px]" : "")}
                         />
                     )}
                     {data.auth_methods?.includes("mail") && (
@@ -152,7 +153,7 @@ const PageContentInstallSuccess = () => {
                             <InputItem
                                 label={t("install_page.install_success.admin_mail_login_title")}
                                 value={data.credentials?.mail_login ?? ""}
-                                className={!data.auth_methods?.includes("phone_number") ? "rounded-t-[12px]" : ""}
+                                className={cn("truncate", !data.auth_methods?.includes("phone_number") ? "rounded-t-[12px]" : "")}
                             />
                             <ReadOnlyPassword />
                         </>
@@ -161,7 +162,7 @@ const PageContentInstallSuccess = () => {
                         <InputItem
                             label={t("install_page.install_success.admin_sso_login_title")}
                             value={data.credentials?.sso_login ?? ""}
-                            className={cn("rounded-b-[12px]", data.auth_methods?.length === 1 ? "rounded-t-[12px]" : "")}
+                            className={cn("truncate", "rounded-b-[12px]", data.auth_methods?.length === 1 ? "rounded-t-[12px]" : "")}
                         />
                     )}
                 </div>

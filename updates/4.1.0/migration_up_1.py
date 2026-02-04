@@ -98,7 +98,7 @@ loader.success()
 # регенерируем сертификаты
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_dir + "/../../script/generate_ssl_certificates.py",
         "--force"
     ]

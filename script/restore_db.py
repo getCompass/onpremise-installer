@@ -288,7 +288,7 @@ def start_environment(current_values: dict) -> None:
     if "production" in current_values["server_tag_list"]:
 
         result = subprocess.run([
-            "python3",
+            sys.executable,
             "%s/update.py" % script_dir,
             "--is-restore-db",
             str(1)
@@ -307,7 +307,7 @@ def start_environment(current_values: dict) -> None:
 # запускаем тестовое окружение
 def start_dev_environment():
     result = subprocess.run([
-        "python3",
+        sys.executable,
         "%s/deploy.py" % script_dir,
         "-e",
         environment,

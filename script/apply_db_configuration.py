@@ -3,6 +3,7 @@
 from pathlib import Path
 from time import sleep
 
+import sys
 import docker
 import docker.models
 import docker.models.containers
@@ -191,7 +192,7 @@ def start() -> None:
     # валидируем конфигурацию БД
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_dir + "/validate_db_configuration.py",
             "--validate-only"
         ]
@@ -205,14 +206,14 @@ def start() -> None:
     # применяем конфигурацию БД
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_dir + "/validate_db_configuration.py",
         ]
     ).returncode == 0 or scriptutils.die("Ошибка при фиксировании конфигурации БД")
 
     print("Обновляем приложение")
     subprocess.run([
-        "python3",
+        sys.executable,
         "%s/update.py" % script_dir,
     ])
 

@@ -5,7 +5,7 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, psutil, shlex
+import argparse, yaml, psutil, shlex, json
 import docker
 from pathlib import Path
 from utils import scriptutils
@@ -22,15 +22,40 @@ parser.add_argument('-e', '--environment', required=False, default="production",
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
+# === ПРОГРЕСС УСТАНОВКИ ===
 
 scriptutils.assert_root()
+script_dir = str(Path(__file__).parent.resolve())
+
+STEPS_FILE = Path(script_dir).parent / ".install_completed_steps.json"
+
+def ensure_steps_file():
+    if not STEPS_FILE.exists():
+        try:
+            STEPS_FILE.write_text("[]", encoding="utf-8")
+        except Exception:
+            # трекинг не ломает установку
+            pass
+def append_step(step: str):
+    try:
+        ensure_steps_file()
+        raw = STEPS_FILE.read_text(encoding="utf-8")
+        data = json.loads(raw.strip() or "[]")
+        if not isinstance(data, list):
+            data = []
+        if step not in data:
+            data.append(step)
+            STEPS_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        # трекинг не ломает установку
+        pass
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
 stack_name_prefix = environment + '-' + values_arg
 stack_name = stack_name_prefix + "-monolith"
 
-script_dir = str(Path(__file__).parent.resolve())
+
 
 values_file_path = Path('%s/../src/values.%s.yaml' % (script_dir, values_arg))
 
@@ -107,7 +132,8 @@ def start():
         loader.error()
         print(output.output.decode("utf-8"))
 
-        scriptutils.error('Что то пошло не так. Не смогли активировать сервер')
+        scriptutils.die('Что то пошло не так. Не смогли активировать сервер')
 
+    append_step("activate_server")
 
 start()
