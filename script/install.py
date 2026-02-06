@@ -177,7 +177,7 @@ if global_file_path.exists():
     check_previous_install(global_file_path)
 
 log("Создаем пользователя www-data, от имени которого будет работать приложение")
-command = ["python3", script_resolved_path + "/create_www_data.py"]
+command = [sys.executable, script_resolved_path + "/create_www_data.py"]
 if validate_only:
     command.append("--validate-only")
 if installer_output:
@@ -185,7 +185,7 @@ if installer_output:
 subprocess.run(command).returncode == 0 or scriptutils.die("" if QUIET else "Ошибка при создании пользователя www-data")
 
 log("Проверяем конфигурацию БД")
-command = ["python3", script_resolved_path + "/validate_db_configuration.py", "--validate-only"]
+command = [sys.executable, script_resolved_path + "/validate_db_configuration.py", "--validate-only"]
 if installer_output:
     command.append("--installer-output")
 if subprocess.run(command).returncode != 0:
@@ -193,7 +193,7 @@ if subprocess.run(command).returncode != 0:
 
 log("Валидируем конфигурацию капчи")
 command = [
-    "python3",
+    sys.executable,
     script_resolved_path + "/generate_captcha_configuration.py",
     "--validate-only",
 ]
@@ -211,7 +211,7 @@ if return_code != 0 and not QUIET:
 log("Валидируем конфигурацию sms провайдеров")
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_sms_service_configuration.py",
         "--validate-only",
     ],
@@ -223,7 +223,7 @@ if return_code != 0 and not QUIET:
 log("Валидируем конфигурацию аутентификации")
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_auth_data_configuration.py",
         "--validate-only",
     ],
@@ -235,7 +235,7 @@ if return_code != 0 and not QUIET:
 log("Валидируем конфигурацию ограничений")
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_restrictions_configuration.py",
         "--validate-only",
     ],
@@ -247,7 +247,7 @@ if return_code != 0 and not QUIET:
 log("Валидируем конфигурацию парсинга превью ссылок")
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_preview_configuration.py",
         "--validate-only",
     ],
@@ -259,7 +259,7 @@ if return_code != 0 and not QUIET:
 log("Валидируем конфигурацию smart_apps")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_smart_apps_configuration.py",
         "--validate-only",
     ]
@@ -267,6 +267,7 @@ subprocess.run(
 
 log("Валидируем конфигурацию приложения")
 command = [
+    sys.executable,
     script_resolved_path + "/init.py",
     "-e",
     environment,
@@ -281,17 +282,17 @@ if return_code != 0 and not QUIET:
     exit(1)
 
 log("Валидируем конфигурацию отказоустойчивости и бд")
-return_code = run_validation(["python3", script_resolved_path + "/replication/validate_db_docker.py"], "replication")
+return_code = run_validation([sys.executable, script_resolved_path + "/replication/validate_db_docker.py"], "replication")
 if return_code != 0 and not QUIET:
     scriptutils.die("Отказоустойчивость можно настроить только для docker драйвера баз данных")
 
-return_code = run_validation(["python3", script_resolved_path + "/replication/validate_os.py"], "replication")
+return_code = run_validation([sys.executable, script_resolved_path + "/replication/validate_os.py"], "replication")
 if return_code != 0 and not QUIET:
     scriptutils.die("В данной версии приложения отказоустойчивость нельзя включить в RPM-системах")
 
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_ssl_certificates.py",
         "-e",
         environment,
@@ -305,7 +306,7 @@ if return_code != 0 and not QUIET:
 
 log("Валидируем данные главного пользователя")
 return_code = run_validation(
-    ["python3", script_resolved_path + "/create_root_user.py", "--validate-only"],
+    [sys.executable, script_resolved_path + "/create_root_user.py", "--validate-only"],
     "root_user"
 )
 if return_code != 0 and not QUIET:
@@ -313,7 +314,7 @@ if return_code != 0 and not QUIET:
 
 return_code = run_validation(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/create_team.py",
         "-e",
         environment,
@@ -332,38 +333,38 @@ if validate_only:
     sys.exit(0)
 
 log("Запускаем скрипт генерации конфигурации капчи")
-command = ["python3", script_resolved_path + "/generate_captcha_configuration.py"]
+command = [sys.executable, script_resolved_path + "/generate_captcha_configuration.py"]
 if confirm_all:
     command.append("--confirm-all")
 subprocess.run(command).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации капчи")
 
 log("Запускаем скрипт генерации конфигурации sms провайдеров")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_sms_service_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_sms_service_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации sms провайдеров")
 
 log("Запускаем скрипт генерации конфигурации аутентификации")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_auth_data_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_auth_data_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации аутентификации")
 
 log("Запускаем скрипт генерации конфигурации ограничений")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_restrictions_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_restrictions_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
 
 log("Запускаем скрипт генерации конфигурации парсинга превью ссылок")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_preview_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_preview_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации парсинга превью ссылок")
 
 log("Запускаем скрипт генерации конфигурации smart_apps")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_smart_apps_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_smart_apps_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации smart_apps")
 
 print("Запускаем скрипт инициализации проекта")
-command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
+command = [sys.executable, script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
     command.append("--use-default-values")
 
@@ -396,7 +397,7 @@ if service_label is not None and service_label != "":
     stack_name = stack_name + "-" + service_label
 
 log("Запускаем скрипт генерации конфигурации известных БД")
-if subprocess.run(["python3", script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
+if subprocess.run([sys.executable, script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
     scriptutils.die("Ошибка при создании конфигурации известных БД")
 
 log(
@@ -404,7 +405,7 @@ log(
 )
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_ssl_certificates.py",
         "-e",
         environment,
@@ -415,7 +416,7 @@ subprocess.run(
 
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_mysql_ssl_certificates.py",
         "-e",
         environment,
@@ -427,7 +428,7 @@ subprocess.run(
 log("Проводим генерацию ключей безопасности")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_security_keys.py",
         "-e",
         environment,
@@ -456,7 +457,7 @@ subprocess.run(["rm", "-rf", monolith_config_join_web_path])
 
 log("Разворачиваем приложение")
 command = [
-    "python3",
+    sys.executable,
     script_resolved_path + "/deploy.py",
     "-e",
     environment,
@@ -476,7 +477,7 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
 if install_integration:
     log("Разворачиваем интеграцию")
     command = [
-        "python3",
+        sys.executable,
         script_resolved_path + "/deploy.py",
         "-e",
         environment,
@@ -565,7 +566,7 @@ append_step("intall_monolith")
 if scriptutils.is_replication_enabled(values_dict) == True:
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_resolved_path + "/replication/create_mysql_user.py",
             "-e",
             environment,
@@ -587,7 +588,7 @@ if scriptutils.is_replication_master_server(values_dict):
     ).start()
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_resolved_path + "/init_pivot.py",
             "-e",
             environment,
@@ -604,12 +605,12 @@ if scriptutils.is_replication_master_server(values_dict):
     # создаем первого пользователя
     log("Создаем первого пользователя")
     subprocess.run(
-        ["python3", script_resolved_path + "/create_root_user.py", "-e", environment, "--service-label", service_label])
+        [sys.executable, script_resolved_path + "/create_root_user.py", "-e", environment, "--service-label", service_label])
 else:
     log("Запускаем репликацию mysql в monolith")
     subprocess.run(
         [
-            "python3", script_resolved_path + "/replication/start_slave_replication.py",
+            sys.executable, script_resolved_path + "/replication/start_slave_replication.py",
             "-e", environment,
             "-v", values_name,
             "--type", "monolith",
@@ -622,7 +623,7 @@ if scriptutils.is_replication_enabled(values_dict) == True:
     if scriptutils.is_replication_master_server(values_dict):
         subprocess.run(
             [
-                "python3",
+                sys.executable,
                 script_resolved_path + "/replication/start_manticore_replication.py",
                 "-e",
                 environment,
@@ -635,7 +636,7 @@ if scriptutils.is_replication_enabled(values_dict) == True:
     else:
         subprocess.run(
             [
-                "python3",
+                sys.executable,
                 script_resolved_path + "/replication/start_manticore_replication.py",
                 "-e",
                 environment,
@@ -650,7 +651,7 @@ if scriptutils.is_replication_enabled(values_dict) == True:
 log("Создаем команду")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/create_team.py",
         "-e",
         environment,

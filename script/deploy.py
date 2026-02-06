@@ -65,7 +65,7 @@ def cleanup():
 
     p = Popen(
         [
-            "python3",
+            sys.executable,
             script_dir + "/trigger.py",
             "-v",
             specified_values_file_name,
@@ -117,7 +117,7 @@ def process_goenv_files(goenv_files: list, project: str = ""):
         # передаем файл в шаблонизатор
         Popen(
             [
-                "python3",
+                sys.executable,
                 script_dir + "/template.py",
                 raw_variable_file,
                 values_file_name
@@ -168,7 +168,7 @@ def process_conf_files(config_files: list, project: str = ""):
         # передаем файл в шаблонизатор
         Popen(
             [
-                "python3",
+                sys.executable,
                 script_dir + "/template.py",
                 raw_goconf_file_name,
                 values_file_name
@@ -265,7 +265,7 @@ with open(specified_values_file_name, "r") as values_file:
 
 if environment not in ["local", "tes"] and project != "search" and project != "integration":
     # инициализируем конфиг
-    exec_cmd = [script_dir + "/init.py", "-e", environment, "-v", values, "-p", project]
+    exec_cmd = [sys.executable, script_dir + "/init.py", "-e", environment, "-v", values, "-p", project]
     if project_name_override is not None:
         exec_cmd = exec_cmd + ["--project-name-override", project_name_override]
     if use_default_values:
@@ -342,7 +342,7 @@ if not mount_security_file_path.exists():
 # запускаем триггеры, которые нужно запустить до проекта
 p = Popen(
     [
-        "python3",
+        sys.executable,
         script_dir + "/trigger.py",
         "-v",
         specified_values_file_name,
@@ -382,7 +382,7 @@ compose_sidecar_file_name = ".compose.sidecar.yaml"
 # формируем compose файл
 p = Popen(
     [
-        "python3",
+        sys.executable,
         script_dir + "/template.py",
         "src/" + project + "/compose.goyaml",
         values_file_name
@@ -402,7 +402,7 @@ if p.returncode != 0:
 # формируем compose файл для перезаписи
 p = Popen(
     [
-        "python3",
+        sys.executable,
         script_dir + "/template.py",
         "src/" + project + "/compose.override." + environment + ".goyaml",
         values_file_name
@@ -423,7 +423,7 @@ if p.returncode != 0:
 if Path("src/" + project + "/compose.sidecar." + environment + ".goyaml").exists():
     p = Popen(
         [
-            "python3",
+            sys.executable,
             script_dir + "/template.py",
             "src/" + project + "/compose.sidecar." + environment + ".goyaml",
             values_file_name
@@ -497,7 +497,7 @@ if p.returncode != 0:
 # запускаем триггеры, которые нужно запустить после проекта
 p = Popen(
     [
-        "python3",
+        sys.executable,
         script_dir + "/trigger.py",
         "-v",
         specified_values_file_name,
@@ -513,7 +513,7 @@ p.wait()
 if project != "monolith" and project != "integration":
     p = Popen(
         [
-            "python3",
+            sys.executable,
             script_dir + "/deploy_nginx.py",
             "-v",
             values,
@@ -527,7 +527,7 @@ if project != "monolith" and project != "integration":
 else:
     p = Popen(
         [
-            "python3",
+            sys.executable,
             script_dir + "/deploy_nginx_monolith.py",
             "-v",
             values,
@@ -543,7 +543,7 @@ else:
 if (args.project == "domino") and (environment not in ["local", "tes"]):
     p = Popen(
         [
-            "python3",
+            sys.executable,
             script_dir + "/deploy.py",
             "-v",
             values,

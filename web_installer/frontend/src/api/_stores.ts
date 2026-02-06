@@ -20,6 +20,7 @@ export const INITIAL_AUTH_FORM: AuthFormState = {
     twilio_app_name: "",
     twilio_account_sid: "",
     twilio_account_auth_token: "",
+    mail_2fa_enabled: false,
     smtp_host: "",
     smtp_port: "",
     smtp_user: "",
@@ -67,6 +68,8 @@ export const authFormState = atom<AuthFormState>({ ...INITIAL_AUTH_FORM });
 export const adminFormState = atom<AdminFormState>({ ...INITIAL_ADMIN_FORM });
 
 export const switchEmailCheckedState = atom<boolean>(true);
+export const mail2FaCheckedState = atom<boolean>(false);
+
 export const switchSsoCheckedState = atom<boolean>(false);
 export const selectedSsoProviderState = atom<"oidc" | "ldap">("oidc");
 export const switchSmsAgentCheckedState = atom<boolean>(false);
@@ -75,6 +78,7 @@ export const switchTwilioCheckedState = atom<boolean>(false);
 export const checkboxLdapUseSslCheckedState = atom<boolean | "indeterminate">(true);
 export const checkboxAccountDisablingMonitoringEnabledCheckedState = atom<boolean | "indeterminate">(false);
 export const autoCertsState = atom<boolean>(true);
+export const productTypeState = atom<"yandex_cloud" | "default" | "unknown">("unknown");
 
 export const INITIAL_JOB_STATUS_RESPONSE: StatusResponse = {
     success: true,

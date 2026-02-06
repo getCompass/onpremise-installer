@@ -29,6 +29,7 @@ export interface AuthFormState {
     twilio_account_sid: string;
     twilio_account_auth_token: string;
 
+    mail_2fa_enabled: boolean;
     smtp_host: string;
     smtp_port: string;
     smtp_user: string;

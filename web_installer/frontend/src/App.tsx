@@ -11,6 +11,7 @@ import {
     MIN_CPU_COUNT,
     MIN_DISK_SPACE_MB,
     MIN_RAM_MB,
+    productTypeState,
     RECOMMENDED_DISK_SPACE_MB,
     serverSpecsAlertState
 } from "@/api/_stores.ts";
@@ -23,6 +24,7 @@ type ServerInfoResponseStruct = {
     cpu_cores: number;
     ram_mb: number;
     disk_mb: number;
+    is_yandex_cloud_product: boolean;
 };
 const Page = () => {
     const { activePage } = useNavigatePage();
@@ -31,6 +33,7 @@ const Page = () => {
 
     const [ serverSpecsAlert, setServerSpecsAlert ] = useAtom(serverSpecsAlertState);
     const setIsSlowDiskSpeed = useSetAtom(isSlowDiskSpeedState);
+    const setProductType = useSetAtom(productTypeState);
 
     useEffect(() => {
 
@@ -52,6 +55,8 @@ const Page = () => {
                 if (json.disk_mb >= RECOMMENDED_DISK_SPACE_MB) {
                     setIsSlowDiskSpeed(false);
                 }
+
+                (json.is_yandex_cloud_product) ? setProductType("yandex_cloud") : setProductType("default")
 
                 if (json.cpu_cores < MIN_CPU_COUNT || json.ram_mb < MIN_RAM_MB || json.disk_mb < MIN_DISK_SPACE_MB) {
 

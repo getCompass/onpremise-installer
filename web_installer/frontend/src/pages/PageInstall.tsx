@@ -12,16 +12,38 @@ import PageContentInstallFailed from "@/pages/install/PageContentInstallFailed.t
 import UnsavedChangesGuard from "@/components/UnsavedChangesGuard.tsx";
 import useIsInstallDirty from "@/lib/useIsInstallDirty.ts";
 import { useAtomValue } from "jotai";
-import { jobIdState } from "@/api/_stores.ts";
+import { jobIdState, productTypeState } from "@/api/_stores.ts";
 import navigatePages from "@/lib/navigatePages.ts";
+import CompassLogo from "@/components/icons/CompassLogo";
 
 const Header = () => {
 
     const t = useLangString();
+    const productType = useAtomValue(productTypeState)
+
+    const docLink = useMemo(() => {
+        if (productType == "yandex_cloud") {
+            return "https://doc-onpremise.getcompass.ru/yandex-cloud.html"
+        }
+        return "https://doc-onpremise.getcompass.ru/fast-install.html";
+    }, [productType]);
+
+    const [installHeader, supportLink] = useMemo(() => {
+        if (productType == "yandex_cloud") {
+            return [t("install_page.header.yandex_title"), "https://t.me/getcompass_cloud"]
+        }
+        return [t("install_page.header.default_title"), "https://t.me/getcompass"]
+    }, [productType]);
 
     const renderLinkDesc = () => {
-        const text = t("install_page.header.support_dialog.desc");
-        const target = "support-cloud@getcompass.ru";
+
+        const [text, target] = useMemo(() => {
+            if (productType == "yandex_cloud") {
+                return [t("install_page.header.support_dialog.yandex_desc"), "support-cloud@getcompass.ru"]
+            }
+            return [t("install_page.header.support_dialog.default_desc"), "support@getcompass.ru"]
+        }, [productType]);
+
         const i = text.indexOf(target);
         if (i === -1) return text;
 
@@ -53,9 +75,9 @@ const Header = () => {
         >
             <div className="flex flex-row justify-center items-center gap-[20px] min-w-0 flex-1">
                 <div className="shrink-0">
-                    <CompassWithYandexCloudLogo />
+                    {productType == "yandex_cloud" ? <CompassWithYandexCloudLogo /> : <CompassLogo />}
                 </div>
-                <Text size="m" className="truncate min-w-0 flex-1">{t("install_page.header.title")}</Text>
+                <Text size="m" className="truncate min-w-0 flex-1">{installHeader}</Text>
             </div>
             <div className="flex flex-row gap-[12px]">
                 <CustomDialog trigger={
@@ -79,7 +101,7 @@ const Header = () => {
                             </div>
                             <div className="w-full px-[8px]">
                                 <a
-                                    href="https://t.me/getcompass_cloud"
+                                    href={supportLink}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full"
@@ -99,12 +121,12 @@ const Header = () => {
                     </>
                 } />
                 <a
-                    href="https://doc-onpremise.getcompass.ru/yandex-cloud.html"
+                    href={docLink}
                     target="_blank"
                     rel="noopener noreferrer"
                 >
                     <ButtonWithIcon icon={<div className="w-[10px] h-[14px] bg-docs-icon" />}
-                                    text={t("install_page.header.documentation_title")} />
+                        text={t("install_page.header.documentation_title")} />
                 </a>
             </div>
         </div>
@@ -143,7 +165,7 @@ const PageInstall = () => {
             default:
                 return <PageContentInstallConfigure />;
         }
-    }, [ activePageContent ])
+    }, [activePageContent])
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden">

@@ -158,7 +158,7 @@ def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_
     result = subprocess.run(
         [
             "sudo",
-            "python3",
+            sys.executable,
             script_dir + "/reset_slave_replication.py",
             "--all-types",
             "--all-teams",
@@ -172,7 +172,7 @@ def backup_state_changed(current_values: Dict, monolith: DbConfig, space_config_
     result = subprocess.run(
         [
             "sudo",
-            "python3",
+            sys.executable,
             script_dir + "/start_slave_replication.py",
             "--all-types",
             "--all-teams",

@@ -4,10 +4,13 @@ import { useLangString } from "@/lib/getLangString.ts";
 import PoweredByYandexCloud from "@/components/icons/PoweredByYandexCloud.tsx";
 import useNavigatePages from "@/lib/navigatePages.ts";
 import { useEffect } from "react";
+import { useAtomValue } from "jotai";
+import { productTypeState } from "@/api/_stores";
 
 const PageWelcome = () => {
     const t = useLangString();
     const { navigateToNextPage } = useNavigatePages();
+    const productType = useAtomValue(productTypeState)
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -35,7 +38,7 @@ const PageWelcome = () => {
                 </div>
             </div>
             <div className="absolute bottom-[64px] left-1/2 -translate-x-1/2">
-                <PoweredByYandexCloud />
+                {productType == "yandex_cloud" && <PoweredByYandexCloud />}
             </div>
         </div>
     );

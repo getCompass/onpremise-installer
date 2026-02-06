@@ -431,7 +431,7 @@ else:
 if scriptutils.is_replication_enabled(current_values):
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_resolved_path + "/replication/create_mysql_user.py",
             "-e",
             environment,
@@ -481,7 +481,7 @@ else:
     if init:
         subprocess.run(
             [
-                "python3", script_resolved_path + "/replication/start_slave_replication.py",
+                sys.executable, script_resolved_path + "/replication/start_slave_replication.py",
                 "-e", environment,
                 "-v", values_arg,
                 "--type", "team",

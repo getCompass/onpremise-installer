@@ -204,7 +204,7 @@ else:
 if not is_restore_db:
     sb = subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_resolved_path + "/installer_migrations_up.py",
             "-e",
             environment,
@@ -220,18 +220,18 @@ if not is_restore_db:
 # подготовка
 print("Создаем пользователя www-data, от имени которого будет работать приложение")
 subprocess.run(
-    ["python3", script_resolved_path + "/create_www_data.py"]
+    [sys.executable, script_resolved_path + "/create_www_data.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании пользователя www-data")
 
 print("Проверяем конфигурацию БД")
-command = ["python3", script_resolved_path + "/validate_db_configuration.py", "--validate-only"]
+command = [sys.executable, script_resolved_path + "/validate_db_configuration.py", "--validate-only"]
 if subprocess.run(command).returncode != 0:
     scriptutils.die("Ошибка при валидации конфигурации БД")
 
 print("Валидируем конфигурацию капчи")
 sb = subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_captcha_configuration.py",
         "--validate-only",
     ]
@@ -244,7 +244,7 @@ sb.returncode == 0 or scriptutils.die("Ошибка при валидации к
 print("Валидируем конфигурацию sms провайдеров")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_sms_service_configuration.py",
         "--validate-only",
     ]
@@ -255,7 +255,7 @@ subprocess.run(
 print("Валидируем конфигурацию аутентификации")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_auth_data_configuration.py",
         "--validate-only",
     ]
@@ -264,7 +264,7 @@ subprocess.run(
 print("Валидируем конфигурацию ограничений")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_restrictions_configuration.py",
         "--validate-only",
     ]
@@ -273,7 +273,7 @@ subprocess.run(
 print("Валидируем конфигурацию парсинга превью ссылок")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_preview_configuration.py",
         "--validate-only",
     ]
@@ -282,7 +282,7 @@ subprocess.run(
 print("Валидируем конфигурацию smart_apps")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_smart_apps_configuration.py",
         "--validate-only",
     ]
@@ -304,20 +304,20 @@ subprocess.run(command).returncode == 0 or exit(1)
 print("Валидируем конфигурацию отказоустойчивости и бд")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/replication/validate_db_docker.py",
     ]
 ).returncode == 0 or scriptutils.die("Отказоустойчивость можно настроить только для docker драйвера баз данных")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/replication/validate_os.py",
     ]
 ).returncode == 0 or scriptutils.die("В данной версии приложения отказоустойчивость нельзя включить в RPM-системах")
 
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_ssl_certificates.py",
         "-e",
         environment,
@@ -329,7 +329,7 @@ subprocess.run(
 
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/create_team.py",
         "-e",
         environment,
@@ -347,37 +347,37 @@ if docker_prune:
     ).returncode == 0 or scriptutils.die("Ошибка при очистке неиспользуемых docker контейнеров")
 
 print("Запускаем скрипт генерации конфигурации известных БД")
-if subprocess.run(["python3", script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
+if subprocess.run([sys.executable, script_resolved_path + "/validate_db_configuration.py"]).returncode != 0:
     scriptutils.die("Ошибка при создании конфигурации известных БД")
 
 print("Запускаем скрипт генерации конфигурации капчи")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_captcha_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_captcha_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации капчи")
 
 print("Запускаем скрипт генерации конфигурации sms провайдеров")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_sms_service_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_sms_service_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации sms провайдеров")
 
 print("Запускаем скрипт генерации конфигурации аутентификации")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_auth_data_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_auth_data_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации аутентификации")
 
 print("Запускаем скрипт генерации конфигурации ограничений")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_restrictions_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_restrictions_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации ограничений")
 
 print("Запускаем скрипт генерации конфигурации парсинга превью ссылок")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_preview_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_preview_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации парсинга превью ссылок")
 
 print("Запускаем скрипт генерации конфигурации smart_apps")
 subprocess.run(
-    ["python3", script_resolved_path + "/generate_smart_apps_configuration.py"]
+    [sys.executable, script_resolved_path + "/generate_smart_apps_configuration.py"]
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации smart_apps")
 
 print("Запускаем скрипт инициализации проекта")
@@ -420,7 +420,7 @@ print(
 )
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_ssl_certificates.py",
         "-e",
         environment,
@@ -431,7 +431,7 @@ subprocess.run(
 
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_mysql_ssl_certificates.py",
         "-e",
         environment,
@@ -443,7 +443,7 @@ subprocess.run(
 print("Проводим генерацию ключей безопасности")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/generate_security_keys.py",
         "-e",
         environment,
@@ -455,7 +455,7 @@ subprocess.run(
 print("Подготавливаем пользовательские файлы к загрузке")
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_dir + "/prepare_custom_files.py",
         "-e",
         environment,
@@ -609,7 +609,7 @@ if scriptutils.is_replication_master_server(values_dict):
         # накатываем миграцию на компании
         sb = subprocess.run(
             [
-                "python3",
+                sys.executable,
                 script_resolved_path + "/companies_database_migrations_up.py",
                 "-e",
                 environment,
@@ -624,7 +624,7 @@ if scriptutils.is_replication_master_server(values_dict):
 
 print("Разворачиваем приложение")
 command = [
-    "python3",
+    sys.executable,
     script_resolved_path + "/deploy.py",
     "-e",
     environment,
@@ -644,7 +644,7 @@ subprocess.run(command).returncode == 0 or scriptutils.die(
 if install_integration:
     print("Разворачиваем интеграцию")
     command = [
-        "python3",
+        sys.executable,
         script_resolved_path + "/deploy.py",
         "-e",
         environment,
@@ -848,7 +848,7 @@ if scriptutils.is_replication_master_server(values_dict):
         # накатываем миграцию на компании
         sb = subprocess.run(
             [
-                "python3",
+                sys.executable,
                 script_resolved_path + "/companies_database_migrations_up.py",
                 "-e",
                 environment,
@@ -863,7 +863,7 @@ if scriptutils.is_replication_master_server(values_dict):
 
 print("Запускаем скрипт проверки занятых компаний")
 subprocess.run([
-    "python3", script_resolved_path + "/check_is_busy_companies.py",
+    sys.executable, script_resolved_path + "/check_is_busy_companies.py",
     "-e",
     environment,
     "-v",
@@ -877,7 +877,7 @@ loader = Loader(
 ).start()
 subprocess.run(
     [
-        "python3",
+        sys.executable,
         script_resolved_path + "/init_pivot.py",
         "-e",
         environment,
@@ -892,7 +892,7 @@ loader.success()
 if need_repair_all_teams:
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_resolved_path + "/replication/repair_all_teams.py",
             "-e",
             environment,

@@ -409,7 +409,7 @@ class MailSmtpConfig:
 
         # если указан mail в качестве доступного метода авторизации, то данные для smtp должны быть заполнены
         is_mail_smtp_required = False
-        if "mail" in available_methods or "mail" in available_guest_methods:
+        if ("mail" in available_methods or "mail" in available_guest_methods) and (authorization_2fa_enabled or registration_2fa_enabled):
             is_mail_smtp_required = True
 
         try:

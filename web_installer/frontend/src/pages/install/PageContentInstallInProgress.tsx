@@ -24,15 +24,15 @@ const PageContentInstallInProgress = () => {
     const t = useLangString();
     const { navigateToNextPage } = useNavigatePages();
     const { navigateToPageContent } = useNavigatePageContent();
-    const [ networkError, setNetworkError ] = useState(false);
+    const [networkError, setNetworkError] = useState(false);
 
-    const [ progressBar, setProgressBar ] = useAtom(progressBarState);
-    const [ jobStatusResponse, setJobStatusResponse ] = useAtom(jobStatusResponseState);
-    const [ jobId, setJobId ] = useAtom(jobIdState);
-    const [ installStartedAt, setInstallStartedAt ] = useAtom(installStartedAtState);
+    const [progressBar, setProgressBar] = useAtom(progressBarState);
+    const [jobStatusResponse, setJobStatusResponse] = useAtom(jobStatusResponseState);
+    const [jobId, setJobId] = useAtom(jobIdState);
+    const [installStartedAt, setInstallStartedAt] = useAtom(installStartedAtState);
     const setActivateServerStatus = useSetAtom(activateServerStatusState);
     const isSlowDiskSpeed = useAtomValue(isSlowDiskSpeedState);
-    const [ errorCount, setErrorCount ] = useState(0);
+    const [errorCount, setErrorCount] = useState(0);
     const firstStepInstallTime = useMemo(() => {
 
         if (isSlowDiskSpeed) {
@@ -40,7 +40,7 @@ const PageContentInstallInProgress = () => {
         }
 
         return 10 * 60;
-    }, [ isSlowDiskSpeed ]);
+    }, [isSlowDiskSpeed]);
 
     const clearToConfigure = useCallback(() => {
         startedRef.current = false;
@@ -111,7 +111,14 @@ const PageContentInstallInProgress = () => {
                 if (json.status === "finished") {
                     stopped = true;
                     startedRef.current = false;
+                    if (json.completed_step_list.includes("activate_server")) {
+                        setProgressBar(100);
+                        setActivateServerStatus("success");
+                        navigateToPageContent("install_success");
+                        return cancel;
+                    }
                     try {
+
                         const response = await fetch(`/api/install/activate_server`, { method: "POST" });
                         const json = (await response.json()) as ActivateServerResponseStruct;
                         if (json.success) {
@@ -162,13 +169,13 @@ const PageContentInstallInProgress = () => {
             startedRef.current = false;
             lastCancel?.();
         };
-    }, [ jobId, installStartedAt ]);
+    }, [jobId, installStartedAt]);
 
     useEffect(() => {
 
         // пишем на всякий случай
         console.log(`Количество ошибок запроса status: ${errorCount}`)
-    }, [ errorCount ]);
+    }, [errorCount]);
 
     return (
         <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]">

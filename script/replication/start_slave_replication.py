@@ -246,7 +246,7 @@ def mysql_start_replication(found_container: docker.models.containers.Container,
         print(log_text)
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_dir + "/wait_slave_replication_done.py",
             "-e",
             environment,

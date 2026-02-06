@@ -32,7 +32,8 @@ import {
     checkboxAccountDisablingMonitoringEnabledCheckedState,
     checkboxLdapUseSslCheckedState,
     domainFormState, installStartedAtState,
-    jobIdState, MIN_CPU_COUNT, MIN_DISK_SPACE_MB, MIN_RAM_MB,
+    jobIdState, mail2FaCheckedState, MIN_CPU_COUNT, MIN_DISK_SPACE_MB, MIN_RAM_MB,
+    productTypeState,
     selectedSsoProviderState,
     serverSpecsAlertState,
     switchEmailCheckedState,
@@ -41,7 +42,7 @@ import {
     switchTwilioCheckedState,
     switchVonageCheckedState
 } from "@/api/_stores.ts";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import useNavigatePages from "@/lib/navigatePages.ts";
 import type {
     AdminFormState,
@@ -59,6 +60,7 @@ import ImagePreview from "@/components/ImagePreview.tsx";
 import domainTooltipUrl from "@/img/domain-tooltip-image.png";
 import NoNetworkError from "@/components/NoNetworkError.tsx";
 import dayjs from "dayjs";
+import { useMemo } from "react";
 
 /* =========================
    Свитчеры
@@ -66,17 +68,19 @@ import dayjs from "dayjs";
 
 type AuthSettings = ReturnType<typeof useAuthSettings>;
 const useAuthSettings = () => {
-    const [ switchEmailChecked, setSwitchEmailChecked ] = useAtom(switchEmailCheckedState);
-    const [ switchSsoChecked, setSwitchSsoChecked ] = useAtom(switchSsoCheckedState);
-    const [ selectedSsoProvider, setSelectedSsoProvider ] = useAtom(selectedSsoProviderState);
-    const [ switchSmsAgentChecked, setSwitchSmsAgentChecked ] = useAtom(switchSmsAgentCheckedState);
-    const [ switchVonageChecked, setSwitchVonageChecked ] = useAtom(switchVonageCheckedState);
-    const [ switchTwilioChecked, setSwitchTwilioChecked ] = useAtom(switchTwilioCheckedState);
-    const [ checkboxLdapUseSslChecked, setCheckboxLdapUseSslChecked ] = useAtom(checkboxLdapUseSslCheckedState);
-    const [ checkboxAccountDisablingMonitoringEnabledChecked, setCheckboxAccountDisablingMonitoringEnabledChecked ] = useAtom(checkboxAccountDisablingMonitoringEnabledCheckedState);
+    const [switchEmailChecked, setSwitchEmailChecked] = useAtom(switchEmailCheckedState);
+    const [mail2FaChecked, setMail2FaChecked] = useAtom(mail2FaCheckedState);
+    const [switchSsoChecked, setSwitchSsoChecked] = useAtom(switchSsoCheckedState);
+    const [selectedSsoProvider, setSelectedSsoProvider] = useAtom(selectedSsoProviderState);
+    const [switchSmsAgentChecked, setSwitchSmsAgentChecked] = useAtom(switchSmsAgentCheckedState);
+    const [switchVonageChecked, setSwitchVonageChecked] = useAtom(switchVonageCheckedState);
+    const [switchTwilioChecked, setSwitchTwilioChecked] = useAtom(switchTwilioCheckedState);
+    const [checkboxLdapUseSslChecked, setCheckboxLdapUseSslChecked] = useAtom(checkboxLdapUseSslCheckedState);
+    const [checkboxAccountDisablingMonitoringEnabledChecked, setCheckboxAccountDisablingMonitoringEnabledChecked] = useAtom(checkboxAccountDisablingMonitoringEnabledCheckedState);
 
     return {
         switchEmailChecked, setSwitchEmailChecked,
+        mail2FaChecked, setMail2FaChecked,
         switchSsoChecked, setSwitchSsoChecked,
         selectedSsoProvider, setSelectedSsoProvider,
         switchSmsAgentChecked, setSwitchSmsAgentChecked,
@@ -124,9 +128,24 @@ const ConfirmBlock = ({
     const t = useLangString();
     const itemBase =
         "bg-[rgba(0,0,0,0.1)] w-full px-[16px] py-[12px] flex justify-between items-center cursor-pointer";
+    const productType = useAtomValue(productTypeState)
+
+    const offerLink = useMemo(() => {
+        if (productType == "yandex_cloud") {
+            return "https://getcompass.ru/docs/yandex-cloud/offer.pdf"
+        }
+        return "https://getcompass.ru/docs/on-premise/offer.pdf";
+    }, [productType]);
 
     const renderOfferDesc = () => {
-        const text = t("install_page.configure.confirm_block.offer_desc");
+
+        const text = useMemo(() => {
+            if (productType == "yandex_cloud") {
+                return t("install_page.configure.confirm_block.yandex_offer_desc");
+            }
+            return t("install_page.configure.confirm_block.default_offer_desc");
+        }, [productType]);
+
         const target_privacy = "политики конфиденциальности";
         const target_offer = "публичной оферты";
         const i_privacy = text.indexOf(target_privacy);
@@ -153,7 +172,7 @@ const ConfirmBlock = ({
                 </a>
                 {text.slice(i_privacy + target_privacy.length, i_offer)}
                 <a
-                    href="https://getcompass.ru/docs/yandex-cloud/offer.pdf"
+                    href={offerLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={cn(
@@ -220,7 +239,7 @@ const ConfirmBlock = ({
                     setVisible={setNetworkError}
                     triggerComponent={
                         <Button className={loading ? "pt-[9px] pb-[10px]" : "py-[6px]"} onClick={onSubmit}
-                                disabled={loading}>
+                            disabled={loading}>
                             {loading ? (
                                 <Preloader size={16} />
                             ) : t("install_page.configure.confirm_block.install_button")}
@@ -307,7 +326,7 @@ const InputBlock = ({
     labelBlock, maxLength = 1000
 }: InputBlockProps) => {
 
-    const [ showPassword, setShowPassword ] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     return (
         <div
@@ -659,13 +678,13 @@ export const DroppableTextarea = ({
         if (error !== null) {
             markInvalidKey(invalidKey);
         }
-    }, [ error ]);
+    }, [error]);
 
     useEffect(() => {
         if (error !== null && !invalidKeys.has(invalidKey)) {
             setError(null);
         }
-    }, [ invalidKeys ]);
+    }, [invalidKeys]);
 
     return (
         <div ref={wrapperRef} className="relative w-full" {...dropProps}>
@@ -678,7 +697,7 @@ export const DroppableTextarea = ({
                     <Text size="xs" color={isError ? "error" : "default"}>
                         {label}
                         <Tooltip classNameContent="max-w-[284px]" side="right"
-                                 trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
                             <Text size="tooltip" className="whitespace-pre-line">
                                 {tooltipText}
                             </Text>
@@ -742,11 +761,19 @@ type DomainBlockProps = {
 const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
     ({ form, setForm, autoCerts, setAutoCerts, invalidKeys, clearInvalidKey, markInvalidKey }, ref) => {
         const t = useLangString();
-        const [ host, setHost ] = useState<string>("");
-        const [ domainIp, setDomainIp ] = useState<string>("");
-        const [ domainWarningVisible, setDomainWarningVisible ] = useState(false);
-        const [ domainWarningText, setDomainWarningText ] = useState(t("install_page.configure.domain_block.domain_check_default_error"));
-        const [ domainCheckLoading, setDomainCheckLoading ] = useState(false);
+        const [host, setHost] = useState<string>("");
+        const [domainIp, setDomainIp] = useState<string>("");
+        const [domainWarningVisible, setDomainWarningVisible] = useState(false);
+        const [domainWarningText, setDomainWarningText] = useState(t("install_page.configure.domain_block.domain_check_default_error"));
+        const [domainCheckLoading, setDomainCheckLoading] = useState(false);
+        const productType = useAtomValue(productTypeState)
+
+        const domainInputText = useMemo(() => {
+            if (productType == "yandex_cloud") {
+                return t("install_page.hints.yandex_domain_input_pt1")
+            }
+            return t("install_page.hints.default_domain_input_pt1");
+        }, [productType]);
 
         useEffect(() => {
             if (typeof window !== "undefined") {
@@ -756,7 +783,7 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
 
         const blockInvalid = hasAny(invalidKeys, [
             "domain.domain",
-            ...(autoCerts ? [] : [ "domain.cert", "domain.private_key" ])
+            ...(autoCerts ? [] : ["domain.cert", "domain.private_key"])
         ]);
 
         return (
@@ -769,7 +796,7 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                     <Text className="tracking-[-0.15px] whitespace-pre-line select-text">
                         {(() => {
                             const desc = t("install_page.configure.domain_block.desc");
-                            const [ before, after ] = desc.split("$IP");
+                            const [before, after] = desc.split("$IP");
 
                             return (
                                 <>
@@ -821,16 +848,16 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                                         >
                                             {t("install_page.configure.domain_block.domain_input_title")}
                                             <Tooltip side="right"
-                                                     trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
+                                                trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
                                                 <div
                                                     className="flex flex-col items-start justify-center gap-[12px] max-w-[596px]">
                                                     <Text size="tooltip" className="whitespace-pre-line">
-                                                        {t("install_page.hints.domain_input_pt1")}
+                                                        {domainInputText}
                                                     </Text>
-                                                    <ImagePreview
+                                                    {productType == "yandex_cloud" && <ImagePreview
                                                         triggerClassName="w-[596px] h-[124px] rounded-[8px] bg-cover bg-domain-tooltip-image"
                                                         url={domainTooltipUrl}
-                                                    />
+                                                    />}
                                                     <Text size="tooltip">
                                                         {t("install_page.hints.domain_input_pt2")}
                                                     </Text>
@@ -928,7 +955,7 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                                 <Text size="xs">
                                     {t("install_page.configure.domain_block.ssl_cert_input_title")}
                                     <Tooltip classNameContent="max-w-[284px]" side="right"
-                                             trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
+                                        trigger={<TooltipIcon className="w-[14px] h-[14px] ml-[4px]" />}>
                                         <Text size="tooltip" className="whitespace-pre-line">
                                             {t("install_page.hints.ssl_certificate_input")}
                                         </Text>
@@ -1044,6 +1071,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
     const {
         form, setForm, invalidKeys,
         switchEmailChecked, setSwitchEmailChecked,
+        mail2FaChecked, setMail2FaChecked,
         switchSsoChecked, setSwitchSsoChecked,
         selectedSsoProvider, setSelectedSsoProvider,
         switchSmsAgentChecked, setSwitchSmsAgentChecked,
@@ -1057,10 +1085,10 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
     // поддерживаем протокол sso в стейте формы
     useEffect(() => {
         setForm((s) => ({ ...s, sso_protocol: switchSsoChecked ? selectedSsoProvider : "" }));
-    }, [ switchSsoChecked, selectedSsoProvider ]);
+    }, [switchSsoChecked, selectedSsoProvider]);
 
-    const mailBlockInvalid = switchEmailChecked && hasAny(invalidKeys, [
-        "auth.smtp_host", "auth.smtp_port", "auth.smtp_from"
+    const mailBlockInvalid = switchEmailChecked && mail2FaChecked && hasAny(invalidKeys, [
+        "auth.smtp_host", "auth.smtp_port", "auth.smtp_user", "auth.smtp_pass", "auth.smtp_from"
     ]);
 
     const ssoMappingInvalid = switchSsoChecked && hasAny(invalidKeys, [
@@ -1177,7 +1205,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                     <Text variant="bold" className="pl-[8px]">
                         {t("install_page.configure.auth_block.mail_auth_title")}
                         <Tooltip classNameContent="max-w-[546px]" side="right"
-                                 trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                             <div className="flex flex-col gap-[6px]">
                                 <Text size="tooltip" className="whitespace-pre-line">
                                     {t("install_page.hints.mail_block_title")}
@@ -1207,7 +1235,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                             clearInvalidKey={clearInvalidKey}
                             tooltip={
                                 <Tooltip classNameContent="max-w-[481px]" side="right"
-                                         trigger={<TooltipIcon className="w-[18px] h-[18px] ml-[4px]" />}>
+                                    trigger={<TooltipIcon className="w-[18px] h-[18px] ml-[4px]" />}>
                                     <Text size="tooltip" className="whitespace-pre-line">
                                         {t("install_page.hints.mail_title")}
                                     </Text>
@@ -1215,6 +1243,33 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                             }
                         />
                         {switchEmailChecked && (
+                            <>
+                                <div className="
+                                        flex gap-[8px] items-center justify-start
+                                        bg-[rgba(0,0,0,0.1)] px-[16px] py-[12px] rounded-b-[12px]
+                                        ">
+                                    <Checkbox
+                                        id="mail-2fa"
+                                        checked={mail2FaChecked}
+                                        onCheckedChange={(checked) => {
+                                            setForm((s) => ({ ...s, mail_2fa_enabled: Boolean(checked) }));
+                                            setMail2FaChecked(Boolean(checked))
+                                        }}
+                                    />
+
+                                    <Label htmlFor="mail-2fa" className="cursor-pointer text-[12px] leading-[18px]">
+                                        {t("install_page.configure.auth_block.mail_2fa_title")}
+                                    </Label>
+                                    <Tooltip classNameContent="max-w-[462px]" side="right" trigger={<TooltipIcon />}>
+                                        <Text size="tooltip" className="whitespace-pre-line">
+                                            {t("install_page.hints.mail_2fa_title")}
+                                        </Text>
+                                    </Tooltip>
+                                </div>
+
+                            </ >
+                        )}
+                        {switchEmailChecked && mail2FaChecked && (
                             <>
                                 <InputBlock
                                     label={t("install_page.configure.auth_block.mail_host_input_title")}
@@ -1244,17 +1299,27 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                 <InputBlock
                                     label={t("install_page.configure.auth_block.mail_login_input_title")}
                                     placeholder={t("install_page.configure.auth_block.mail_login_input_placeholder")}
+                                    requiredField
                                     name="smtp_user"
                                     value={form.smtp_user}
-                                    onChange={(v) => setForm((s) => ({ ...s, smtp_user: v }))}
+                                    onChange={(v) => {
+                                        setForm((s) => ({ ...s, smtp_user: v }));
+                                        clearInvalidKey("auth.smtp_user");
+                                    }}
+                                    invalid={invalidKeys.has("auth.smtp_user")}
                                 />
                                 <InputBlock
                                     label={t("install_page.configure.auth_block.mail_password_input_title")}
                                     placeholder={t("install_page.configure.auth_block.mail_password_input_placeholder")}
+                                    requiredField
                                     name="smtp_pass"
                                     value={form.smtp_pass}
-                                    onChange={(v) => setForm((s) => ({ ...s, smtp_pass: v }))}
                                     type="password"
+                                    onChange={(v) => {
+                                        setForm((s) => ({ ...s, smtp_pass: v }));
+                                        clearInvalidKey("auth.smtp_pass");
+                                    }}
+                                    invalid={invalidKeys.has("auth.smtp_pass")}
                                 />
                                 <SelectorBlock
                                     label={t("install_page.configure.auth_block.mail_encryption_title")}
@@ -1319,7 +1384,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                     <Text variant="bold" className="pl-[8px]">
                         {t("install_page.configure.auth_block.sso_auth_title")}
                         <Tooltip classNameContent="max-w-[407px]" side="right"
-                                 trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                             <Text size="tooltip" className="whitespace-pre-line">
                                 {t("install_page.hints.sso_block_title")}
                             </Text>
@@ -1338,7 +1403,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                             clearInvalidKey={clearInvalidKey}
                             tooltip={
                                 <Tooltip classNameContent="max-w-[543px]" side="right"
-                                         trigger={<TooltipIcon className="w-[18px] h-[18px] ml-[4px]" />}>
+                                    trigger={<TooltipIcon className="w-[18px] h-[18px] ml-[4px]" />}>
                                     <div className="flex flex-col gap-[6px]">
                                         <Text size="tooltip" className="whitespace-pre-line">
                                             {t("install_page.hints.sso_title_pt1")}
@@ -1387,83 +1452,83 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                     </Text>
                                 </div>
                                 <SubTitleBlock label={t("install_page.configure.auth_block.sso_mapping_subtitle")}
-                                               tooltip={
-                                                   <Tooltip
-                                                       classNameContent="max-w-[566px]" side="right"
-                                                       trigger={
-                                                           <TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />
-                                                       }
-                                                   >
-                                                       <div className="flex flex-col gap-[12px]">
-                                                           <Text size="tooltip" className="whitespace-pre-line">
-                                                               {(() => {
-                                                                   const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt1");
-                                                                   const target_name = "Имя, Электронная почта";
-                                                                   const target_phone_number = "Номер пользователя";
-                                                                   const i_name = text.indexOf(target_name);
-                                                                   const i_phone_number = text.indexOf(target_phone_number);
-                                                                   if (i_name === -1 || i_phone_number === -1) return text;
+                                    tooltip={
+                                        <Tooltip
+                                            classNameContent="max-w-[566px]" side="right"
+                                            trigger={
+                                                <TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />
+                                            }
+                                        >
+                                            <div className="flex flex-col gap-[12px]">
+                                                <Text size="tooltip" className="whitespace-pre-line">
+                                                    {(() => {
+                                                        const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt1");
+                                                        const target_name = "Имя, Электронная почта";
+                                                        const target_phone_number = "Номер пользователя";
+                                                        const i_name = text.indexOf(target_name);
+                                                        const i_phone_number = text.indexOf(target_phone_number);
+                                                        if (i_name === -1 || i_phone_number === -1) return text;
 
-                                                                   return (
-                                                                       <>
-                                                                           {text.slice(0, i_name)}
-                                                                           <span className="font-lato-bold">
-                                                                           {target_name}
-                                                                           </span>
-                                                                           {text.slice(i_name + target_name.length, i_phone_number)}
-                                                                           <span className="font-lato-bold">
-                                                                           {target_phone_number}
-                                                                           </span>
-                                                                           {text.slice(i_phone_number + target_phone_number.length)}
-                                                                       </>
-                                                                   );
-                                                               })()}
-                                                           </Text>
-                                                           <Text size="tooltip" className="whitespace-pre-line">
-                                                               {(() => {
-                                                                   const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt2");
-                                                                   const target = "{first_name}";
-                                                                   const i = text.indexOf(target);
-                                                                   if (i === -1) return text;
+                                                        return (
+                                                            <>
+                                                                {text.slice(0, i_name)}
+                                                                <span className="font-lato-bold">
+                                                                    {target_name}
+                                                                </span>
+                                                                {text.slice(i_name + target_name.length, i_phone_number)}
+                                                                <span className="font-lato-bold">
+                                                                    {target_phone_number}
+                                                                </span>
+                                                                {text.slice(i_phone_number + target_phone_number.length)}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </Text>
+                                                <Text size="tooltip" className="whitespace-pre-line">
+                                                    {(() => {
+                                                        const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt2");
+                                                        const target = "{first_name}";
+                                                        const i = text.indexOf(target);
+                                                        if (i === -1) return text;
 
-                                                                   return (
-                                                                       <>
-                                                                           {text.slice(0, i)}
-                                                                           <span className="font-lato-bold">
-                                                                           {target}
-                                                                           </span>
-                                                                           {text.slice(i + target.length)}
-                                                                       </>
-                                                                   );
-                                                               })()}
-                                                           </Text>
-                                                           <Text size="tooltip" className="whitespace-pre-line">
-                                                               {(() => {
-                                                                   const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt3");
-                                                                   const target_example_1 = "{first_name} {last_name}";
-                                                                   const target_example_2 = "{first_name}-{last_name}";
-                                                                   const i_example_1 = text.indexOf(target_example_1);
-                                                                   const i_example_2 = text.indexOf(target_example_2);
-                                                                   if (i_example_1 === -1 || i_example_2 === -1) return text;
+                                                        return (
+                                                            <>
+                                                                {text.slice(0, i)}
+                                                                <span className="font-lato-bold">
+                                                                    {target}
+                                                                </span>
+                                                                {text.slice(i + target.length)}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </Text>
+                                                <Text size="tooltip" className="whitespace-pre-line">
+                                                    {(() => {
+                                                        const text = t("install_page.hints.sso_mapping_attributes_subtitle_pt3");
+                                                        const target_example_1 = "{first_name} {last_name}";
+                                                        const target_example_2 = "{first_name}-{last_name}";
+                                                        const i_example_1 = text.indexOf(target_example_1);
+                                                        const i_example_2 = text.indexOf(target_example_2);
+                                                        if (i_example_1 === -1 || i_example_2 === -1) return text;
 
-                                                                   return (
-                                                                       <>
-                                                                           {text.slice(0, i_example_1)}
-                                                                           <span className="font-lato-bold">
-                                                                           {target_example_1}
-                                                                           </span>
-                                                                           {text.slice(i_example_1 + target_example_1.length, i_example_2)}
-                                                                           <span className="font-lato-bold">
-                                                                           {target_example_2}
-                                                                           </span>
-                                                                           {text.slice(i_example_2 + target_example_2.length)}
-                                                                       </>
-                                                                   );
-                                                               })()}
-                                                           </Text>
-                                                       </div>
-                                                   </Tooltip>
-                                               } />
+                                                        return (
+                                                            <>
+                                                                {text.slice(0, i_example_1)}
+                                                                <span className="font-lato-bold">
+                                                                    {target_example_1}
+                                                                </span>
+                                                                {text.slice(i_example_1 + target_example_1.length, i_example_2)}
+                                                                <span className="font-lato-bold">
+                                                                    {target_example_2}
+                                                                </span>
+                                                                {text.slice(i_example_2 + target_example_2.length)}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </Text>
+                                            </div>
+                                        </Tooltip>
+                                    } />
                                 <InputBlock
                                     label={t("install_page.configure.auth_block.sso_mapping_name_input_title")}
                                     placeholder={t("install_page.configure.auth_block.sso_mapping_name_input_placeholder")}
@@ -1537,7 +1602,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                     tooltip={
                                         selectedSsoProvider === "oidc" ? (
                                             <Tooltip classNameContent="max-w-[477px]" side="right"
-                                                     trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                                                trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                                                 <div className="flex flex-col gap-[6px]">
                                                     <Text size="tooltip" className="whitespace-pre-line">
                                                         {t("install_page.hints.sso_connect_subtitle")}
@@ -1560,9 +1625,9 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                             </Tooltip>
                                         ) : (
                                             <Tooltip classNameContent="max-w-[366px]" side="right"
-                                                     trigger={
-                                                         <TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />
-                                                     }>
+                                                trigger={
+                                                    <TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />
+                                                }>
                                                 <Text size="tooltip" className="whitespace-pre-line">
                                                     {renderHintLdapConnectSubtitleLinkDesc()}
                                                 </Text>
@@ -1641,14 +1706,14 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                                         <div
                                             className="flex gap-[8px] items-center justify-start bg-[rgba(0,0,0,0.1)] px-[16px] py-[12px]">
                                             <input type="hidden" name="ldap_use_ssl"
-                                                   value={checkboxLdapUseSslChecked ? "true" : "false"} readOnly />
+                                                value={checkboxLdapUseSslChecked ? "true" : "false"} readOnly />
                                             <Checkbox
                                                 id="sso-ldap-use-ssl"
                                                 checked={checkboxLdapUseSslChecked}
                                                 onCheckedChange={setCheckboxLdapUseSslChecked}
                                             />
                                             <Label htmlFor="sso-ldap-use-ssl"
-                                                   className="cursor-pointer text-[12px] leading-[18px]">
+                                                className="cursor-pointer text-[12px] leading-[18px]">
                                                 {t("install_page.configure.auth_block.sso_ldap_use_ssl_checkbox")}
                                             </Label>
                                         </div>
@@ -1829,7 +1894,7 @@ const AuthBlock = forwardRef<HTMLDivElement, AuthBlockProps>((props, ref) => {
                     <Text variant="bold" className="pl-[8px]">
                         {t("install_page.configure.auth_block.sms_auth_title")}
                         <Tooltip classNameContent="max-w-[378px]" side="right"
-                                 trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                             <Text size="tooltip" className="whitespace-pre-line">
                                 {t("install_page.hints.sms_block_title")}
                             </Text>
@@ -2128,15 +2193,15 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
         switchEmailChecked, switchSsoChecked, switchSmsAgentChecked, switchVonageChecked, switchTwilioChecked,
         form, setForm, invalidKeys, markInvalidKey, clearInvalidKey,
     } = props;
-    const [ mailPasswordErrorVisible, setMailPasswordErrorVisible ] = useState(false);
+    const [mailPasswordErrorVisible, setMailPasswordErrorVisible] = useState(false);
 
     const anySmsChecked = switchSmsAgentChecked || switchVonageChecked || switchTwilioChecked;
 
-    const adminMainInvalid = hasAny(invalidKeys, [ "admin.root_user_full_name", "admin.space_name" ]);
+    const adminMainInvalid = hasAny(invalidKeys, ["admin.root_user_full_name", "admin.space_name"]);
     const adminCredsInvalid = hasAny(invalidKeys, [
-        ...(switchSsoChecked ? [ "admin.root_user_sso_login" ] : []),
-        ...(anySmsChecked ? [ "admin.root_user_phone" ] : []),
-        ...(switchEmailChecked ? [ "admin.root_user_mail", "admin.root_user_pass" ] : []),
+        ...(switchSsoChecked ? ["admin.root_user_sso_login"] : []),
+        ...(anySmsChecked ? ["admin.root_user_phone"] : []),
+        ...(switchEmailChecked ? ["admin.root_user_mail", "admin.root_user_pass"] : []),
     ]);
 
     return (
@@ -2155,7 +2220,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                     <Text variant="bold" className="pl-[8px]">
                         {t("install_page.configure.admin_block.admin_title")}
                         <Tooltip classNameContent="max-w-[431px]" side="right"
-                                 trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                             <Text size="tooltip" className="whitespace-pre-line">
                                 {t("install_page.hints.admin_profile_creds_title")}
                             </Text>
@@ -2200,7 +2265,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                     <Text variant="bold" className="pl-[8px]">
                         {t("install_page.configure.admin_block.admin_creds_title")}
                         <Tooltip classNameContent="max-w-[370px]" side="right"
-                                 trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
+                            trigger={<TooltipIcon className="w-[16px] h-[16px] ml-[4px]" />}>
                             <Text size="tooltip" className="whitespace-pre-line">
                                 {t("install_page.hints.admin_auth_creds_title")}
                             </Text>
@@ -2289,7 +2354,7 @@ const AdminBlock = forwardRef<HTMLDivElement, AdminBlockProps>((props, ref) => {
                                             sideOffset={-10}
                                         >
                                             <Text size="s"
-                                                  className="whitespace-pre-line text-center tracking-[-0.15px]">
+                                                className="whitespace-pre-line text-center tracking-[-0.15px]">
                                                 {t("install_page.configure.admin_block.admin_email_password_input_error")}
                                             </Text>
                                         </Tooltip>
@@ -2345,7 +2410,7 @@ AdminBlock.displayName = "AdminBlock";
 
 const toFormData = (obj: Record<string, any>) => {
     const data = new FormData();
-    for (const [ k, v ] of Object.entries(obj)) {
+    for (const [k, v] of Object.entries(obj)) {
         if (v === undefined || v === null) continue;
         if (Array.isArray(v)) v.forEach(x => data.append(k, String(x)));
         else if (typeof v === "boolean") data.append(k, v ? "true" : "false");
@@ -2366,27 +2431,27 @@ type RunResponseStruct = { success: boolean, job_id: string };
 const PageContentInstallConfigure = () => {
     const t = useLangString();
     const authSettings = useAuthSettings();
-    const [ serverSpecsAlert, setServerSpecsAlert ] = useAtom(serverSpecsAlertState);
+    const [serverSpecsAlert, setServerSpecsAlert] = useAtom(serverSpecsAlertState);
     const setJobId = useSetAtom(jobIdState);
     const setInstallStartedAt = useSetAtom(installStartedAtState);
 
-    const [ domainForm, setDomainForm ] = useAtom(domainFormState);
-    const [ authForm, setAuthForm ] = useAtom(authFormState);
-    const [ adminForm, setAdminForm ] = useAtom(adminFormState);
+    const [domainForm, setDomainForm] = useAtom(domainFormState);
+    const [authForm, setAuthForm] = useAtom(authFormState);
+    const [adminForm, setAdminForm] = useAtom(adminFormState);
 
     const centerRef = useRef<HTMLDivElement>(null);
     const domainRef = useRef<HTMLDivElement | null>(null);
     const authRef = useRef<HTMLDivElement | null>(null);
     const adminRef = useRef<HTMLDivElement | null>(null);
-    const [ activeSection, setActiveSection ] = useState<SectionKey>("domain");
-    const [ autoCerts, setAutoCerts ] = useAtom(autoCertsState);
-    const [ offerAccepted, setOfferAccepted ] = useState<boolean>(false);
-    const [ needShowErrorOfferAccepted, setNeedShowErrorOfferAccepted ] = useState<boolean>(false);
-    const [ loading, setLoading ] = useState<boolean>(false);
-    const [ networkError, setNetworkError ] = useState(false);
+    const [activeSection, setActiveSection] = useState<SectionKey>("domain");
+    const [autoCerts, setAutoCerts] = useAtom(autoCertsState);
+    const [offerAccepted, setOfferAccepted] = useState<boolean>(false);
+    const [needShowErrorOfferAccepted, setNeedShowErrorOfferAccepted] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [networkError, setNetworkError] = useState(false);
     const { navigateToNextPage } = useNavigatePages();
 
-    const [ isEditing, setIsEditing ] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const handleFocusCapture = () => setIsEditing(true);
     const handleBlurCapture: FocusEventHandler<HTMLDivElement> = () => {
         // const next = e.relatedTarget as Element | null;
@@ -2396,7 +2461,7 @@ const PageContentInstallConfigure = () => {
         setIsEditing(false);
     };
 
-    const fetchJson = async <T, >(url: string, init: RequestInit, label: string): Promise<T | null> => {
+    const fetchJson = async <T,>(url: string, init: RequestInit, label: string): Promise<T | null> => {
         try {
             const res = await fetch(url, init);
             if (!res.ok) {
@@ -2416,7 +2481,7 @@ const PageContentInstallConfigure = () => {
     };
 
     // ошибки
-    const [ invalidKeys, setInvalidKeys ] = useState<InvalidKeys>(new Set());
+    const [invalidKeys, setInvalidKeys] = useState<InvalidKeys>(new Set());
 
     const markInvalidKey = (key: string) => {
         setInvalidKeys((prev) => {
@@ -2472,9 +2537,11 @@ const PageContentInstallConfigure = () => {
         }
 
         // почта
-        if (authSettings.switchEmailChecked) {
+        if (authSettings.switchEmailChecked && authSettings.mail2FaChecked) {
             if (!authForm.smtp_host) bad.push("auth.smtp_host");
             if (!authForm.smtp_port) bad.push("auth.smtp_port");
+            if (!authForm.smtp_user) bad.push("auth.smtp_user");
+            if (!authForm.smtp_pass) bad.push("auth.smtp_pass");
             if (!authForm.smtp_from) {
                 bad.push("auth.smtp_from");
             } else {
@@ -2583,12 +2650,12 @@ const PageContentInstallConfigure = () => {
 
     const requiredKeysForSection = (section: SectionKey): string[] => {
         if (section === "domain") {
-            return [ "domain.domain", ...(autoCerts ? [] : [ "domain.cert", "domain.private_key" ]) ];
+            return ["domain.domain", ...(autoCerts ? [] : ["domain.cert", "domain.private_key"])];
         }
         if (section === "auth") {
             const req: string[] = [];
-            if (authSettings.switchEmailChecked) {
-                req.push("auth.smtp_host", "auth.smtp_port", "auth.smtp_from");
+            if (authSettings.switchEmailChecked && authSettings.mail2FaChecked) {
+                req.push("auth.smtp_host", "auth.smtp_user", "auth.smtp_pass", "auth.smtp_port", "auth.smtp_from");
             }
             if (authSettings.switchSsoChecked) {
                 req.push("auth.sso_compass_mapping_name");
@@ -2624,7 +2691,7 @@ const PageContentInstallConfigure = () => {
         }
 
         // admin
-        const req: string[] = [ "admin.root_user_full_name", "admin.space_name" ];
+        const req: string[] = ["admin.root_user_full_name", "admin.space_name"];
         const anySmsChecked = authSettings.switchSmsAgentChecked || authSettings.switchVonageChecked || authSettings.switchTwilioChecked;
         if (authSettings.switchSsoChecked) req.push("admin.root_user_sso_login");
         if (anySmsChecked) req.push("admin.root_user_phone");
@@ -2655,7 +2722,7 @@ const PageContentInstallConfigure = () => {
         admin: sectionStatus("admin"),
     });
 
-    const [ committedStatuses, setCommittedStatuses ] = useState<SectionStatuses>(() => computeStatuses());
+    const [committedStatuses, setCommittedStatuses] = useState<SectionStatuses>(() => computeStatuses());
 
     useEffect(() => {
         if (!isEditing) {
@@ -2842,7 +2909,7 @@ const PageContentInstallConfigure = () => {
             const container = centerRef.current;
             if (!container) return;
 
-            const order: SectionKey[] = [ "domain", "auth", "admin" ];
+            const order: SectionKey[] = ["domain", "auth", "admin"];
             const cRect = container.getBoundingClientRect();
             const viewTop = 0;
             const viewBottom = cRect.height;
@@ -2855,17 +2922,17 @@ const PageContentInstallConfigure = () => {
             // ширина "полосы якоря" у верха: от 0 до padTop+16 (минимум 64, максимум 180)
             const ANCHOR_BAND = Math.max(64, Math.min(180, padTop + 16));
 
-            const pairs: Array<[ SectionKey, HTMLElement | null ]> = [
-                [ "domain", domainRef.current ],
-                [ "auth", authRef.current ],
-                [ "admin", adminRef.current ],
+            const pairs: Array<[SectionKey, HTMLElement | null]> = [
+                ["domain", domainRef.current],
+                ["auth", authRef.current],
+                ["admin", adminRef.current],
             ];
             const entries = pairs.filter(
-                (t): t is [ SectionKey, HTMLElement ] => t[1] !== null
+                (t): t is [SectionKey, HTMLElement] => t[1] !== null
             );
             if (!entries.length) return;
 
-            const items = entries.map(([ key, el ]) => {
+            const items = entries.map(([key, el]) => {
                 const r = el.getBoundingClientRect();
                 const topRel = r.top - cRect.top;
                 const bottomRel = r.bottom - cRect.top;

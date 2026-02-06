@@ -458,7 +458,7 @@ def backup_db(installer_dir: str, backups_folder: str = None, backup_name_format
 
     # формируем команду
     cmd = [
-        "python3",
+        sys.executable,
         script_path,
         "--need-backup-configs", str(need_backup_configs),
         "--need-backup-spaces", str(need_backup_spaces),

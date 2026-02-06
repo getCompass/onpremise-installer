@@ -78,7 +78,7 @@ def start():
     loader = Loader("Загружаем файлы...", "Успешно загрузили файлы", "Не смогли загрузить файлы").start()
     subprocess.run(
         [
-            "python3",
+            sys.executable,
             script_dir + "/prepare_custom_files.py",
             "-e",
             environment,
