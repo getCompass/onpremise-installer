@@ -124,7 +124,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.6.0"
+        tag: "v6.7.2"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -368,7 +368,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.6.0"
+          tag: "v6.7.2"
         php_migration:
           tag: "v6.1.0"
         php_repairer:
@@ -378,7 +378,7 @@ projects:
           rabbit_queue: "go_sender_queue"
           rabbit_exchange: "go_sender_exchange"
         go_company:
-          tag: "v6.5.1"
+          tag: "v6.7.2"
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
@@ -409,7 +409,7 @@ projects:
           rabbit_queue: "go_rating_queue"
           rabbit_exchange: "go_rating_exchange"
         go_database_controller:
-          tag: "v6.5.1"
+          tag: "v6.7.2"
         nginx:
           external_https_port: 20106
   userbot:
@@ -529,7 +529,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v6.4.0"
+        tag: "v6.7.2"
         external_port: 43100
 
   integration:

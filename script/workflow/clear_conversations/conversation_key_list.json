@@ -1,6 +1,7 @@
 {
 	"1": {
-		"conversation_key_list": ["key1", "key2"]
+		"conversation_key_list": ["key1", "key2"],
+		"clear_by": ""
 	},
 	"2": {
 		"conversation_key_list": ["key3", "key4"]

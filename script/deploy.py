@@ -472,13 +472,17 @@ print(
 )
 print("Название " + scriptutils.warning(stack_name))
 
+resolve_image_type = "always"
+if values_dict.get("local_license"):
+    resolve_image_type = "never"
+
 p = Popen(
     [
         "docker",
         "stack",
         "deploy",
         "--with-registry-auth",
-        "--resolve-image=always",
+        f"--resolve-image={resolve_image_type}",
         "--compose-file",
         compose_file_name,
         "--compose-file",

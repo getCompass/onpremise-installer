@@ -104,9 +104,14 @@ def form_command(keys_by_company):
     # используем точку с запятой как разделитель значений
     formatted_parts = []
     for company_id, company_data in keys_by_company.items():
-        keys_str = ";".join(company_data["conversation_key_list"])
-        formatted_parts.append(f"{company_id}:[{keys_str}]")
-    
+        clean_keys = [k for k in company_data["conversation_key_list"] if k.strip()]
+        keys_str = ";".join(clean_keys)
+        if "clear_by" in company_data:
+            clear_by = company_data.get("clear_by") if company_data.get("clear_by") else ""
+            formatted_parts.append(f"{company_id}:{{keys:[{keys_str}];clear_by:{clear_by}}}")
+        else:
+            formatted_parts.append(f"{company_id}:[{keys_str}]")
+
     script_data = f"[{','.join(formatted_parts)}]"
     company_id_list = list(keys_by_company.keys())
     
