@@ -204,7 +204,7 @@ def update_host_ip(monolith_container: docker.models.containers.Container, host_
     result = monolith_container.exec_run([
         "bash",
         "-c",
-        f"""mysql -h "$MYSQL_HOST" \\
+        f"""mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" \\
         -p"$MYSQL_ROOT_PASS" \\
         -D pivot_company_service --skip-ssl \\
         -e "UPDATE domino_registry \\
@@ -538,9 +538,20 @@ def restore_with_mysqlsh(current_values: dict, backup_path: str, db: DbConfig) -
         raise e
 
     js_code = (
+        "var gtidMode = session.runSql(\"SELECT @@GLOBAL.gtid_mode\").fetchOne()[0];"
+        "var loadOpts = {"
+        f"  threads: {threads}, "
+        "  showProgress: true, "
+        "  resetProgress: true, "
+        "  loadUsers: true, "
+        "  ignoreExistingObjects: true, "
+        "  excludeUsers: ['root']"
+        "};"
+        "if (gtidMode === 'ON') { loadOpts.updateGtidSet = 'replace'; }"
+
+        "session.runSql('RESET MASTER');"
         "session.runSql('SET GLOBAL local_infile=ON');"
-        f"util.loadDump('{dump_dir}', "
-        f"{{threads: {threads}, showProgress: true, resetProgress: true}});"
+        f"util.loadDump('{dump_dir}', loadOpts);"
         "session.runSql('SET GLOBAL local_infile=OFF');"
     )
 

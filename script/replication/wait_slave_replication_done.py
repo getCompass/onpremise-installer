@@ -69,32 +69,19 @@ def get_values() -> Dict:
 
 
 def parse_last_numbers(gtid_str: str) -> List[int]:
-    """
-    1) Разбиваем строку gtid_str по запятой.
-    2) В каждом фрагменте ищем последнее число:
-       - после последнего дефиса '-' (например, '1324-1364' => 1364),
-       - если '-' не найден, пробуем после ':' ('...:1364' => 1364).
-    3) Собираем найденные числа в список.
-    """
+    if not gtid_str:
+        return []
+
     numbers = []
+    # Разбиваем по запятой: 'UUID:1-10, UUID:5-20' -> ['UUID:1-10', 'UUID:5-20']
     parts = [p.strip() for p in gtid_str.split(',') if p.strip()]
 
     for part in parts:
-        # Сначала пробуем найти число после '-'
-        match_dash = re.search(r'-([0-9]+)$', part)
-        if match_dash:
-            numbers.append(int(match_dash.group(1)))
-            continue
-
-        # Если нет дефиса, пробуем число после ':'
-        match_colon = re.search(r':([0-9]+)$', part)
-        if match_colon:
-            numbers.append(int(match_colon.group(1)))
-            continue
-
-        # Если совсем не нашли, просто пропустим
-        # (при желании можно обработать как ошибку)
-        pass
+        # Ищем число после последнего двоеточия или дефиса
+        # r'[: -](\d+)$' — ищет цифры в самом конце фрагмента
+        match = re.search(r'[: -](\d+)$', part)
+        if match:
+            numbers.append(int(match.group(1)))
 
     return numbers
 
@@ -112,12 +99,26 @@ def compare_gtid_sets(retrieved: str, executed: str) -> bool:
     r_nums = parse_last_numbers(retrieved)  # Список чисел из Retrieved
     e_nums = parse_last_numbers(executed)  # Список чисел из Executed
 
+    # Если мы ничего не ждем (Retrieved пуст), а SQL/IO запущены — значит мы догнали мастер
+    if not r_nums:
+        return True
+
     if not r_nums or not e_nums:
         return False
 
-    e_max = max(e_nums)  # самое большое из Executed
-    # Проверяем, есть ли e_max в списке r_nums
-    return e_max in r_nums
+    return max(e_nums) >= max(r_nums)
+
+
+# Универсальный паттерн для захвата многострочных полей GTID
+def extract_gtid_field(field_name, text):
+    # Ищем название поля, затем захватываем всё до тех пор,
+    # пока не встретим "\n пробелы Другое_Поле:" или конец текста
+    pattern = rf"{field_name}:\s*(.*?)(?=\n\s*[A-Za-z_]+:|$)"
+    match = re.search(pattern, text, re.DOTALL)
+    if match:
+        # Важно: убираем переносы строк и лишние пробелы ВНУТРИ найденного блока
+        return re.sub(r'\s+', ' ', match.group(1)).strip()
+    return ""
 
 
 def wait_for_replication(mysql_container, mysql_user, mysql_pass):
@@ -146,12 +147,10 @@ def wait_for_replication(mysql_container, mysql_user, mysql_pass):
         output = result.output.decode("utf-8", errors="ignore")
 
         # Многострочный парсинг Retrieved_Gtid_Set
-        match_rgtid = re.search(r"(?s)Retrieved_Gtid_Set:\s*(.*?)(?=\n[A-Z]|$)", output)
-        retrieved_gtid = match_rgtid.group(1).strip() if match_rgtid else ""
+        retrieved_gtid = extract_gtid_field("Retrieved_Gtid_Set", output)
 
         # Многострочный парсинг Executed_Gtid_Set
-        match_egtid = re.search(r"(?s)Executed_Gtid_Set:\s*(.*?)(?=\n[A-Z]|$)", output)
-        executed_gtid = match_egtid.group(1).strip() if match_egtid else ""
+        executed_gtid = extract_gtid_field("Executed_Gtid_Set", output)
 
         # Узнаём статусы IO/SQL
         match_io = re.search(r"Slave_IO_Running:\s+(\S+)", output)
@@ -169,6 +168,7 @@ def wait_for_replication(mysql_container, mysql_user, mysql_pass):
             return
         else:
             print(f"[{attempt + 1}/{max_tries}] Репликация не завершена (IO={slave_io}, SQL={slave_sql})")
+            print(f"Состояние репликации: Retrieved_Gtid_Set={retrieved_gtid}, Executed_Gtid_Set={executed_gtid}")
             time.sleep(interval)
 
     # если цикл истёк, значит таймаут

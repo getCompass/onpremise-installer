@@ -45,6 +45,8 @@ parser.add_argument("--is-choice-space", required=False, default=1, type=int,
                     help="1 - предоставляем выбор компании для запуска репликации")
 parser.add_argument("--wait-master", required=False, action="store_true",
                     help="Скрипт ожидает, когда репликация догонит master сервер")
+parser.add_argument("--start-from-backup", required=False, action="store_true",
+                    help="Если старт репликации после бэкапа - выполняем set gtid для реплики")
 
 args = parser.parse_args()
 environment = args.environment
@@ -56,6 +58,7 @@ mysql_type = args.type.lower()
 is_all_teams = args.all_teams
 is_all_types = args.all_types
 is_wait_master = args.wait_master
+is_start_from_backup = args.start_from_backup
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -66,13 +69,14 @@ logging.basicConfig(filename='/var/log/start-slave-replication.log', level=loggi
 
 # класс конфига пространства
 class DbConfig:
-    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str) -> None:
+    def __init__(self, domino_id: str, space_id: str, host: str, port: str, root_user: str, root_password: str, db_path: str) -> None:
         self.domino_id = domino_id
         self.space_id = space_id
         self.host = host
         self.port = port
         self.root_user = root_user
         self.root_password = root_password
+        self.db_path = db_path
 
 
 # получить данные окружение из values
@@ -141,7 +145,9 @@ def start():
             "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
             f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
             "MASTER_TLS_VERSION='TLSv1.2,TLSv1.3';"
-        mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass, 0, scriptutils.MONOLITH_MYSQL_TYPE)
+        mysql_start_replication(
+            current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
+            0, scriptutils.MONOLITH_MYSQL_TYPE, "%s/monolith/database" % current_values.get("root_mount_path"))
 
         logging.info("Успешно завершили репликацию для монолита")
 
@@ -191,7 +197,9 @@ def start():
                     "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
                     f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
                     "MASTER_TLS_VERSION = 'TLSv1.2,TLSv1.3';"
-                mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass, space_id, scriptutils.TEAM_MYSQL_TYPE)
+                mysql_start_replication(
+                    current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
+                    space_id, scriptutils.TEAM_MYSQL_TYPE, space_config_obj.db_path)
         else:
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
@@ -208,17 +216,71 @@ def start():
                 "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
                 f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
                 "MASTER_TLS_VERSION='TLSv1.2,TLSv1.3';"
-            mysql_start_replication(found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass, space_id, scriptutils.TEAM_MYSQL_TYPE)
+            mysql_start_replication(
+                current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
+                space_id, scriptutils.TEAM_MYSQL_TYPE, space_config_obj.db_path)
 
         logging.info("Успешно завершили репликацию для команд")
 
 
+# получаем gtid значение из бэкапа
+def parse_gtid_from_backup_meta(current_values: Dict, db_path: str):
+    # для mysqlsh то возвращаем None
+    if current_values["database_connection"]["driver"] == "host":
+        return None
+
+    if not is_start_from_backup:
+        return None
+
+    slave_info = os.path.join(db_path, "xtrabackup_slave_info")
+    binlog_info = os.path.join(db_path, "xtrabackup_binlog_info")
+    info_file = os.path.join(db_path, "xtrabackup_info")
+
+    # проверяем slave_info (содержит 'SET @@GLOBAL.GTID_PURGED=...')
+    if os.path.exists(slave_info):
+        with open(slave_info, 'r') as f:
+            content = f.read()
+            match = re.search(r"GTID_PURGED='([^']+)'", content)
+            if match:
+                return match.group(1)
+
+    # проверяем binlog_info (содержит: log-bin.000006  2003  UUID:1-42413)
+    if os.path.exists(binlog_info):
+        with open(binlog_info, 'r') as f:
+            line = f.readline().strip()
+            parts = line.split()
+            if len(parts) >= 3:
+                return parts[2]
+
+    # проверяем xtrabackup_info (строка 'binlog_pos = ... GTID of the last change '...')
+    if os.path.exists(info_file):
+        with open(info_file, 'r') as f:
+            for line in f:
+                if 'GTID of the last change' in line:
+                    match = re.search(r"GTID of the last change '([^']+)'", line)
+                    if match:
+                        return match.group(1)
+
+    return None
+
 # запускаем старт репликации в полученном контейнере
-def mysql_start_replication(found_container: docker.models.containers.Container, change_master_mysql_command: str,
-                            mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int, mysql_type: str):
-    mysql_command = "STOP SLAVE; UNLOCK TABLES;" + \
-                    change_master_mysql_command + \
-                    "START SLAVE; SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON;"
+def mysql_start_replication(current_values: Dict, found_container: docker.models.containers.Container, change_master_mysql_command: str,
+                            mysql_host: str, mysql_user: str, mysql_pass: str, space_id: int, mysql_type: str, db_path: str):
+
+    # получаем gtid значение из бэкапа
+    gtid_val = parse_gtid_from_backup_meta(current_values, db_path)
+    logging.info(f"Для старта репликации команды {space_id} используем следующий gtid: {gtid_val}")
+    if gtid_val:
+        gtid_init_command = f"RESET MASTER; SET GLOBAL GTID_PURGED = '{gtid_val}'; "
+    else:
+        if is_start_from_backup:
+            confirm = input('Отсутствует gtid для установки SET GTID_PURGED при старте репликации. Продолжаем? [y/N]')
+            if confirm != 'y':
+                exit(0)
+        gtid_init_command = "STOP SLAVE; RESET SLAVE; "
+
+    mysql_command = gtid_init_command + change_master_mysql_command + \
+                    "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; START SLAVE;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
 
     try:
@@ -401,12 +463,20 @@ def get_space_dict(current_values: Dict) -> Dict[int, DbConfig]:
             space_config_dict["mysql"]["port"],
             "root",
             "root",
+            get_space_data_dir_path(current_values, domino_id, space_id)
         )
 
         space_config_obj_dict[space_config_obj.space_id] = space_config_obj
         space_id_list.append(space_config_obj.space_id)
     space_id_list.sort()
     return dict(sorted(space_config_obj_dict.items())), space_id_list
+
+
+# получить путь до данных БД пространства
+def get_space_data_dir_path(current_values: dict, domino_id: str, space: str) -> str:
+    space_db_path = current_values["company_db_path"]
+
+    return "%s/%s/mysql_company_%s/" % (space_db_path, domino_id, space)
 
 
 # точка входа в скрипт
