@@ -287,9 +287,33 @@ def backup_db_list(db_list: list[DbConfig], backup_path_str: str):
     for db in db_list:
         db_container = prepare_db(db)
 
+        lock_conn = None
+
         try:
             header = f"#----- ПРОСТРАНСТВО {db.space_id or 'MONOLITH'} -----#"
             print(scriptutils.warning(header))
+
+            # получаем блокировку для бэкапа
+            if db.driver == "host":
+                try:
+                    lock_conn = mysql.connector.connect(
+                        host=db.host, port=db.port,
+                        user=db.root_user, password=db.root_password
+                    )
+                    cursor = lock_conn.cursor()
+                    cursor.execute("SELECT GET_LOCK('backup_lock', 600)")
+                    if cursor.fetchone()[0] != 1:
+                        scriptutils.die(f"Не удалось занять lock для {db.host}. Идет OPTIMIZE.")
+                    print(scriptutils.success("Блокировка (host) установлена."))
+                except Exception as e:
+                    scriptutils.die(f"Ошибка блокировки на хосте: {e}")
+            else:
+                # используем "фоновый процесс-замок" внутри контейнера.
+                lock_sql = "SELECT GET_LOCK('backup_lock', 600); SELECT SLEEP(3600);"
+                cmd = f"mysql -h localhost -u {db.root_user} -p{db.root_password} -N -e \"{lock_sql}\""
+                # detach=True позволяет процессу жить в фоне и держать сессию (и лок)
+                db_container.exec_run(cmd=cmd, detach=True)
+                print(scriptutils.success(f"Блокировка (container {db_container.name}) установлена."))
 
             if db.driver == "host":
                 # бэкапим с помощью mysqlsh
@@ -312,6 +336,24 @@ def backup_db_list(db_list: list[DbConfig], backup_path_str: str):
             write_control_file(backup_path_str, control_data)
         # финиш бэкапа выполнять надо всегда - чтобы удалить временного пользователя с правами бэкапа
         finally:
+            # снимаем блокировку
+            if db.driver == "host":
+                # закрытие сессии автоматом снимает лок
+                if lock_conn and lock_conn.is_connected():
+                    lock_conn.close()
+            else:
+                kill_sql = (
+                    "SELECT ID FROM information_schema.processlist "
+                    "WHERE ID = IS_USED_LOCK('backup_lock') INTO @lock_id; "
+                    "SET @s = IF(@lock_id IS NOT NULL, CONCAT('KILL ', @lock_id), 'SELECT 1'); "
+                    "PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;"
+                )
+
+                # Выполняем через mysql-клиент внутри того же контейнера
+                db_container.exec_run(
+                    cmd=f"mysql -h localhost -u {db.root_user} -p{db.root_password} -e \"{kill_sql}\""
+                )
+                print(f"Блокировка в контейнере {db_container.name} принудительно снята.")
             finish_backup(db_container, db)
 
 
@@ -434,7 +476,10 @@ def backup_with_mysqlsh(db: DbConfig) -> None:
         f"--port={db.port}",
         "--js",
         "-e",
-        f"util.dumpInstance('{backup_dir}', {{threads: {threads}}})"
+        f"util.dumpInstance('{backup_dir}', {{"
+        f"  threads: {threads}, "
+        f"  consistent: true"
+        f"}})"
     ]
     loader = Loader("Создаем бэкап...", "Создали бэкап", "Не смогли создать бэкап").start()
 
@@ -496,6 +541,7 @@ def run_xtrabackup_container(db_config_obj: DbConfig, db_container: docker.model
                   "--datadir=/var/lib/mysql",
                   "--user=%s" % db_config_obj.backup_user,
                   "--password=\"%s\"" % db_config_obj.backup_password,
+                  "--open-files-limit=65536"
                   "&&",
                   "xtrabackup",
                   "--prepare",

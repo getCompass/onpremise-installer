@@ -1200,6 +1200,7 @@ services:
       MYSQL_SSL_PATH: "{{.root_mount_path}}/mysql_ssl"
       MONOLITH_MYSQL_NETWORK: {{$mysql_shared_network}}
       MANTICORE_CLUSTER_NAME: {{.manticore_cluster_name}}
+      LOCAL_LICENSE: {{if .local_license}}1{{else}}0{{end}}
     env_file:
       - ".global.common.env"
       - ".project.domino.common.env"

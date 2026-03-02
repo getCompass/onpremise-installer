@@ -26,5 +26,4 @@ DOMINO_CONFIG_PATH="/pivot_config"
 COMPANIES_RELATIONSHIP_FILE="reserve_servers_companies_relationship.json"
 SERVICE_LABEL="{{.service_label}}"
 
-# ONPREMISE_VERSION ни в коем случае не менять, иначе ребутаются mcache/rabbit. После 6.0.2 можно удалить
 ONPREMISE_VERSION="6.0.0"

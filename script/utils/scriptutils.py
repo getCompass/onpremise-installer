@@ -277,7 +277,7 @@ def get_yc_params():
 
 
 def is_yandex_cloud_marketplace_product() -> bool:
-    allowed_product_ids = ["f2el70587r2edf5f4pt6"]
+    allowed_product_ids = ["f2eotnbi88rjb55velv3"]
     if not allowed_product_ids:
         return False
 
