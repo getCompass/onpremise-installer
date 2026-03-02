@@ -31,7 +31,7 @@ def process_trigger(trigger):
     loader.start()
 
     # запускаем процесс со скриптом, перенаправляя его вывод
-    p = Popen([root_path + "/" + trigger, '-v', values_file_path, '-d', default_values_file_path, '-p', project], stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    p = Popen([sys.executable, root_path + "/" + trigger, '-v', values_file_path, '-d', default_values_file_path, '-p', project], stdout=PIPE, stderr=PIPE, stdin=PIPE)
     p.wait()
     err = p.stderr.read()
     out = p.stdout.read()

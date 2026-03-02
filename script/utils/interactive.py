@@ -4,11 +4,17 @@ import sys
 
 sys.dont_write_bytecode = True
 
-from utils.scriptutils import bcolors
 from typing import Union
 from getpass import getpass
 import readline, ipaddress
 import re
+from pathlib import Path
+
+current_script_path = Path(__file__).parent
+utils_path = current_script_path.parent.parent / 'script'
+sys.path.append(str(utils_path))
+
+from utils.scriptutils import bcolors
 
 domain_pattern = re.compile(
     r"^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|"

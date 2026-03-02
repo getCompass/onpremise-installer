@@ -132,7 +132,7 @@ def process_goenv_files(goenv_files: list, project: str = ""):
 
         # делаем конвертацию из env файла в файл, понятный docker-swarm
         Popen(
-            [script_dir + "/deploy_prepare_env.py", "-i", final_path, "-o", final_path]
+            [sys.executable, script_dir + "/deploy_prepare_env.py", "-i", final_path, "-o", final_path]
         ).wait()
 
         # добавляем файл в список на удаление

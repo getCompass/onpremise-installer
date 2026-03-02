@@ -42,7 +42,7 @@ def main():
     for platform, version in PLATFORM_FEATURES[feature_name].items():
         print(f"Запуск анонса для платформы {platform} с версией {version}...")
         result = subprocess.run(
-            ['python3', script_path,
+            [sys.executable, script_path,
              '-v', args.values,
              '-e', args.environment,
              '-p', platform,
