@@ -557,7 +557,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.6.0"
+    tag: "v6.7.2"
     jwt:
       app_id: "compass"
       app_secret: ""

@@ -290,6 +290,7 @@ subprocess.run(
 
 print("Валидируем конфигурацию приложения")
 command = [
+    sys.executable,
     script_resolved_path + "/init.py",
     "-e",
     environment,
@@ -381,7 +382,7 @@ subprocess.run(
 ).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации smart_apps")
 
 print("Запускаем скрипт инициализации проекта")
-command = [script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
+command = [sys.executable, script_resolved_path + "/init.py", "-e", environment, "-v", values_name, "-p", "monolith"]
 if use_default_values:
     command.append("--use-default-values")
 if install_integration:

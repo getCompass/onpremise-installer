@@ -95,7 +95,7 @@ def main():
             # Используем правильный путь к скрипту
             script_path = os.path.join(script_dir, 'enable_force_update_announcement.py')
             result = subprocess.run(
-                ['python3', script_path,  # Используем полный путь к скрипту
+                [sys.executable, script_path,  # Используем полный путь к скрипту
                  '-v', args.values,
                  '-e', args.environment,
                  '-p', platform,
