@@ -131,7 +131,8 @@ def start():
     start_monolith_restore(current_values, backup_path, monolith_backup_name)
 
     # начинаем бэкап пространств
-    start_space_restore(current_values, backup_path, space_backup_info_list)
+    if len(space_backup_info_list) > 0:
+        start_space_restore(current_values, backup_path, space_backup_info_list)
 
     # запускаем окружение
     if len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
@@ -418,22 +419,23 @@ def validate_backup_contents(current_values: dict, backup_path: str):
 
     space_backup_info_list = []
 
-    for domino_space_id, backup_name in control_dict["space_backups"].items():
+    if control_dict.get("space_backups") is not None:
+        for domino_space_id, backup_name in control_dict["space_backups"].items():
 
-        domino_space_id_arr = domino_space_id.split("::")
+            domino_space_id_arr = domino_space_id.split("::")
 
-        if len(domino_space_id_arr) != 2:
-            scriptutils.die("Контрольный конфиг бэкапа некорректен!")
+            if len(domino_space_id_arr) != 2:
+                scriptutils.die("Контрольный конфиг бэкапа некорректен!")
 
-        domino_id = domino_space_id_arr[0]
-        space_id = domino_space_id_arr[1]
+            domino_id = domino_space_id_arr[0]
+            space_id = domino_space_id_arr[1]
 
-        space_backup_path = Path("%s/%s" % (backup_path, backup_name))
+            space_backup_path = Path("%s/%s" % (backup_path, backup_name))
 
-        if not space_backup_path.exists():
-            scriptutils.die("В бэкапе нет архива с БД пространства %d" % space_id)
+            if not space_backup_path.exists():
+                scriptutils.die("В бэкапе нет архива с БД пространства %d" % space_id)
 
-        space_backup_info_list.append(SpaceBackupInfo(domino_id, space_id, backup_name))
+            space_backup_info_list.append(SpaceBackupInfo(domino_id, space_id, backup_name))
 
     if control_dict.get("config_archive_name") is not None:
 
