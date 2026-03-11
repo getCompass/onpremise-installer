@@ -54,7 +54,7 @@ file_default_node_id: "file_default"
 # дефолтный гейтвей, который будет использован при поднятии проекта api_gateway через up.sh
 # если нужно поднять другую, то нужно явно его указать с помощью --data api_gateway_id=required-gateway
 # гейтвей выбирается по ключу конфига, не по значению label
-api_gateway_id: "api_gateway-1"
+api_gateway_id: "gateway-1"
 
 # максимальный размер скачиваемого файла что будет доступен для загрузки
 max_file_size_mb: 2048
@@ -99,7 +99,7 @@ projects:
 
   api_gateway:
     api_gateway-1:
-      label: "api_gateway-1"
+      label: "gateway-1"
       subdomain: "gateway-1"
       url_path: ""
       host: "0.0.0.0"
