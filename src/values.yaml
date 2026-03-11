@@ -98,7 +98,7 @@ icap:
 projects:
 
   api_gateway:
-    api_gateway-1:
+    gateway-1:
       label: "gateway-1"
       subdomain: "gateway-1"
       url_path: ""
