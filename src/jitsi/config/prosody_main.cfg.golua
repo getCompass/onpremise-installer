@@ -90,11 +90,8 @@ Component "conference.meet.jitsi" "muc"
         "rest_api";
         "persistent_lobby";
         "token_lobby_bypass";
-        "token_verification";
-
-        "polls";
         "muc_domain_mapper";
-
+        "token_verification";
         "muc_password_whitelist";
     }
     admins = { "focus@auth.meet.jitsi" }
@@ -112,7 +109,6 @@ Component "breakout.meet.jitsi" "muc"
         "muc_meeting_id";
         "muc_domain_mapper";
         "muc_rate_limit";
-        "polls";
     }
     admins = { "focus@auth.meet.jitsi" }
     muc_room_locking = false
@@ -128,7 +124,6 @@ Component "internal-conference.meet.jitsi" "muc"
         "persistent_lobby";
         "token_lobby_bypass";
         "token_verification";
-        "polls";
         "muc_domain_mapper";
         "muc_password_whitelist";
     }
@@ -172,7 +167,6 @@ Component "lobby.meet.jitsi" "muc"
     modules_enabled = {
         "muc_hide_all";
         "muc_rate_limit";
-        "polls";
     }
 
 Component "metadata.meet.jitsi" "room_metadata_component"

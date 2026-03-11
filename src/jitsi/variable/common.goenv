@@ -25,6 +25,7 @@ JVB_COLIBRI_PORT=8080
 JVB_PORT={{.projects.jitsi.service.jvb.media_port}}
 JICOFO_REST_PORT={{.projects.jitsi.service.jicofo.port}}
 HTTPS_PORT={{.projects.jitsi.service.web.https_port}}
+JICOFO_ENABLE_REST=1
 
 # включаем xmpp/colibri websocket
 ENABLE_SCTP=1
@@ -47,6 +48,7 @@ MAX_BRIDGE_PARTICIPANTS="-1"
 ENABLE_VISITORS=1
 PROSODY_ENABLE_S2S=1
 VISITORS_XMPP_SERVER="prosody-jitsi-v0,prosody-jitsi-v1,prosody-jitsi-v2"
+JICOFO_TRUSTED_DOMAINS="recorder.meet.jitsi"
 PROSODY_VISITORS_MUC_PREFIX="conference"
 VISITORS_XMPP_DOMAIN="meet.jitsi"
 MAIN_XMPP_SERVER="prosody-jitsi"

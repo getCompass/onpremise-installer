@@ -1,3 +1,9 @@
+{{$api_gateway := index .projects.api_gateway .api_gateway_id}}
+{{$pivot_locprefix := locprefix .url_path .projects.pivot.url_path}}
+{{$domino := index .projects.domino .domino_id}}
+{{$space_locprefix := ""}}
+{{$domino_locprefix := locprefix .url_path $domino.url_path}}
+{{if $domino_locprefix}}{{$space_locprefix = printf "%s/%s" $domino_locprefix "[0-9]+"}}{{- end -}}
 {{$locprefix := locprefix .url_path -}}
 
 upstream upstream_single_nginx_{{.stack_name_prefix}} {
@@ -9,7 +15,19 @@ upstream upstream_single_nginx_{{.stack_name_prefix}} {
         keepalive 30;
 
         # сервер
-	server {{.projects.monolith.host}}:{{.projects.monolith.service.nginx.external_https_port}};
+	    server {{.projects.monolith.host}}:{{.projects.monolith.service.nginx.external_https_port}};
+}
+
+upstream upstream_api_gateway_single_nginx_{{.stack_name_prefix}} {
+
+        least_conn;
+
+        # количество keepalive соединений с апстримом
+        # важно чтобы стоял после метода балансировки (ip_hash, least_conn, ...)
+        keepalive 30;
+
+        # сервер
+        server {{$api_gateway.host}}:{{$api_gateway.service.go_api_gateway.external_https_port}};
 }
 
 {{if eq $locprefix ""}}{{$integration_locprefix := ""}}{{else}}{{$integration_locprefix := "/"}}{{end}}
@@ -24,7 +42,7 @@ upstream upstream_integration_nginx_{{.stack_name_prefix}} {
         keepalive 30;
 
         # сервер
-	server {{.projects.integration.host}}:{{.projects.integration.service.nginx.external_https_port}};
+	    server {{.projects.integration.host}}:{{.projects.integration.service.nginx.external_https_port}};
 }
 {{end}}
 
@@ -64,6 +82,23 @@ server {
 	}
         {{end}}
 
+        # api методы
+        location ~* ^{{$locprefix}}(?:{{$pivot_locprefix}}|{{$space_locprefix}})/api/v[0-9]+(/.*)?$ {
+
+                proxy_http_version  1.1;
+                proxy_cache_bypass  $http_upgrade;
+
+                proxy_set_header Upgrade           $http_upgrade;
+                proxy_set_header Connection        "upgrade";
+                proxy_set_header Host              $host;
+                proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Host  $host;
+                proxy_set_header X-Forwarded-Port  $server_port;
+
+                proxy_pass  https://upstream_api_gateway_single_nginx_{{.stack_name_prefix}};
+        }
+
         location {{$locprefix}}/ {
 
                 proxy_http_version  1.1;
@@ -77,7 +112,7 @@ server {
                 proxy_set_header X-Forwarded-Host  $host;
                 proxy_set_header X-Forwarded-Port  $server_port;
 
-          	proxy_pass  https://upstream_single_nginx_{{.stack_name_prefix}};
+                proxy_pass  https://upstream_single_nginx_{{.stack_name_prefix}};
         }
 }
 

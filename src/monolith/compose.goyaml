@@ -12,6 +12,8 @@ secrets:
 ## Такая же ситуация с домино — работаем только с домино по умолчанию
 {{$domino := index .projects.domino .domino_id}}
 
+{{$api_gateway := index .projects.api_gateway .api_gateway_id}}
+
 {{$service_label := ""}}{{if ne .service_label ""}}{{$service_label = printf "%s" .service_label}}{{end}}
 {{$node_label_role := ""}}{{if ne .service_label ""}}{{$node_label_role = .service_label}}{{end}}
 
@@ -290,6 +292,10 @@ configs:
   nginx-include-jitsi:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.jitsi.nginx_include.conf}}"
     file: ".project.jitsi.nginx_include.conf"
+  # настройки nginx outlook
+  nginx-include-outlook:
+    name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.outlook_add_in.nginx_include.conf}}"
+    file: ".project.outlook_add_in.nginx_include.conf"
   # настройки nginx license
   nginx-include-license:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.license.nginx_include.conf}}"
@@ -352,6 +358,25 @@ configs:
   jitsi-web-nginx-conf:
     name: "{{.stack_name}}_jitsi_nginx_conf-{{.config_revisions.project.jitsi_web.nginx.conf}}"
     file: ".project.jitsi_web.nginx.conf"
+  # конфигурация outlook
+  outlook-addin-conf:
+    name: "{{.stack_name}}_outlook_addin_conf-{{.config_revisions.project.outlook_add_in.config.json}}"
+    file: ".project.outlook_add_in.config.json"
+  # конфигурация api_gateway
+  http-server-config:
+    name: "{{.stack_name}}_http_server_config-{{index .config_revisions "project" "api_gateway" "http_server" "json"}}"
+    file: ".project.api_gateway.http_server.json"
+  target-config:
+    name: "{{.stack_name}}_target_config-{{index .config_revisions "project" "api_gateway" "target" "json"}}"
+    file: ".project.api_gateway.target.json"
+
+  # конфигурация auth
+  api-key-templates:
+    name: "{{.stack_name}}_api_key_templates-{{.config_revisions.project.auth.api_key_templates.json}}"
+    file: ".project.auth.api_key_templates.json"
+  cache-config:
+    name: "{{.stack_name}}_cache_config-{{.config_revisions.project.auth.cache.json}}"
+    file: ".project.auth.cache.json"
 
 # файл композиции монолита
 services:
@@ -407,6 +432,10 @@ services:
         target: "/etc/nginx/includes/userbot.nginx"
       - source: "nginx-include-jitsi"
         target: "/etc/nginx/includes/jitsi.nginx"
+      {{- if .projects.outlook_add_in.is_enabled}}
+      - source: "nginx-include-outlook"
+        target: "/etc/nginx/includes/outlook.nginx"
+      {{- end}}
       {{- if .local_license}}
       - source: "nginx-include-license"
         target: "/etc/nginx/includes/license.nginx"
@@ -489,6 +518,7 @@ services:
           - "mysql-{{.projects.userbot.label}}"
           - "mysql-{{$file_node.label}}"
           - "mysql-{{$domino.label}}"
+          - "mysql-{{.projects.auth.label}}"
       {{- if gt .mysql_server_id 0}}
       monolith-mysql-shared:
         aliases:
@@ -498,6 +528,7 @@ services:
           - "mysql-{{.projects.userbot.label}}"
           - "mysql-{{$file_node.label}}"
           - "mysql-{{$domino.label}}"
+          - "mysql-{{.projects.auth.label}}"
       {{- end}}
     environment:
       MYSQL_ROOT_PASSWORD: "{{.projects.pivot.service.mysql.root_password}}"
@@ -1330,4 +1361,91 @@ services:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.license_mount_path}}:/app/license/"
       - "{{.company_config_mount_path}}:/pivot_config"
+  {{- end}}
+
+  ## GO_API_GATEWAY
+  go-api-gateway-{{$api_gateway.label}}:
+    image: "{{.registry_compass_path}}/go_api_gateway:{{$api_gateway.service.go_api_gateway.tag}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.api_gateway.common.env"
+    healthcheck:
+      test: "curl --insecure -s https://127.0.0.1/health"
+      interval: "10s"
+      timeout: "25s"
+      retries: 2
+    ports:
+      - "{{$api_gateway.service.go_api_gateway.external_https_port}}:443"
+    configs:
+      - source: "http-server-config"
+        target: "/app/configs/http_server.json"
+      - source: "target-config"
+        target: "/app/configs/target.json"
+    networks:
+      - "monolith-{{$service_label}}-private"
+    <<:
+      - *log-rule-default
+      - *default-deploy
+  # GO_AUTH
+  go-auth-{{.projects.auth.label}}:
+    image: "{{.registry_compass_path}}/go_auth:{{.projects.auth.service.go_auth.tag}}"
+    depends_on:
+      - "mysql-{{.projects.auth.label}}"
+    ports:
+      - "{{.projects.auth.service.go_auth.external_grpc_port}}:2000"
+    env_file:
+      - ".global.common.env"
+      - ".project.auth.common.env"
+    networks:
+      - "monolith-{{$service_label}}-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    configs:
+      - source: "api-key-templates"
+        target: "/app/configs/api_key_templates.json"
+      - source: "cache-config"
+        target: "/app/configs/cache.json"
+  {{- if .projects.outlook_add_in.is_enabled}}
+  # outlook_add_in
+  outlook_add_in-{{.projects.monolith.label}}:
+    image: "{{.registry_compass_path}}/outlook-add-in:{{.projects.outlook_add_in.service.tag}}"
+    ports:
+      - "{{.projects.outlook_add_in.service.external_port}}:80"
+    networks:
+      - "monolith-{{$service_label}}-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    configs:
+      - source: "outlook-addin-conf"
+        target: "/app/config.json"
   {{- end}}

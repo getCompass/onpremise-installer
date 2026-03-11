@@ -1,0 +1,10 @@
+SERVER_NAME="{{.domain}}"
+SERVER_TYPE="{{.server_type}}"
+
+PROTOCOL="{{.protocol}}"
+PIVOT_DOMAIN="{{.domain}}"
+
+GO_AUTH_GRPC_HOST={{.projects.auth.host}}
+GO_AUTH_GRPC_PORT={{.projects.auth.service.go_auth.external_grpc_port}}
+
+AUTH_SECRET_KEY_B64={{.projects.auth.auth_secret_key}}

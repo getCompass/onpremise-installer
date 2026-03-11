@@ -242,3 +242,11 @@ nginx.directio_alignment: 512
 #
 # Тип данных: булево значение, true\false
 local_license: false
+
+# Надстройка для Microsoft Outlook
+#
+# Надстройка позволяет управлять видеоконференциями Compass из календаря Outlook. 
+# После включения файл с данными надстройки будет доступен по адресу: https://<ваше доменное имя>/outlook/manifest.xml
+#
+# Тип данных: булево значение, true\false
+outlook_add_in.is_enabled: false
