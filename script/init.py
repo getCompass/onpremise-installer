@@ -141,6 +141,7 @@ project_ports = {
     "license": 32700,
     "api_gateway": 32800,
     "auth": 32900,
+    "outlook_add_in": 33000
 }
 
 domino_ports = {
@@ -1354,6 +1355,17 @@ required_specific_project_fields = {
             "ask": False
         }
     ],
+    "api_gateway": [
+        {
+            "name": "service.go_api_gateway.external_https_port",
+            "comment": "Внешний порт для API гейтвея",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
+        }
+    ],
     "auth": [
         {
             "name": "auth_secret_key",
@@ -1364,6 +1376,15 @@ required_specific_project_fields = {
             "type": "str",
             "ask": False,
             "is_protected": True,
+        },
+        {
+            "name": "service.go_auth.external_grpc_port",
+            "comment": "Внешний порт для сервиса авторизации",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
         }
     ],
     "outlook_add_in": [
@@ -1374,6 +1395,15 @@ required_specific_project_fields = {
             "type": "bool",
             "ask": True,
             "is_required": True
+        },
+        {
+            "name": "service.external_port",
+            "comment": "Внешний порт для надстройки outlook",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
         }
     ],
 }
@@ -1926,7 +1956,7 @@ def init_all_projects(new_values: dict):
         elif project == "domino":
             label = "d1"
         elif project == "api_gateway":
-            label = "api_gateway-1"
+            label = "gateway-1"
 
         project_values = new_values.get("projects", {}).get(project, {})
 
@@ -1994,7 +2024,7 @@ def init_project(
     elif project == "domino":
         label = "d1"
     elif project == "api_gateway":
-        label = "api_gateway-1"
+        label = "gateway-1"
     if project in nested_project_list:
         if label == project:
             print(scriptutils.error("Передан проект без явного указания имени"))

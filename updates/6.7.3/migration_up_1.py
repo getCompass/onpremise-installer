@@ -52,8 +52,27 @@ with open(global_config_path, "r") as file:
 # читаем содержимое файла
 content = open(global_config_path).read().rstrip()
 
+spec = yaml.load(content, Loader=yaml.BaseLoader)
+port_list = []
+for k, v in spec.items():
+    if str(k).endswith("_port") and not str(k).startswith("company") and not str(k).startswith("jitsi"):
+        port_list.append(int(v))
+
+max_port = max(port_list)
+
+if max_port < 1:
+    scriptutils.error("Не найден ни один порт в global.yaml, проверьте валидность конфигурации")
+    exit(1)
+
 # добавляем актуальный параметр в конец конфига
-content += """
+content += f"""
+
+# Внешний порт для контейнера с API гейтвеем. 
+# Все запросы к API приложения будут перенаправляться на этот порт.
+#
+# Тип данных: число
+# Пример: api_gateway.service.go_api_gateway.external_https_port: 31103
+api_gateway.service.go_api_gateway.external_https_port: {max_port + 1}
 
 # Надстройка для Microsoft Outlook
 #
@@ -62,6 +81,21 @@ content += """
 #
 # Тип данных: булево значение, true\\false
 outlook_add_in.is_enabled: false
+
+# Внешний порт для контейнера с надстройкой outlook. 
+# Запросы к надстройке outlook будут пересылаться на этот порт.
+# Порт не используется, если надстройка отключена.
+#
+# Тип данных: число
+# Пример: outlook_add_in.service.external_port: 31104
+outlook_add_in.service.external_port: {max_port + 2}
+
+# Внешний порт для контейнера с сервисом авторизации. 
+# Все запросы к авторизации с помощью API токенов будут перенаправляться на этот порт.
+#
+# Тип данных: число
+# Пример: auth.service.go_auth.external_grpc_port: 31105
+auth.service.go_auth.external_grpc_port: {max_port + 3}
 """
 
 # сохраняем изменения
