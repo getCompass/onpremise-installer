@@ -1,1 +1,2 @@
 SOCKET_KEY_FEDERATION={{.security_keys.federation.socket_key_federation}}
+TOTP_SECRET_ENCRYPTION_KEY_B64={{.security_keys.federation.totp_secret_encryption_key_b64}}

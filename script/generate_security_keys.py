@@ -3,7 +3,7 @@
 import sys
 
 sys.dont_write_bytecode = True
-import string, random, yaml
+import string, random, yaml, os, base64
 from pathlib import Path
 import collections.abc, argparse
 from OpenSSL import crypto
@@ -138,7 +138,10 @@ def update_security_values(security_tpl_values: dict, security_values: dict = {}
 
             security_values[k] = update_security_values(v, security_values.get(k, {}))
         else:
-            security_values[k] = quoted(generate_random_string(key_size))
+            if k == "totp_secret_encryption_key_b64":
+                security_values[k] = quoted(generate_base64_key(32))
+            else:
+                security_values[k] = quoted(generate_random_string(key_size))
 
     return security_values
 
@@ -178,9 +181,16 @@ def update_new_security_values_for_exists_file(security_tpl_values: dict, securi
                 continue
 
             # иначе заполняем новым значением
-            security_values[k] = quoted(generate_random_string(key_size))
+            if k == "totp_secret_encryption_key_b64":
+                security_values[k] = quoted(generate_base64_key(32))
+            else:
+                security_values[k] = quoted(generate_random_string(key_size))
 
     return security_values
+
+
+def generate_base64_key(size: int):
+    return base64.b64encode(os.urandom(size)).decode("utf-8")
 
 
 def generate_random_string(size: int):
