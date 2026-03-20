@@ -59,8 +59,8 @@ parser.add_argument("--sso-oidc-output-path", required=False, default=root_path 
                     help="Путь до выходного файла конфига для OIDC", )
 parser.add_argument("--sso-ldap-output-path", required=False, default=root_path + "/src/federation/config/ldap.gophp",
                     help="Путь до выходного файла конфига для LDAP", )
-parser.add_argument("--pivot-ldap-output-path",required=False, default=root_path + "/src/pivot/config/ldap.gophp",
-                    help="Путь до выходного файла конфига для LDAP в Pivot",)
+parser.add_argument("--pivot-ldap-output-path", required=False, default=root_path + "/src/pivot/config/ldap.gophp",
+                    help="Путь до выходного файла конфига для LDAP в Pivot", )
 parser.add_argument("--validate-only", required=False, action="store_true",
                     help='Запуск скрипта в режиме read-only, без применения изменений')
 parser.add_argument("--installer-output", required=False, action="store_true",
@@ -409,7 +409,8 @@ class MailSmtpConfig:
 
         # если указан mail в качестве доступного метода авторизации, то данные для smtp должны быть заполнены
         is_mail_smtp_required = False
-        if ("mail" in available_methods or "mail" in available_guest_methods) and (authorization_2fa_enabled or registration_2fa_enabled):
+        if ("mail" in available_methods or "mail" in available_guest_methods) and (
+                authorization_2fa_enabled or registration_2fa_enabled):
             is_mail_smtp_required = True
 
         try:
@@ -794,8 +795,10 @@ class SsoLdapConfig:
             empty_attributes_update_enabled: str,
             user_profile_update_filter: str,
             authorization_2fa_enabled: bool,
+            authorization_2fa_method: str,
             compass_mapping_mail_2fa: str,
             mail_2fa_allowed_domains: list,
+            totp_issuer: str,
     ):
         self.server_host = server_host
         self.server_port = server_port
@@ -818,8 +821,10 @@ class SsoLdapConfig:
         self.profile_update_interval = profile_update_interval
         self.empty_attributes_update_enabled = empty_attributes_update_enabled
         self.authorization_2fa_enabled = authorization_2fa_enabled
+        self.authorization_2fa_method = authorization_2fa_method
         self.compass_mapping_mail_2fa = compass_mapping_mail_2fa
         self.mail_2fa_allowed_domains = mail_2fa_allowed_domains
+        self.totp_issuer = totp_issuer
 
     def input(self):
 
@@ -1140,6 +1145,17 @@ class SsoLdapConfig:
             ldap_authorization_2fa_enabled = False
 
         try:
+            ldap_authorization_2fa_method = interactive.InteractiveValue(
+                "ldap.authorization_2fa_method",
+                "Какой метод включен при 2FA авторизации через LDAP",
+                "str",
+                config=config, default_value="", is_required=True
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_authorization_2fa_method = ""
+
+        try:
             ldap_compass_mapping_mail_2fa = interactive.InteractiveValue(
                 "ldap.compass_mapping.mail_2fa",
                 "Поле LDAP, содержащее почту",
@@ -1159,6 +1175,22 @@ class SsoLdapConfig:
             ).from_config()
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message)
+
+        try:
+            ldap_totp_issuer = interactive.InteractiveValue(
+                "ldap.totp_2fa.issuer",
+                "Разрешенные домены LDAP",
+                "str",
+                config=config, default_value="", is_required=True
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message)
+            ldap_totp_issuer = ""
+
+        # проверяем, что указано корректное значение
+        if ldap_authorization_2fa_enabled and ldap_authorization_2fa_method not in ["mail", "totp"]:
+            handle_exception("ldap.authorization_2fa_method",
+                             bcolors.WARNING + "Некорректное значение для параметра ldap.authorization_2fa_method в конфиг-файле auth.yaml" + bcolors.ENDC)
 
         return self.init(ldap_server_host,
                          ldap_server_port,
@@ -1181,13 +1213,15 @@ class SsoLdapConfig:
                          ldap_empty_attributes_update_enabled,
                          ldap_user_profile_update_filter,
                          ldap_authorization_2fa_enabled,
+                         ldap_authorization_2fa_method,
                          ldap_compass_mapping_mail_2fa,
-                         ldap_mail_2fa_allowed_domains
+                         ldap_mail_2fa_allowed_domains,
+                         ldap_totp_issuer,
                          )
 
     # подготавливаем содержимое для $CONFIG["LDAP"]
     def make_output(self):
-        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"user_login_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t"empty_attributes_update_enabled" => {},\n\t"user_profile_update_filter" => "{}",\n\t"authorization_2fa_enabled" => {},\n\t"mail_mapped_field" => "{}",\n\t"mail_allowed_domains" => {},\n\t""".format(
+        return """"host" => "{}",\n\t"port" => {},\n\t"use_ssl" => {},\n\t"require_cert_strategy" => "{}",\n\t"user_search_base" => "{}",\n\t"user_search_page_size" => "{}",\n\t"user_search_filter" => "{}",\n\t"user_unique_attribute" => "{}",\n\t"user_login_attribute" => "{}",\n\t"limit_of_incorrect_auth_attempts" => {},\n\t"account_disabling_monitoring_enabled" => {},\n\t"on_account_removing" => "{}",\n\t"on_account_disabling" => "{}",\n\t"user_search_account_dn" => "{}",\n\t"user_search_account_password" => "{}",\n\t"account_disabling_monitoring_interval" => "{}",\n\t"profile_update_enabled" => {},\n\t"profile_update_interval" => "{}",\n\t"empty_attributes_update_enabled" => {},\n\t"user_profile_update_filter" => "{}",\n\t"authorization_2fa_enabled" => {},\n\t"authorization_2fa_method" => "{}",\n\t"mail_mapped_field" => "{}",\n\t"mail_allowed_domains" => {},\n\t"totp_issuer" => "{}",\n\t""".format(
             self.server_host,
             self.server_port,
             self.use_ssl,
@@ -1209,8 +1243,10 @@ class SsoLdapConfig:
             self.empty_attributes_update_enabled,
             self.user_profile_update_filter,
             self.authorization_2fa_enabled,
+            self.authorization_2fa_method,
             self.compass_mapping_mail_2fa,
-            "[" + (', '.join('"' + item + '"' for item in self.mail_2fa_allowed_domains)) + "]"
+            "[" + (', '.join('"' + item + '"' for item in self.mail_2fa_allowed_domains)) + "]",
+            self.totp_issuer
         )
 
 
@@ -1428,6 +1464,7 @@ return $CONFIG;'''.format(
         ldap_main_config.make_output(),
     )
 
+
 def make_pivot_ldap_output(ldap_config_list: list):
     ldap_main_config = ldap_config_list[0]
     return r'''<?php
@@ -1442,6 +1479,7 @@ $CONFIG["LDAP"] = [
 return $CONFIG;'''.format(
         ldap_main_config.make_output(),
     )
+
 
 # генерируем данные для аутентификации
 def generate_auth_config() -> dict:
