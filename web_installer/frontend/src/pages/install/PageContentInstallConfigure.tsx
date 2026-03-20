@@ -548,7 +548,7 @@ const AuthSwitcherBlock = ({
 const isValidDomain = (raw: string) => {
     const v = raw.trim();
     // та же логика, что и в pattern у инпута
-    const re = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const re = /^[a-zA-Z0-9.-]+\.[a-zA-Z][a-zA-Z0-9-]+$/;
     // не допускаем ведущую/замыкающую точку и двойные точки
     if (!re.test(v)) return false;
     return !(v.startsWith(".") || v.endsWith(".") || v.includes(".."));
@@ -880,7 +880,7 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                                 setDomainWarningVisible(false);
                             }}
                             inputProps={{
-                                pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                                pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z][a-zA-Z0-9-]+$",
                                 onBlur: async (e) => {
                                     const val = e.currentTarget.value.trim();
 

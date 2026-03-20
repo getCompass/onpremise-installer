@@ -58,6 +58,7 @@ security_keys:
     socket_key_push_sender: ""
   federation:
     socket_key_federation: ""
+    totp_secret_encryption_key_b64: ""
   jitsi:
     socket_key_jitsi: ""
   integration:
