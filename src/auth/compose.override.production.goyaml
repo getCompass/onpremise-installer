@@ -1,0 +1,11 @@
+version: '3.8'
+
+# override конфигурация
+# определяет разницу конфига для production окружения
+services:
+  # MYSQL
+  mysql-{{.projects.auth.label}}:
+    volumes:
+      - "{{.root_mount_path}}/{{.projects.auth.label}}/database:/var/lib/mysql"
+    deploy:
+      replicas: 1

@@ -1,0 +1,19 @@
+{{$api_gateway := index .projects.api_gateway .api_gateway_id}}
+
+{
+	"ca_certificate": "{{ replace ( read_file (concatne "." (concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA") "crt") ) "\n" "\\n" }}",
+	"certificate": "{{ replace ( read_file (concatne "." (concatne "/" .root_mount_path "nginx" "ssl" .projects.monolith.host) "crt") ) "\n" "\\n" }}",
+	"private_key": "{{ replace ( read_file (concatne "." (concatne "/" .root_mount_path "nginx" "ssl" .projects.monolith.host) "key") ) "\n" "\\n" }}",
+	"rate_limiter_options": {
+		"limit_requests": {{$api_gateway.service.go_api_gateway.limit_requests}},
+		"cleanup_interval_sec": {{$api_gateway.service.go_api_gateway.cleanup_interval_sec}},
+		"window_size_sec": {{$api_gateway.service.go_api_gateway.window_size_sec}},
+		"limit_header": "{{$api_gateway.service.go_api_gateway.limit_header}}",
+		"remaining_header": "{{$api_gateway.service.go_api_gateway.remaining_header}}"
+	},
+	"prometheus_username": "",
+	"prometheus_password": "",
+    "max_idle_conns": {{$api_gateway.service.go_api_gateway.max_idle_conns}},
+    "max_idle_conns_per_host": {{$api_gateway.service.go_api_gateway.max_idle_conns_per_host}},
+    "max_conns_per_host": {{$api_gateway.service.go_api_gateway.max_conns_per_host}}
+}

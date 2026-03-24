@@ -160,3 +160,5 @@ DOMAIN_REGEX = {{escape "./" (prepare_url (concatne "" "(^c([0-9]+)-" $domino.la
 {{else}}
 DOMAIN_REGEX = {{escape "./" (prepare_url (concatne "" "(" .domain "/" .url_path "/" $domino.url_path "/([0-9]+))/"))}}
 {{end}}
+
+GATEWAY_SECRET_KEY_B64={{.projects.auth.auth_secret_key}}

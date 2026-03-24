@@ -112,6 +112,8 @@ deploy_project_list = [
     "jitsi_web",
     "jitsi",
     "license",
+    "api_gateway",
+    "auth",
 ]
 
 deploy_saas_project_list = [
@@ -120,7 +122,7 @@ deploy_saas_project_list = [
     "analytic",
 ]
 
-nested_project_list = ["file", "domino"]
+nested_project_list = ["file", "domino", "api_gateway"]
 
 project_ports = {
     "pivot": 31000,
@@ -137,6 +139,9 @@ project_ports = {
     "integration": 32500,
     "jitsi_web": 32600,
     "license": 32700,
+    "api_gateway": 32800,
+    "auth": 32900,
+    "outlook_add_in": 33000
 }
 
 domino_ports = {
@@ -1350,6 +1355,57 @@ required_specific_project_fields = {
             "ask": False
         }
     ],
+    "api_gateway": [
+        {
+            "name": "service.go_api_gateway.external_https_port",
+            "comment": "Внешний порт для API гейтвея",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
+        }
+    ],
+    "auth": [
+        {
+            "name": "auth_secret_key",
+            "comment": "Введите секретный ключ для go_auth",
+            "default_value": None,
+            "value_function": secret_key,
+            "args": [32],
+            "type": "str",
+            "ask": False,
+            "is_protected": True,
+        },
+        {
+            "name": "service.go_auth.external_grpc_port",
+            "comment": "Внешний порт для сервиса авторизации",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
+        }
+    ],
+    "outlook_add_in": [
+        {
+            "name": "is_enabled",
+            "comment": "Включен ли плагин для работы с outlook",
+            "default_value": None,
+            "type": "bool",
+            "ask": True,
+            "is_required": True
+        },
+        {
+            "name": "service.external_port",
+            "comment": "Внешний порт для надстройки outlook",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
+        }
+    ],
 }
 
 found_external_ports = {}
@@ -1899,6 +1955,8 @@ def init_all_projects(new_values: dict):
             label = "file_default"
         elif project == "domino":
             label = "d1"
+        elif project == "api_gateway":
+            label = "gateway-1"
 
         project_values = new_values.get("projects", {}).get(project, {})
 
@@ -1965,6 +2023,8 @@ def init_project(
         label = "file_default"
     elif project == "domino":
         label = "d1"
+    elif project == "api_gateway":
+        label = "gateway-1"
     if project in nested_project_list:
         if label == project:
             print(scriptutils.error("Передан проект без явного указания имени"))

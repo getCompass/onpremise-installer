@@ -1,0 +1,4 @@
+{
+	"item_ttl_sec": 3600,
+	"negative_item_ttl_sec": 1800
+}

@@ -1,0 +1,30 @@
+{
+	"app_domain": "{{.domain}}",
+	"secret_key_b64": "{{.projects.auth.auth_secret_key}}",
+	"targets": {
+		"pivot": {
+			"entrypoint": "{{.protocol}}://{{entrypoint (netaddr .projects.pivot.host .projects.pivot.service.nginx.external_https_port) .url_path .projects.pivot.url_path 0}}",
+			"url_path": "{{locprefix .url_path .projects.pivot.url_path}}",
+			"subdomain": "{{.projects.pivot.subdomain}}"
+		},
+		"federation": {
+			"entrypoint": "{{.protocol}}://{{entrypoint (netaddr .projects.federation.host .projects.federation.service.nginx.external_https_port) .url_path .projects.federation.url_path 0}}",
+			"url_path": "{{locprefix .url_path .projects.federation.url_path}}",
+			"subdomain":"{{.projects.federation.subdomain}}"
+		},
+{{- $length := len .projects.domino }}
+{{- $count := 0 }}
+{{- range $domino_id, $domino := .projects.domino -}}
+{{- $count = add $count 1 }}
+{{- with $code_host := index $domino "code_host" -}}
+{{- if and $code_host (not (eq $code_host "0.0.0.0")) -}}
+		"{{$domino.label}}": {
+			"entrypoint": "{{$.protocol}}://{{entrypoint (netaddr $code_host $domino.service.nginx.external_https_port) $.url_path $domino.url_path 0}}",
+			"url_path": "{{locprefix $.url_path $domino.url_path}}",
+			"subdomain": "{{$domino.subdomain}}"
+		}{{ if lt $count (sub $length 1) }},{{ end }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+	}
+}

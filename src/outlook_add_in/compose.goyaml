@@ -1,0 +1,37 @@
+version: '3.8'
+
+configs:
+  addin-conf:
+    name: "{{.stack_name}}_addin_conf-{{.config_revisions.project.config.json}}"
+    file: ".project.config.json"
+
+services:
+
+  # outlook_add_in
+  outlook_add_in-{{.projects.monolith.label}}:
+    image: "{{.registry_service_path}}/outlook-add-in:{{.projects.outlook_add_in.service.tag}}"
+    ports:
+      - "{{.projects.outlook_add_in.service.external_port}}:80"
+    networks:
+      - "outlook_add_in-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    configs:
+      - source: "addin-conf"
+        target: "/app/config.json"
+networks:
+  outlook_add_in-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.outlook_add_in.network.subnet}}"

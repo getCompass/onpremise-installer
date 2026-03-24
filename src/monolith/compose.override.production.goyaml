@@ -173,7 +173,7 @@ services:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}:
-    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    image: "{{.registry_service_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
     expose:
       - '5222'
       - '5269'
@@ -230,7 +230,7 @@ services:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}-v0:
-    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    image: "{{.registry_service_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
     expose:
       - '52220'
       - '52690'
@@ -280,7 +280,7 @@ services:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}-v1:
-    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    image: "{{.registry_service_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
     expose:
       - '52221'
       - '52691'
@@ -332,7 +332,7 @@ services:
 
   # XMPP server
   prosody-{{.projects.jitsi.label}}-v2:
-    image: "{{.registry_compass_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
+    image: "{{.registry_service_path}}/jitsi_prosody:{{.projects.jitsi.service.prosody.tag}}"
     expose:
       - '52222'
       - '52692'
@@ -385,7 +385,7 @@ services:
 
   # Focus component
   jicofo-{{.projects.jitsi.label}}:
-    image: "{{.registry_compass_path}}/jitsi_jicofo:{{.projects.jitsi.service.jicofo.tag}}"
+    image: "{{.registry_service_path}}/jitsi_jicofo:{{.projects.jitsi.service.jicofo.tag}}"
     ports:
       - '{{.projects.jitsi.service.jicofo.port}}:8888'
     env_file:

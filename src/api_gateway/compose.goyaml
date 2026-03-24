@@ -1,0 +1,69 @@
+version: '3.8'
+
+{{$api_gateway := index .projects.api_gateway .api_gateway_id}}
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+configs:
+  http-server-config:
+    name: "{{.stack_name}}_http_server_config-{{.config_revisions.project.http_server.json}}"
+    file: ".project.http_server.json"
+  target-config:
+    name: "{{.stack_name}}_target_config-{{.config_revisions.project.target.json}}"
+    file: ".project.target.json"
+services:
+
+  ## GO_API_GATEWAY
+  go-api-gateway-{{$api_gateway.label}}:
+    image: "{{.registry_compass_path}}/go_api_gateway:{{$api_gateway.service.go_api_gateway.tag}}"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "api-gateway-private"
+    healthcheck:
+      test: "curl --insecure -s https://127.0.0.1/health"
+      interval: "10s"
+      timeout: "25s"
+      retries: 2
+    ports:
+      - "{{$api_gateway.service.go_api_gateway.external_https_port}}:443"
+    configs:
+      - source: "http-server-config"
+        target: "/app/configs/http_server.json"
+      - source: "target-config"
+        target: "/app/configs/target.json"
+    <<:
+      - *log-rule-default
+      - *default-deploy
+# --- DEFINES ---
+networks:
+  api-gateway-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{$api_gateway.network.subnet}}"

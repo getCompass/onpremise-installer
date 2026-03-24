@@ -98,7 +98,7 @@ location ~* ^{{$pivot_locprefix}}/api/v1/(pivot)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\
 }
 
 # apiv2 3 level
-location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user|security)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
+location ~* ^{{$pivot_locprefix}}/api/v2/(company|invitecode|utils|invitelink|joinlink|link|premium|space|user|security|auth)/([a-zA-Z0-9_\-]+)/([a-zA-Z0-9_\-]+)/?$ {
 
 	root /app/www/;
 	index index.php;

@@ -51,6 +51,11 @@ domino_id: "d1"
 file_node_id: "file1"
 file_default_node_id: "file_default"
 
+# дефолтный гейтвей, который будет использован при поднятии проекта api_gateway через up.sh
+# если нужно поднять другую, то нужно явно его указать с помощью --data api_gateway_id=required-gateway
+# гейтвей выбирается по ключу конфига, не по значению label
+api_gateway_id: "gateway-1"
+
 # максимальный размер скачиваемого файла что будет доступен для загрузки
 max_file_size_mb: 2048
 default_upload_timeout_sec: 60
@@ -92,6 +97,56 @@ icap:
 
 projects:
 
+  api_gateway:
+    gateway-1:
+      label: "gateway-1"
+      subdomain: "gateway-1"
+      url_path: ""
+      host: "0.0.0.0"
+      network:
+        subnet: "172.20.14.0/24"
+      service:
+        go_api_gateway:
+          external_https_port: 20117
+          tag: "v6.7.3"
+          limit_requests: 5000
+          cleanup_interval_sec: 10
+          window_size_sec: 60
+          limit_header: "X-RateLimit-Limit-Requests"
+          remaining_header: "X-RateLimit-Remaining-Requests"
+          max_idle_conns: 1000
+          max_idle_conns_per_host: 100
+          max_conns_per_host: 200
+  auth:
+    label: "auth"
+    subdomain: ""
+    url_path: ""
+    host: "0.0.0.0"
+    network:
+      subnet: "172.20.15.0/24"
+    service:
+      go_auth:
+        tag: "v6.7.3"
+        external_grpc_port: 20118
+        secret_key_b64: ""
+      mysql:
+        root_password: "4321"
+        user: "root"
+        password: "4321"
+        port: 3306
+        host: "mysql-auth"
+
+  outlook_add_in:
+    is_enabled: false
+    label: "outlook_add_in"
+    subdomain: ""
+    url_path: "outlook"
+    network:
+      subnet: "172.20.16.0/24"
+    service:
+      tag: "v6.7.3"
+      external_port: 20119
+
   monolith:
     triggers:
       before:
@@ -114,6 +169,9 @@ projects:
       - "jitsi_web"
       - "search"
       - "license"
+      - "api_gateway"
+      - "auth"
+      - "outlook_add_in"
     service:
       mysql:
         root_password: "4321"
@@ -124,7 +182,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.7.2-3"
+        tag: "v6.7.3"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -138,7 +196,7 @@ projects:
         per_delivery_limit: 5
         delivery_delay: 20 # в миллисекундах
         courier_count: 1
-        tag: "v6.5.1"
+        tag: "v6.7.3"
       go_sender_balancer:
         rabbit_queue: "monolith_go_sender_balancer_queue"
         rabbit_exchange: "monolith_go_sender_balancer_exchange"
@@ -203,7 +261,7 @@ projects:
         rabbit_queue: "go_collector_agent_queue"
         rabbit_exchange: "go_collector_agent_exchange"
       go_event:
-        tag: "v6.5.1"
+        tag: "v6.7.3"
         rabbit_queue: "go_event_queue"
         rabbit_exchange: "go_event_exchange"
         rabbit_service_queue: "event_system_bus"
@@ -221,7 +279,7 @@ projects:
       nginx:
         external_https_port: 20100
       default_file:
-        tag: "6.4.0"
+        tag: "v6.7.3"
   announcement:
     host: "0.0.0.0"
     label: "announcement"
@@ -368,7 +426,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.7.2-3"
+          tag: "v6.7.3"
         php_migration:
           tag: "v6.1.0"
         php_repairer:
@@ -386,7 +444,7 @@ projects:
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
-          tag: "v6.5.1"
+          tag: "v6.7.3"
           rabbit_queue: "go_event_queue"
           rabbit_exchange: "go_event_exchange"
           rabbit_service_queue: "event_system_bus"
@@ -557,7 +615,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.7.2"
+    tag: "v6.7.3"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -573,16 +631,16 @@ projects:
     service:
       web:
         https_port: 20109
-        wrap_tag: "v6.0.4"
+        wrap_tag: "v6.7.3"
       jvb:
         media_port: 10000
         media_advertise_ips: ""
-        wrap_tag: "v6.0.4"
+        wrap_tag: "v6.7.3"
       jicofo:
-        tag: "v6.0.4"
+        tag: "v6.7.3"
         port: 20111
       prosody:
-        tag: "v6.6.0"
+        tag: "v6.7.3"
         serve_port: 20112
         v0:
           serve_port: 20113

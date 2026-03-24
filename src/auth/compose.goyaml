@@ -1,0 +1,101 @@
+version: '3.8'
+
+# --- EXTENSIONS ---
+# правила дефолтного деплоя для сервисов
+# если нужно что-то поменять, то только через override-файл
+x-default-deploy: &default-deploy
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: "any"
+      window: "10s"
+    update_config:
+      order: "start-first"
+      failure_action: "rollback"
+      delay: "10s"
+    rollback_config:
+      parallelism: 0
+      order: "stop-first"
+
+# правила логирования для сервисов по умолчанию
+# дефолтно просто пишем лог и ограничиваем его размер
+x-log-rule-default: &log-rule-default
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "15m"
+      max-file: "3"
+
+configs:
+  api-key-templates:
+    name: "{{.stack_name}}_api_key_templates-{{.config_revisions.project.api_key_templates.json}}"
+    file: ".project.api_key_templates.json"
+  cache-config:
+    name: "{{.stack_name}}_cache_config-{{.config_revisions.project.cache.json}}"
+    file: ".project.cache.json"
+services:
+
+  # GO_AUTH
+  go-auth-{{.projects.auth.label}}:
+    image: "{{.registry_compass_path}}/go_auth:{{.projects.auth.service.go_auth.tag}}"
+    depends_on:
+      - "mysql-{{.projects.auth.label}}"
+    ports:
+      - "{{.projects.auth.service.go_auth.external_grpc_port}}:2000"
+    env_file:
+      - ".global.common.env"
+      - ".project.common.env"
+    networks:
+      - "auth-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+    healthcheck:
+      test: "nc -z 127.0.0.1 2000"
+      interval: "5s"
+      timeout: "25s"
+      retries: 10
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "3"
+    configs:
+      - source: "api-key-templates"
+        target: "/app/configs/api_key_templates.json"
+      - source: "cache-config"
+        target: "/app/configs/cache.json"
+  # MYSQL
+  mysql-{{.projects.auth.label}}:
+    image: "{{.registry_service_path}}/mysql:8.0.28-1"
+    networks:
+      - "auth-private"
+    environment:
+      MYSQL_ROOT_PASSWORD: "{{.projects.auth.service.mysql.root_password}}"
+    deploy:
+      restart_policy:
+        condition: "any"
+        window: "10s"
+    healthcheck:
+      test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.auth.service.mysql.root_password}}"
+      interval: "5s"
+      timeout: "10s"
+      retries: 6
+    <<: *log-rule-default
+
+# --- DEFINES ---
+networks:
+  auth-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.auth.network.subnet}}"

@@ -1,0 +1,16 @@
+{
+    "apikey_template_list": [
+        {
+            "template_id": 1,
+            "order": 1,
+            "title": "Microsoft Outlook",
+            "uniq_name": "outlook",
+            "description": "Создавайте видеоконференции и приглашайте участников из календаря Outlook.<br>[Инструкция по установке](https://getcompass.ru/docs/integrations/outlook.pdf)",
+            "scope_list": {
+                "conference": "write",
+                "space": "read",
+                "file": "read"
+            }
+        }
+    ]
+}

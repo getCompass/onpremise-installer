@@ -147,6 +147,9 @@ server {
     include includes/domino.nginx;
     include includes/userbot.nginx;
     include includes/jitsi.nginx;
+    {{- if .projects.outlook_add_in.is_enabled}}
+    include includes/outlook.nginx;
+    {{- end}}
     {{- if .local_license}}
     include includes/license.nginx;
     {{- end}}
