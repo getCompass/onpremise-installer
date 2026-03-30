@@ -144,7 +144,7 @@ projects:
     network:
       subnet: "172.20.16.0/24"
     service:
-      tag: "v6.7.3"
+      tag: "v6.7.3-2"
       external_port: 20119
 
   monolith:
