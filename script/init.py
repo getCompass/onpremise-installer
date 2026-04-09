@@ -1343,6 +1343,14 @@ required_specific_project_fields = {
             "type": "bool",
             "ask": True,
         },
+        {
+            "name": "service.prosody.entrypoint",
+            "comment": "Укажите entrypoint для api запросов к prosody",
+            "default_value": None,
+            "type": "str",
+            "ask": True,
+            "is_required": True
+        },
     ],
     "integration": [
         {
@@ -1882,6 +1890,8 @@ def init_replication(new_values: dict):
     if start_octet < 1:
         scriptutils.die("Параметр start_octet не должен быть меньше 1")
 
+    master_state_changed_disable = replication_config.get("master_state_changed_disable", None)
+
     # выполняем наполнение конфигурации полями
     config["service_label"] = service_label
     new_values = nested_set(new_values, "service_label", service_label)
@@ -1889,6 +1899,8 @@ def init_replication(new_values: dict):
     new_values = nested_set(new_values, "mysql_server_id", mysql_server_id)
     config["start_octet"] = start_octet
     new_values = nested_set(new_values, "start_octet", start_octet)
+    config["master_state_changed_disable"] = master_state_changed_disable
+    new_values = nested_set(new_values, "master_state_changed_disable", master_state_changed_disable)
 
     master_service_label = service_label
     if service_label != "":

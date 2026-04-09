@@ -537,6 +537,7 @@ services:
       mysqld
         --log_bin=/var/lib/mysql/log-bin.log
         --binlog-format=ROW
+        --log-replica-updates=1
         --expire-logs-days=20
         --binlog-expire-logs-seconds=1209600
         --max-binlog-size=500M
@@ -1410,6 +1411,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 2000"
       interval: "5s"
@@ -1445,6 +1451,11 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     configs:
       - source: "outlook-addin-conf"
         target: "/app/config.json"

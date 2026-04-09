@@ -31,14 +31,16 @@ parser.add_argument('-v', '--values', required=False, default="compass", type=st
                     help='Название values файла окружения (например: compass)')
 parser.add_argument('-e', '--environment', required=False, default="production", type=str,
                     help='Окружение, в котором развернут проект (например: production)')
-parser.add_argument(
-    "-t", "--type", required=False, default="monolith", type=str,
-    help="На каком типе mysql запускаем (monolith или team)",
-    choices=["monolith", "team"]
+parser.add_argument("-t", "--type", required=False, default="monolith", type=str,
+                    help="На каком типе mysql запускаем (monolith или team)",
+                    choices=["monolith", "team"]
 )
+parser.add_argument("--all-types", required=False, action="store_true",
+                    help="Выбрать все типы mysql для выполнения скрипта")
 args = parser.parse_args()
 values_name = args.values
 mysql_type = args.type.lower()
+is_all_types = args.all_types
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -85,6 +87,9 @@ def start():
     domino = current_values["projects"]["domino"][keys_list[0]]
     domino_id = domino["label"]
 
+    if scriptutils.is_replication_master_server(current_values):
+        exit(0)
+
     stack_name = current_values["stack_name_prefix"] + "-monolith"
     if current_values.get("service_label") is None or current_values.get("service_label") == "":
         confirm = input("\nService_label в файле values оказался пустым. Продолжаем? (y/n): ").strip().lower()
@@ -96,7 +101,7 @@ def start():
     client = docker.from_env()
 
     mysql_host = "localhost"
-    if mysql_type == "team":
+    if is_all_types or mysql_type == scriptutils.TEAM_MYSQL_TYPE:
         mysql_user = "root"
         mysql_pass = "root"
 
@@ -108,14 +113,15 @@ def start():
 
         # проходимся по каждому пространству
         for space_id, space_config_obj in space_config_obj_dict.items():
-            found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id,
+            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
                                                                          space_config_obj.port)
             mysql_show_slave_replication_status(found_container, mysql_host, mysql_user, mysql_pass, space_id)
-    else:
+
+    if is_all_types or mysql_type == scriptutils.MONOLITH_MYSQL_TYPE:
         mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
         mysql_pass = current_values["projects"]["monolith"]["service"]["mysql"]["password"]
 
-        found_container = scriptutils.find_container_mysql_container(client, mysql_type, domino_id)
+        found_container = scriptutils.find_container_mysql_container(client, scriptutils.MONOLITH_MYSQL_TYPE, domino_id)
         if not found_container:
             print("Не удалось найти контейнер pivot mysql.")
             sys.exit(1)
@@ -135,6 +141,7 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
         return
 
     if result.exit_code != 0:
+        print(result.output)
         scriptutils.die("Ошибка при получении статуса репликации")
 
     output = result.output.decode("utf-8", errors="ignore")
@@ -180,7 +187,6 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
 
     # записываем значение в лог файл
     log_file_name = LOG_FILE_NAME + f"_{space_id}.log"
-    print(space_id, timestamp, seconds_behind_master)
     try:
         with open(log_file_name, "a") as f:
             f.write(f"{timestamp},{seconds_behind_master}\n")

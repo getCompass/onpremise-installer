@@ -27,7 +27,7 @@ def create_venv(venv_path: Path) -> bool:
             print(f"[INFO] Виртуальное окружение уже существует: {venv_path}")
             return True
 
-        python_bin = shutil.which("python3") or "/usr/bin/python3"
+        python_bin = sys.executable
         result = subprocess.run(
             [python_bin, "-m", "venv", str(venv_path)],
             check=True,

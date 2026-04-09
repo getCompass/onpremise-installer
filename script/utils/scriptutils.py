@@ -13,6 +13,7 @@ import requests
 import argparse
 import subprocess
 import time
+import socket
 
 
 class bcolors:
@@ -298,11 +299,10 @@ def is_yandex_cloud_marketplace_product() -> bool:
 
 # отправляем уведомление от лица бота
 def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, userbot_notice_domain: str,
-                        message_text: str):
+                        message_text: str, userbot_version: str = "v3", is_need_response: bool = False):
     if userbot_notice_chat_id == "" or userbot_notice_token == "" or userbot_notice_domain == "":
         return
 
-    userbot_version = "v3"
     url = f"https://{userbot_notice_domain}/userbot/api/{userbot_version}/group/send"
 
     json_data = {
@@ -310,12 +310,19 @@ def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, 
         'text': message_text,
         'type': 'text'
     }
+
+    # заголовок для авторизации бота v3
     headers = {
         'Authorization': f'bearer={userbot_notice_token}'
     }
 
     try:
         response = requests.post(url, json=json_data, headers=headers)
+        if is_need_response:
+            try:
+                print(response.json())
+            except ValueError:
+                print(response.text)
     except requests.RequestException as e:
         print(warning(f"Userbot send failed: {e}"))
 
@@ -502,6 +509,17 @@ def get_directory_size(path):
             if not os.path.islink(fp):
                 total_size += os.path.getsize(fp)
     return total_size
+
+
+def get_hostname():
+    try:
+        return socket.gethostname()
+    except socket.error as e:
+        print(f"Warning: Could not get hostname: {e}", file=sys.stderr)
+        return ""
+    except Exception as e:
+        print(f"Warning: Could not get hostname. Unexpected error: {e}", file=sys.stderr)
+        return ""
 
 
 # отправляем резервную копию в указанное место

@@ -18,8 +18,8 @@ from pathlib import Path
 LOG_FILE_PREFIX_NAME = "/var/log/mysql_replication_lag"
 
 # конфигурация
-MAX_LAG = 5  # максимально допустимый лаг (сек)
-HISTORY_WINDOW = 300  # анализировать только последние 300 сек
+MAX_LAG = 30  # максимально допустимый лаг (сек)
+HISTORY_WINDOW = 600  # анализировать только последние 600 сек
 MIN_SAMPLES = 5  # минимальное количество записей
 
 # статусы лага репликации
@@ -99,22 +99,44 @@ def parse_log(space_id: int):
     return valid_entries, last_valid_lag
 
 
+# анализируем состояние репликации
 def analyze_replication(entries, last_lag):
-    """Анализирует состояние репликации"""
     if not entries or len(entries) == 0:
         return REPLICA_LAG_STATUS_NOT_EXIST_LOGS, "Нет свежих данных в логе"
 
     lags = [lag for _, lag in entries]
 
-    # проверка начальной синхронизации
-    if last_lag != 0:
-        is_decreasing = all(x > y for x, y in zip(lags, lags[1:]))
-        if is_decreasing:
-            return REPLICA_LAG_STATUS_BEHIND_MASTER_OK, f"Идет синхронизация (лаг уменьшается: {lags[0]} → {last_lag})"
-        else:
-            return REPLICA_LAG_STATUS_PAUSE, f"Синхронизация застряла на {last_lag} сек"
+    # находим все ненулевые лаги за период
+    non_zero_lags = [lag for lag in lags if lag > 0]
 
-    # проверка рабочего состояния
+    # если нет ненулевых лагов - всё ок
+    if not non_zero_lags:
+        return REPLICA_LAG_STATUS_OK, f"Репликация в норме (текущий: {last_lag})"
+
+    # проверяем, не застряла ли синхронизация
+    # если последние N записей имеют одинаковый ненулевой лаг
+    recent_lags = lags[-5:] if len(lags) >= 5 else lags
+    if last_lag > 0 and all(lag == last_lag for lag in recent_lags[-3:]):
+        return REPLICA_LAG_STATUS_PAUSE, f"Синхронизация застряла на {last_lag} сек"
+
+    # проверка увеличивается или уменьшается лаг
+    if len(non_zero_lags) >= 3:
+        # смотрим последние 3 ненулевых значения
+        last_three = [lag for lag in lags if lag > 0][-3:]
+        if len(last_three) >= 3:
+            is_increasing = last_three[0] < last_three[1] < last_three[2]
+            is_decreasing = last_three[0] > last_three[1] > last_three[2]
+
+            if is_increasing:
+                return REPLICA_LAG_STATUS_PAUSE, f"Лаг растет: {last_three[0]} → {last_three[2]} сек"
+            elif is_decreasing:
+                return REPLICA_LAG_STATUS_BEHIND_MASTER_OK, f"Идет синхронизация (лаг уменьшается)"
+
+    # если текущий лаг 0, но были ненулевые - значит синхронизация завершена
+    if last_lag == 0 and non_zero_lags:
+        return REPLICA_LAG_STATUS_OK, f"Репликация восстановлена"
+
+    # основная проверка через перцентиль
     p95 = sorted(lags)[int(len(lags) * 0.95)]
     if p95 > MAX_LAG:
         return REPLICA_LAG_STATUS_MORE_LOGS_BEHIND, f"P95 лага {p95} > {MAX_LAG} сек"
@@ -193,21 +215,25 @@ if __name__ == "__main__":
     current_values = get_values()
     space_config_obj_dict, space_id_list = get_space_dict(current_values)
 
+    if scriptutils.is_replication_master_server(current_values):
+        print(0)
+        exit(0)
+
     # добавляем проверку pivot лог-файла
     space_id_list.append(0)
 
     space_id_list.sort()
     replica_status = 0
-    max_last_lag = 0
+    all_lags = []
     for space_id in space_id_list:
         if is_log_message:
             print(f"Работаем с пространством {space_id}")
         entries, last_lag = parse_log(space_id)
 
-        if last_lag != None and last_lag > max_last_lag:
-            max_last_lag = last_lag
+        if entries:
+            lags = [lag for _, lag in entries]
+            all_lags.extend(lags)
 
-        print(space_id, entries, last_lag)
         status, message = analyze_replication(entries, last_lag)
 
         if is_log_message:
@@ -223,6 +249,16 @@ if __name__ == "__main__":
             break
 
     if is_get_lag_count:
-        print(max_last_lag)
+        if not all_lags:
+            print(0)
+        else:
+            # Просто берем P95, но с минимальным порогом
+            p95 = sorted(all_lags)[int(len(all_lags) * 0.95)]
+
+            # Выводим P95 только если он больше 10 секунд
+            if p95 > 10:
+                print(p95)
+            else:
+                print(0)
     else:
         print(replica_status)

@@ -5,6 +5,7 @@ namespace Compass\Jitsi;
 $CONFIG["JITSI_NODE_LIST"] = [
 	[
 		"domain"                => "{{.projects.jitsi.domain}}",
+		"entrypoint"            => "{{.projects.jitsi.service.prosody.entrypoint}}",
 		"subdir"                => "{{.projects.jitsi.subdir}}",
 		"jwt_secret"            => "{{.projects.jitsi.jwt.app_secret}}",
 		"jwt_issuer"            => "{{.projects.jitsi.jwt.app_issuer}}",

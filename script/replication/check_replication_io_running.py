@@ -74,6 +74,10 @@ def start():
     domino = current_values["projects"]["domino"][keys_list[0]]
     domino_id = domino["label"]
 
+    if scriptutils.is_replication_master_server(current_values):
+        print(100)
+        exit(0)
+
     stack_name = current_values["stack_name_prefix"] + "-monolith"
     if current_values.get("service_label") is None or current_values.get("service_label") == "":
         confirm = input("\nService_label в файле values оказался пустым. Продолжаем? (y/n): ").strip().lower()
@@ -170,8 +174,6 @@ def mysql_get_io_running(found_container: docker.models.containers.Container, my
         elif result['Slave_IO_Running']:
             slave_io_running = result['Slave_IO_Running']
 
-    print(slave_io_running)
-    print(result)
     return 1 if slave_io_running == "Yes" else 0
 
 

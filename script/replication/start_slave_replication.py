@@ -277,7 +277,7 @@ def mysql_start_replication(current_values: Dict, found_container: docker.models
             confirm = input('Отсутствует gtid для установки SET GTID_PURGED при старте репликации. Продолжаем? [y/N]')
             if confirm != 'y':
                 exit(0)
-        gtid_init_command = "STOP SLAVE; RESET SLAVE; "
+        gtid_init_command = "STOP SLAVE; "
 
     mysql_command = gtid_init_command + change_master_mysql_command + \
                     "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; START SLAVE;"

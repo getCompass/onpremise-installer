@@ -82,6 +82,10 @@ def start():
 
     stack_name = stack_name + "-" + current_values.get("service_label")
 
+    if scriptutils.is_replication_master_server(current_values):
+        print(100)
+        exit(0)
+
     client = docker.from_env()
 
     mysql_host = "localhost"
