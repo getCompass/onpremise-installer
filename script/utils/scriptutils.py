@@ -299,11 +299,12 @@ def is_yandex_cloud_marketplace_product() -> bool:
 
 # отправляем уведомление от лица бота
 def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, userbot_notice_domain: str,
-                        message_text: str, userbot_version: str = "v3", is_need_response: bool = False):
+                        message_text: str, userbot_version: str = "v3", is_need_response: bool = False, is_onprem_endpoint: bool = True):
     if userbot_notice_chat_id == "" or userbot_notice_token == "" or userbot_notice_domain == "":
         return
 
-    url = f"https://{userbot_notice_domain}/userbot/api/{userbot_version}/group/send"
+    userbot_notice_entrypoint = f"{userbot_notice_domain}/userbot" if is_onprem_endpoint else f"userbot.{userbot_notice_domain}"
+    url = f"https://{userbot_notice_entrypoint}/api/{userbot_version}/group/send"
 
     json_data = {
         'group_id': userbot_notice_chat_id,

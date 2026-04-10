@@ -402,8 +402,9 @@ def send_userbot_keepalived_notice(message: str):
         userbot_data = json.loads(json_str) if json_str != "" else {}
 
     is_need_response = True if is_userbot_notice_test else False
+    is_onprem_endpoint = userbot_data.get("is_onprem_endpoint", True)
     scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
-        userbot_data["notice_domain"], message, userbot_data["userbot_version"], is_need_response)
+        userbot_data["notice_domain"], message, userbot_data["userbot_version"], is_need_response, is_onprem_endpoint)
 
 
 # сформировать список конфигураций пространств
