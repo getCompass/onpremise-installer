@@ -9,7 +9,7 @@ import docker
 from typing import Dict
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+parent_dir = os.path.abspath(os.path.join(current_dir, '../../..'))
 sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
@@ -45,8 +45,8 @@ class DbConfig:
 
 # получить данные окружение из values
 def get_values() -> Dict:
-    default_values_file_path = Path("%s/../../src/values.yaml" % (script_dir))
-    values_file_path = Path("%s/../../src/values.%s.yaml" % (script_dir, values_name))
+    default_values_file_path = Path("%s/../../../../src/values.yaml" % (script_dir))
+    values_file_path = Path("%s/../../../../src/values.%s.yaml" % (script_dir, values_name))
 
     if not values_file_path.exists():
         scriptutils.die("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
