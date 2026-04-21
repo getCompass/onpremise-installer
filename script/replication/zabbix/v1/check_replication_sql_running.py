@@ -4,12 +4,12 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import yaml, sys, os, re, glob, json
+import argparse, yaml, sys, os, re, glob, json
 import docker
 from typing import Dict
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+parent_dir = os.path.abspath(os.path.join(current_dir, '../../..'))
 sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
@@ -18,9 +18,9 @@ from pathlib import Path
 # ---АРГУМЕНТЫ СКРИПТА---#
 
 parser = scriptutils.create_parser(
-    description="Скрипт для проверки, что запущен процесс получения mysql-изменений с master сервера.",
-    usage="python3 script/replication/check_replication_io_running.py [-v VALUES] [-e ENVIRONMENT]",
-    epilog="Пример: python3 script/replication/check_replication_io_running.py -v compass -e production",
+    description="Скрипт для проверки, что репликация запущена.",
+    usage="python3 script/replication/check_replication_sql_running.py [-v VALUES] [-e ENVIRONMENT]",
+    epilog="Пример: python3 script/replication/check_replication_sql_running.py -v compass -e production",
 )
 parser.add_argument('-v', '--values', required=False, default="compass", type=str,
                     help='Название values файла окружения (например: compass)')
@@ -45,8 +45,8 @@ class DbConfig:
 
 # получить данные окружение из values
 def get_values() -> Dict:
-    default_values_file_path = Path("%s/../../src/values.yaml" % (script_dir))
-    values_file_path = Path("%s/../../src/values.%s.yaml" % (script_dir, values_name))
+    default_values_file_path = Path("%s/../../../../src/values.yaml" % (script_dir))
+    values_file_path = Path("%s/../../../../src/values.%s.yaml" % (script_dir, values_name))
 
     if not values_file_path.exists():
         scriptutils.die("Не найден файл со значениями для деплоя. Окружение было ранее развернуто?")
@@ -82,6 +82,10 @@ def start():
 
     stack_name = stack_name + "-" + current_values.get("service_label")
 
+    if scriptutils.is_replication_master_server(current_values):
+        print(100)
+        exit(0)
+
     client = docker.from_env()
 
     mysql_host = "localhost"
@@ -97,14 +101,14 @@ def start():
     # проходимся по каждому пространству
     for space_id, space_config_obj in space_config_obj_dict.items():
         found_container = scriptutils.find_container_mysql_container(client, "team", domino_id, space_config_obj.port)
-        io_running = mysql_get_io_running(found_container, mysql_host, mysql_user, mysql_pass, space_id)
+        sql_running = mysql_get_sql_running(found_container, mysql_host, mysql_user, mysql_pass, space_id)
 
-        # если получили 0 - значит в какой-то компании Slave_IO_Running = No/Null
-        if io_running == 0:
-            print(io_running)
+        # если получили 0 - значит в какой-то компании Slave_SQL_Running = No/Null
+        if sql_running == 0:
+            print(sql_running)
             sys.exit(0)
 
-    # проверяем Slave_IO_Running для пивот баз данных
+    # проверяем Slave_SQL_Running для пивот баз данных
     mysql_user = current_values["projects"]["monolith"]["service"]["mysql"]["user"]
     mysql_pass = current_values["projects"]["monolith"]["service"]["mysql"]["password"]
 
@@ -113,13 +117,13 @@ def start():
         print("Не удалось найти контейнер pivot mysql.")
         sys.exit(1)
 
-    io_running = mysql_get_io_running(found_container, mysql_host, mysql_user, mysql_pass, 0)
-    print(io_running)
+    sql_running = mysql_get_sql_running(found_container, mysql_host, mysql_user, mysql_pass, 0)
+    print(sql_running)
 
 
 # получить статус репликации в полученном контейнере
-def mysql_get_io_running(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
-                         mysql_pass: str, space_id: int):
+def mysql_get_sql_running(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
+                          mysql_pass: str, space_id: int):
     cmd = f"mysql -h {mysql_host} -u {mysql_user} -p{mysql_pass} -e \"SHOW SLAVE STATUS\\G\""
 
     try:
@@ -133,7 +137,7 @@ def mysql_get_io_running(found_container: docker.models.containers.Container, my
 
     output = result.output.decode("utf-8", errors="ignore")
 
-    patterns = {"Slave_IO_Running": r"Slave_IO_Running:\s*(\w*)"}
+    patterns = {"Slave_SQL_Running": r"Slave_SQL_Running:\s*(\w*)"}
 
     lines = [line.strip() for line in output.split('\n') if line.strip()]
 
@@ -163,16 +167,14 @@ def mysql_get_io_running(found_container: docker.models.containers.Container, my
     if current_field:
         result[current_field] = '\n'.join(accumulated_value).strip() or None
 
-    slave_io_running = None
-    if 'Slave_IO_Running' in result:
-        if result['Slave_IO_Running'] == 'NULL':
-            slave_io_running = "NULL"
-        elif result['Slave_IO_Running']:
-            slave_io_running = result['Slave_IO_Running']
+    slave_sql_running = None
+    if 'Slave_SQL_Running' in result:
+        if result['Slave_SQL_Running'] == 'NULL':
+            slave_sql_running = "NULL"
+        elif result['Slave_SQL_Running']:
+            slave_sql_running = result['Slave_SQL_Running']
 
-    print(slave_io_running)
-    print(result)
-    return 1 if slave_io_running == "Yes" else 0
+    return 1 if slave_sql_running == "Yes" else 0
 
 
 # сформировать список конфигураций пространств

@@ -901,3 +901,14 @@ if need_repair_all_teams:
             values_name
         ]
     )
+
+# проверяем обновлялись ли zabbix-скрипты
+if scriptutils.is_replication_enabled(values_dict):
+    command = [
+                  sys.executable,
+                  script_resolved_path + "/replication/check_zabbix_update.py",
+              ]
+
+    if Version(current_version) <= Version("6.7.4"):
+        command.append("--init-version")
+    subprocess.run(command)

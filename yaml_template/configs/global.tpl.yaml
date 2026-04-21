@@ -108,6 +108,13 @@ jitsi.service.prosody.v0.serve_port: 35003
 jitsi.service.prosody.v1.serve_port: 35004
 jitsi.service.prosody.v2.serve_port: 35005
 
+# Точка входа для api запросов к prosody, модуля для ВКС
+# Запросы для комнаты к компоненту будут отправлять на этот entrypoint.
+#
+# Тип данных: строка
+# Пример: jitsi.service.prosody.entrypoint: "http://prosody-jitsi:5280"
+jitsi.service.prosody.entrypoint: "http://prosody-jitsi:5280"
+
 # Адрес TURN сервера, который будет использоваться для соединения в ВКС
 # По умолчанию указан публичный TURN сервер Compass
 #

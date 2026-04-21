@@ -168,7 +168,7 @@ def start():
 # выполняем рестарт репликации в полученном контейнере
 def mysql_restart_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
                               mysql_pass: str, space_id: int):
-    mysql_command = "STOP SLAVE; " + \
+    mysql_command = "STOP SLAVE; RESET SLAVE ALL; " + \
                     "SET GLOBAL super_read_only = OFF; " + \
                     "SET GLOBAL read_only = OFF;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)

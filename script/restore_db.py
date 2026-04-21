@@ -121,7 +121,7 @@ def start():
 
     # останавливаем окружение
     if len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
-        stop_environment(stack_name if service_label != "" else stack_name_prefix)
+        stop_environment(stack_name_prefix, service_label)
 
     # восстанавливаем конфигурацию
     if "production" in current_values["server_tag_list"] and config_archive_name != "":
@@ -149,14 +149,21 @@ def start():
 
 
 # останавливаем окружение
-def stop_environment(stack_name: str) -> None:
+def stop_environment(stack_name_prefix: str, service_label: str) -> None:
     result = input(scriptutils.error(
         "Перед восстановлением необходимо завершить работу приложения Compass и удалить текущие данные БД. Согласны?[Y/n]"))
 
     if result.lower() != "y":
         scriptutils.die("Восстановление отменено")
 
+    stack_name = stack_name_prefix + "-monolith"
+    company_stack_name = stack_name_prefix + "-d1-company"
+    if service_label != "":
+        stack_name = stack_name + "-" + service_label
+        company_stack_name = stack_name_prefix + f"-{service_label}-d1-company"
+
     # Добавляем проверку перед удалением стеков
+    remove_stack_if_exists(company_stack_name)
     remove_stack_if_exists(stack_name)
     remove_networks_if_exists(stack_name)
 

@@ -216,12 +216,16 @@ def _build_local_vars(values_dict: dict) -> dict:
     locals_map = {}
     projects_file = _get_by_dotted_path(values_dict, ".projects.file") or {}
     projects_domino = _get_by_dotted_path(values_dict, ".projects.domino") or {}
+    projects_api_gateway = _get_by_dotted_path(values_dict, ".projects.api_gateway") or {}
     file_node_id = _get_by_dotted_path(values_dict, ".file_node_id")
     domino_id = _get_by_dotted_path(values_dict, ".domino_id")
+    api_gateway_id = _get_by_dotted_path(values_dict, ".api_gateway_id")
     if isinstance(projects_file, dict) and file_node_id in projects_file:
         locals_map["file_node"] = projects_file[file_node_id]
     if isinstance(projects_domino, dict) and domino_id in projects_domino:
         locals_map["domino"] = projects_domino[domino_id]
+    if isinstance(projects_api_gateway, dict) and api_gateway_id in projects_api_gateway:
+        locals_map["api_gateway"] = projects_api_gateway[api_gateway_id]
     return locals_map
 
 
@@ -785,48 +789,6 @@ def perform_installation(
     )
     write_file(nginx_conf, nginx_conf_content, mode=0o644)
 
-    # Создаем site-конфиг
-    sites_dir = Path("/etc/nginx/sites-enabled-installer")
-    sites_dir.mkdir(parents=True, exist_ok=True)
-    installer_nginx = sites_dir / "installer.nginx"
-
-    installer_nginx_content = dedent(
-        f"""\
-        server {{
-            listen 53794 default_server;
-            listen [::]:53794 default_server;
-            server_name _;
-
-            root {front_dist};
-            index index.html;
-
-            location = / {{
-                return 301 /install;
-            }}
-
-            location /api/ {{
-                proxy_pass         http://127.0.0.1:8000/api/;
-                proxy_http_version 1.1;
-                proxy_set_header   Host              $host;
-                proxy_set_header   X-Real-IP         $remote_addr;
-                proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-                proxy_set_header   X-Forwarded-Proto $scheme;
-            }}
-
-            location /static/ {{
-                alias              {front_dist}/static/;
-                expires            30d;
-                add_header         Cache-Control "public";
-            }}
-
-            location / {{
-                try_files $uri $uri/ /index.html;
-            }}
-        }}
-    """
-    )
-    write_file(installer_nginx, installer_nginx_content, mode=0o644)
-
     # Проверяем и перезагружаем nginx
     utils.run("nginx -t")
     utils.run("nginx -s reload")
@@ -937,6 +899,51 @@ def perform_installation(
     except Exception as e:
         colors.print_warning(f"[IMAGES] Ошибка предварительной загрузки образов: {e}")
 
+    # Создаем site-конфиг
+    sites_dir = Path("/etc/nginx/sites-enabled-installer")
+    sites_dir.mkdir(parents=True, exist_ok=True)
+    installer_nginx = sites_dir / "installer.nginx"
+
+    installer_nginx_content = dedent(
+        f"""\
+        server {{
+            listen 53794 default_server;
+            listen [::]:53794 default_server;
+            server_name _;
+
+            root {front_dist};
+            index index.html;
+
+            location = / {{
+                return 301 /install;
+            }}
+
+            location /api/ {{
+                proxy_pass         http://127.0.0.1:8000/api/;
+                proxy_http_version 1.1;
+                proxy_set_header   Host              $host;
+                proxy_set_header   X-Real-IP         $remote_addr;
+                proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+                proxy_set_header   X-Forwarded-Proto $scheme;
+            }}
+
+            location /static/ {{
+                alias              {front_dist}/static/;
+                expires            30d;
+                add_header         Cache-Control "public";
+            }}
+
+            location / {{
+                try_files $uri $uri/ /index.html;
+            }}
+        }}
+    """
+    )
+    write_file(installer_nginx, installer_nginx_content, mode=0o644)
+
+    # Проверяем и перезагружаем nginx
+    utils.run("nginx -t")
+    utils.run("nginx -s reload")
 
 # ---------- главная функция ----------
 

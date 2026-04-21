@@ -12,7 +12,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-import argparse, yaml, uuid
+import argparse, yaml, uuid, json
 import tempfile
 import atexit
 
@@ -25,20 +25,32 @@ from utils import scriptutils
 # ---АРГУМЕНТЫ СКРИПТА---#
 parser = scriptutils.create_parser(
     description="Скрипт для синхронизации файлов с активного сервера на резервный.",
-    usage="python3 script/replication/sync_files.py [--vip VIP] [--debug] [--validate-only] [--skip-checks]",
-    epilog="Пример: python3 script/replication/sync_files.py --vip 192.168.1.1 --debug --validate-only --skip-checks",
+    usage="python3 script/replication/sync_files.py [--vip VIP] [--debug] [--validate-only] [--skip-checks] [--userbot-notice-path USERBOT_NORICE_PATH] [--userbot-notice-test] [--monitoring]",
+    epilog="Пример: python3 script/replication/sync_files.py --vip 192.168.1.1 --debug --validate-only --skip-checks --userbot-notice-path /etc/compass_userbot/userbot_config.json --userbot-notice-test --monitoring",
 )
 
 parser.add_argument("--vip", required=False, default="", type=str, help="Виртуальный ip (vip) сервера")
-parser.add_argument("--debug", required=False, action="store_true", help="Запустить скрипт с выводом debug-меток в файл-лог синхронизации файлов")
-parser.add_argument("--validate-only", required=False, action="store_true", help='Запуск скрипта в режиме read-only, без применения изменений')
-parser.add_argument("--skip-checks", required=False, action="store_true", help="Нужно ли пропустить проверки для запуска синхронизации файлов")
+parser.add_argument("--debug", required=False, action="store_true",
+                    help="Запустить скрипт с выводом debug-меток в файл-лог синхронизации файлов")
+parser.add_argument("--validate-only", required=False, action="store_true",
+                    help='Запуск скрипта в режиме read-only, без применения изменений')
+parser.add_argument("--skip-checks", required=False, action="store_true",
+                    help="Нужно ли пропустить проверки для запуска синхронизации файлов")
+parser.add_argument('--userbot-notice-path', required=False, default='/etc/compass_userbot/userbot_config.json', type=str,
+                    help='Путь к файлу с данными бота для уведомления в случае переключения vip')
+parser.add_argument('--userbot-notice-test', required=False, action='store_true',
+                    help='Проверка отправки ботом уведомления')
+parser.add_argument("--monitoring", required=False, action="store_true",
+                    help="Флаг для мониторинга синка файлов")
 args = parser.parse_args()
 
 vip = args.vip
 is_debug = args.debug
 is_dry = args.validate_only
 is_skip_checks = args.skip_checks
+userbot_notice_config_str = args.userbot_notice_path
+is_userbot_notice_test = args.userbot_notice_test
+is_monitoring = args.monitoring
 
 SYNC_FILES_PARAMS = "/etc/rsync-replication/sync_files.yaml"
 SYNC_LOG_FILE = "/var/log/rsync-replication/rsync_files.log"
@@ -68,6 +80,7 @@ class SyncFiles:
         self.ssh_key = ""
         self.bw_limit = 30000
         self.app_files_change_log = Path(APP_FILES_CHANGE_LOG)
+        self.app_files_sync_start_timestamp = None
         self.app_files_tmp = Path(tempfile.gettempdir() + f"/app_files_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
         self.unallowable_source = ["/", "/home" , "/etc", "/var", "/usr", "/bin", "/sbin", "/root", "/boot", "/dev", "/proc", "/sys"]
 
@@ -198,6 +211,10 @@ class SyncFiles:
             logger.warning(f"Исходная директория не существует: {source}")
             return False
 
+        #  получить временную метку начала синхронизации
+        if name == "app_files" and self.app_files_change_log.exists():
+            self.app_files_sync_start_timestamp = time.time()
+
         # получаем команду для выполнения
         cmd = self.build_rsync_command(sync_config)
         if name == "app_files" and len(cmd) == 0:
@@ -265,6 +282,7 @@ class SyncFiles:
         logger.info("=" * 40)
         logger.info(f"Начинаем синхронизацию")
 
+        success_result_list = []
         for i, sync_config in enumerate(self.sync_items, 1):
             if not is_master_server():
                 logger.warning(f"Завершаем синхронизацию: сервер перестал быть мастером для vip {vip}")
@@ -277,10 +295,16 @@ class SyncFiles:
                 if sync_lock(sync_name, f"{SYNC_LOCK_DIR}/{sync_name}_sync_lock.pid"):
                     continue
 
-            self.sync_directory(sync_config)
+            is_success = self.sync_directory(sync_config)
+            success_result_list.append(is_success)
 
             if i < total_count:
                 time.sleep(2)
+
+        if not all(success_result_list) and is_monitoring:
+            message = "Проблема с синхронизацией файлов между серверами - проверьте логи:\n"
+            message += "tail -n 100 /var/log/rsync-replication/rsync_files.log"
+            send_userbot_sync_notice(message)
 
         logger.info(f"Синхронизация завершена.")
         logger.info("=" * 40)
@@ -350,35 +374,16 @@ class SyncFiles:
             self.cleanup_app_tmp_files()
             return []
 
-    # получаем относительный пути для файлов
-    def get_relative_paths(self, files, source):
-        prepare_files = []
-        for file_path in files:
-            try:
-                relative_path = Path(file_path).relative_to(source)
-                prepare_files.append(str(relative_path))
-            except ValueError as e:
-                prepare_files.append(file_path)
-
-        return prepare_files
-
-    # сохраняем список найденных файлов
-    def save_changed_files_list(self, app_files):
-        try:
-            with open(self.app_files_tmp, "w") as f:
-                for file_path in app_files:
-                    f.write(f"{file_path}\n")
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка при сохранении изменённых файлов для app_files: {e}")
-            return False
-
     # обновляем временную метку последнего синка
     def update_change_log(self):
         try:
             self.app_files_change_log.parent.mkdir(parents=True, exist_ok=True)
-            self.app_files_change_log.touch()
-            logger.debug(f"Обновили change log для app_files: {self.app_files_change_log}")
+            if self.app_files_sync_start_timestamp:
+                os.utime(self.app_files_change_log, (self.app_files_sync_start_timestamp, self.app_files_sync_start_timestamp))
+                logger.debug(f"Обновили change log для app_files: {self.app_files_change_log}")
+            else:
+                self.app_files_change_log.touch()
+                logger.debug(f"Создали change log для app_files: {self.app_files_change_log}")
             return True
         except Exception as e:
             logger.error(f"Ошибка обновления change log для app_files: {e}")
@@ -391,6 +396,7 @@ class SyncFiles:
                 self.app_files_tmp.unlink()
         except Exception as e:
             logger.warning(f"Ошибка при очистке временных файлов для app_files: {e}")
+
 
 # проверяем блокировку синхронизации файлов
 # на тот случай если предыдущий синк ещё не закончился
@@ -461,6 +467,33 @@ def is_master_server():
 
     return True
 
+
+# отправка уведомления ботом о статусе синка файлов
+def send_userbot_sync_notice(message: str):
+
+    hostname = scriptutils.get_hostname()
+    message = f"⚠️ *{hostname}*: {message}"
+
+    # проверяем наличие конфига с настройками бота
+    userbot_notice_path = Path(userbot_notice_config_str)
+    if len(userbot_notice_config_str) < 1 or not userbot_notice_path.exists():
+        print(f"Не найден файл-конфиг с данными бота: {userbot_notice_config_str}")
+        return
+
+    # получаем настройки
+    with open(userbot_notice_path, 'r') as file:
+        json_str = file.read()
+        userbot_data = json.loads(json_str) if json_str != "" else {}
+
+    is_need_response = True if is_userbot_notice_test else False
+    scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
+        userbot_data["notice_domain"], message, userbot_data["userbot_version"], is_need_response)
+
+
+if is_userbot_notice_test:
+    message = f"Проверка уведомления от бота для скрипта синхронизации файлов."
+    send_userbot_sync_notice(message)
+    exit(0)
 
 # проверяем, что можем выполнить синк файлов
 if is_master_server():
