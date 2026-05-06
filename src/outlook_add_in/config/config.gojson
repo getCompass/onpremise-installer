@@ -1,4 +1,7 @@
 {
     "baseUrl": "{{.protocol}}://{{entrypoint .projects.outlook_add_in.subdomain .domain .projects.outlook_add_in.url_path 1}}",
-    "viteApiEndpoint": "{{.protocol}}://{{entrypoint .projects.pivot.subdomain_start .domain .url_path .projects.pivot.url_path_start 1}}"
+    "viteApiEndpoint": "{{.protocol}}://{{entrypoint .projects.pivot.subdomain_start .domain .url_path .projects.pivot.url_path_start 1}}",
+    "viteDefaultUrl": "https://compassTalk.ru",
+    "viteSupportUrl": "https://getcompass.ru/",
+    "viteAppTitle": "Compass"
 }

@@ -157,6 +157,13 @@ configs:
     name: "{{.stack_name}}_bot_info_list-{{.config_revisions.project.bot_info_list.json}}"
     file: ".project.bot_info_list.json"
 
+  go-pusher-proxy-conf:
+    name: "{{.stack_name}}_proxy-conf-{{.config_revisions.project.proxy.json}}"
+    file: ".project.proxy.json"
+  php-premise-proxy-conf:
+    name: "{{.stack_name}}_proxy-conf-{{.config_revisions.project.proxy.php}}"
+    file: ".project.proxy.php"
+
   # настройки коллектор-агента
   go-collector-agent-sharding-conf:
     name: "{{.stack_name}}_go_collector_agent_sharding-{{.config_revisions.global.go_collector_agent_sharding.json}}"
@@ -219,7 +226,7 @@ services:
 
   ## MEMCACHE
   memcached-{{.projects.pivot.label}}:
-    image: "{{.registry_service_path}}/memcached:3.21"
+    image: "{{.registry_service_path}}/memcached:3.23-1"
     networks:
       - "pivot-private"
     env_file:
@@ -417,6 +424,8 @@ services:
         target: "/app/private/firebase_compass_key.json"
       - source: "go-pusher-firebase-comteam-key"
         target: "/app/private/firebase_comteam_key.json"
+      - source: "go-pusher-proxy-conf"
+        target: "/app/api/conf/proxy.json"
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
       interval: "5s"
@@ -557,6 +566,9 @@ services:
       - ".global.common.env"
       - ".project.common.env"
       - ".project.php_premise.env"
+    configs:
+      - source: "php-premise-proxy-conf"
+        target: "/app/src/Compass/Premise/api/conf/proxy.php"
     networks:
       - "pivot-private"
     healthcheck:

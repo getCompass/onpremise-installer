@@ -112,6 +112,12 @@ class InteractiveValue:
 
             value = self.prepare_arr(code_list)
 
+        if self.type == "str":
+
+            if value != "" and self.options != [] and value not in self.options:
+                options_string = ", ".join(self.options)
+                raise IncorrectValueException(self.name, bcolors.WARNING + "В конфигурации введено неверное значение для поля %s. Допустимые значения: %s" % (self.name, options_string) + bcolors.ENDC)
+
         if self.type == "arr":
             value = self.prepare_arr(value)
 

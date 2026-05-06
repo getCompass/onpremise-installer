@@ -1,0 +1,17 @@
+<?php
+
+namespace Compass\Conversation;
+
+/**
+ * Конфигурация для прокси
+ */
+
+$CONFIG["PROXY"] = [
+    "protocol" => "{{.proxy.protocol}}",
+    "host" => "{{.proxy.host}}",
+    "port" => {{.proxy.port}},
+    "username" => "{{.proxy.username}}",
+    "password" => "{{.proxy.password}}",
+];
+
+return $CONFIG;
