@@ -37,7 +37,7 @@ services:
   ##################
 
   manticore-domino:
-    image: "{{.registry_service_path}}/manticore:6.3.0"
+    image: "{{.registry_service_path}}/manticore:17.5.1-1"
     environment:
       - EXTRA=0
       - MCL=1

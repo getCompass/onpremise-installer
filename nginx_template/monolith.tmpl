@@ -27,7 +27,8 @@ upstream upstream_api_gateway_single_nginx_{{.stack_name_prefix}} {
         keepalive 30;
 
         # сервер
-        server {{$api_gateway.host}}:{{$api_gateway.service.go_api_gateway.external_https_port}};
+        server {{$api_gateway.host}}:{{$api_gateway.service.go_api_gateway.external_https_port}} max_fails=3 fail_timeout=30s;
+        server {{.projects.monolith.host}}:{{.projects.monolith.service.nginx.external_https_port}} backup;
 }
 
 {{if eq $locprefix ""}}{{$integration_locprefix := ""}}{{else}}{{$integration_locprefix := "/"}}{{end}}

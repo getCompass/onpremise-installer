@@ -378,6 +378,20 @@ configs:
     name: "{{.stack_name}}_cache_config-{{.config_revisions.project.auth.cache.json}}"
     file: ".project.auth.cache.json"
 
+  # конфигурация прокси
+  go-pusher-proxy-conf:
+    name: "{{.stack_name}}_proxy-conf-{{.config_revisions.project.pivot.proxy.json}}"
+    file: ".project.pivot.proxy.json"
+  php-premise-proxy-conf:
+    name: "{{.stack_name}}_proxy-conf-{{.config_revisions.project.pivot.proxy.php}}"
+    file: ".project.pivot.proxy.php"
+  proxy-conversation-conf:
+    name: "{{.stack_name}}_proxy-cnv-conf-{{.config_revisions.project.domino.proxy_conversation.php}}"
+    file: ".project.domino.proxy_conversation.php"
+  proxy-thread-conf:
+    name: "{{.stack_name}}_proxy-thread-conf-{{.config_revisions.project.domino.proxy_thread.php}}"
+    file: ".project.domino.proxy_thread.php"
+
 # файл композиции монолита
 services:
 
@@ -387,7 +401,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:1.28.0-1"
+    image: "{{.registry_service_path}}/nginx:1.28.2-1"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -475,7 +489,7 @@ services:
 
   # MEMCACHE
   memcached-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/memcached:3.21"
+    image: "{{.registry_service_path}}/memcached:3.23-1"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -808,6 +822,8 @@ services:
         target: "/app/private/firebase_compass_key.json"
       - source: "go-pusher-firebase-comteam-key"
         target: "/app/private/firebase_comteam_key.json"
+      - source: "go-pusher-proxy-conf"
+        target: "/app/api/conf/proxy.json"
     healthcheck:
       test: "nc -z 127.0.0.1 1000 && nc -z 127.0.0.1 2000 && nc -z 127.0.0.1 80"
       interval: "5s"
@@ -881,7 +897,7 @@ services:
   ## DOMINO 1
   # MANTICORE
   manticore-{{$domino.label}}:
-    image: "{{.registry_service_path}}/manticore:6.3.7"
+    image: "{{.registry_service_path}}/manticore:17.5.1-1"
     environment:
       - EXTRA=0
       - MCL=1
@@ -1060,10 +1076,16 @@ services:
         target: "/app/src/Compass/Conversation/api/conf/icap.php"
       - source: "icap-conf-thread"
         target: "/app/src/Compass/Thread/api/conf/icap.php"
+      - source: "php-premise-proxy-conf"
+        target: "/app/src/Compass/Premise/api/conf/proxy.php"
       - source: "pivot-smartapps"
         target: "/app/src/Compass/Pivot/api/conf/smartapps.php"
       - source: "domino-smartapps"
         target: "/app/src/Compass/Company/api/conf/smartapps.php"
+      - source: "proxy-conversation-conf"
+        target: "/app/src/Compass/Conversation/api/conf/proxy.php"
+      - source: "proxy-thread-conf"
+        target: "/app/src/Compass/Thread/api/conf/proxy.php"
     {{- if ne .database_encryption.mode "none"}}
     secrets:
       - "compass_database_encryption_secret_key"

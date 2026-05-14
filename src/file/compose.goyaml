@@ -86,7 +86,7 @@ services:
 
   # MEMCACHED
   memcached-{{$file_node.label}}:
-    image: "{{.registry_service_path}}/memcached:3.21"
+    image: "{{.registry_service_path}}/memcached:3.23-1"
     networks:
       - "file-node-private"
     env_file:

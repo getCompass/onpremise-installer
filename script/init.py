@@ -22,6 +22,7 @@ database_config_path = Path(script_dir + "/../configs/database.yaml")
 replication_config_path = Path(script_dir + "/../configs/replication.yaml")
 team_config_path = Path(script_dir + "/../configs/team.yaml")
 dlp_config_path = Path(script_dir + "/../configs/dlp.yaml")
+proxy_config_path = Path(script_dir + "/../configs/proxy.yaml")
 
 validation_errors = {}
 config_path_errors = []
@@ -32,6 +33,7 @@ database_config = {}
 replication_config = {}
 team_config = {}
 dlp_config = {}
+proxy_config = {}
 
 if not config_path.exists():
     print(scriptutils.error(
@@ -62,6 +64,11 @@ if not dlp_config_path.exists():
         "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             dlp_config_path.resolve())))
     exit(1)
+if not proxy_config_path.exists():
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
+            proxy_config_path.resolve())))
+    exit(1)
 with config_path.open("r") as config_file:
     config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
@@ -77,9 +84,13 @@ with team_config_path.open("r") as team_config_file:
 with dlp_config_path.open("r") as dlp_config_file:
     dlp_config_values = yaml.load(dlp_config_file, Loader=yaml.BaseLoader)
 
+with proxy_config_path.open("r") as proxy_config_file:
+    proxy_config_values = yaml.load(proxy_config_file, Loader=yaml.BaseLoader)
+
 config.update(config_values)
 config.update(team_config_values)
 dlp_config.update(dlp_config_values)
+proxy_config.update(proxy_config_values)
 database_config.update(database_config_values)
 replication_config.update(replication_config_values)
 team_config.update(team_config_values)
@@ -641,6 +652,53 @@ icap_fields = [
     }
 ]
 
+proxy_fields = [
+    {
+        "name": "protocol",
+        "comment": "Протокол прокси сервера",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "options": ["http", "https", "socks5", "socks5h"],
+    },
+    {
+        "name": "host",
+        "comment": "Хост прокси сервера",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "protocol",
+        "validation": "host"
+    },
+    {
+        "name": "port",
+        "comment": "Порт прокси сервера",
+        "default_value": 8080,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "protocol",
+        "validation": "port"
+    },
+    {
+        "name": "username",
+        "comment": "Имя пользователя прокси сервера",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+    },
+    {
+        "name": "password",
+        "comment": "Пароль от пользователя прокси сервера",
+        "default_value": "",
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+    }
+]
 file_auto_deletion_fields = [
     {
         "name": "is_enabled",
@@ -1473,7 +1531,7 @@ def process_field(
         if field.get("depends_on") is not None:
 
             need_field = field["depends_on"]
-            if project_values.get(need_field) is True:
+            if bool(project_values.get(need_field)) is True:
                 is_required = True
             else:
                 validation = None
@@ -1592,7 +1650,8 @@ def start():
     new_values = init_team(new_values)
     new_values = init_file_auto_deletion(new_values)
     new_values = init_icap(new_values)
-
+    new_values = init_proxy(new_values)
+    
     if new_values.get("local_license"):
         new_values["server_tag_list"] += ["local_license"]
 
@@ -1766,6 +1825,21 @@ def init_icap(new_values: dict):
 
     return new_values
 
+def init_proxy(new_values: dict):
+    if new_values.get("proxy") is None:
+        new_values["proxy"] = {}
+
+    for proxy_field in proxy_fields:
+        new_value, field_name = process_field(
+            proxy_field.copy(), "proxy", "proxy", new_values["proxy"], new_values, proxy_config, proxy_config_path
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "proxy.%s" % field_name, new_value)
+
+    return new_values
 
 def init_team(new_values: dict):
     """инициализируем конфигурацию команды"""
