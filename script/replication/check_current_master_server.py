@@ -15,6 +15,8 @@ from utils import scriptutils
 from pathlib import Path
 from typing import Dict
 
+scriptutils.assert_replication_available()
+
 # ---АРГУМЕНТЫ СКРИПТА---#
 
 parser = scriptutils.create_parser(

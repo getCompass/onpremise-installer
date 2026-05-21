@@ -16,6 +16,8 @@ from pathlib import Path
 from time import sleep
 from loader import Loader
 
+scriptutils.assert_replication_available()
+
 # ---АРГУМЕНТЫ СКРИПТА---#
 parser = argparse.ArgumentParser()
 

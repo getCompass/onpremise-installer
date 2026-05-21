@@ -57,6 +57,8 @@ service_label = replication_config.get("service_label", None)
 if service_label is None or service_label == "":
     exit(0)
 
+scriptutils.assert_replication_available()
+
 # проверяем систему rpm
 if scriptutils.is_rpm_os():
     exit(1)

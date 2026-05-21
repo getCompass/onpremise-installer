@@ -56,3 +56,4 @@ src/monolith/variable/userbot
 src/pivot/config/restrictions.gophp
 src/pivot/config/smartapps.gophp
 src/values.*.yaml
+script/replication/zabbix/.version

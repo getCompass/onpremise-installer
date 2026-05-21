@@ -1933,6 +1933,9 @@ def init_replication(new_values: dict):
     if service_label is None:
         scriptutils.die("Не заполнен параметр service_label")
 
+    if service_label != "":
+        scriptutils.assert_replication_available()
+
     if service_label != "" and len(service_label) > 8:
         scriptutils.die("Параметр service_label не должен быть длинее 12 символов")
 

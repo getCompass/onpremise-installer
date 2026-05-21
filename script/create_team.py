@@ -507,7 +507,7 @@ if is_need_create_backup:
 
     # бэкапим базу данных
     try:
-        scriptutils.backup_db(installer_dir, backup_name_format=backup_name_format, need_backup_configs=0,
+        scriptutils.backup_db(installer_dir, backup_name_format=backup_name_format, threshold_percent=0, need_backup_configs=0,
                               need_backup_monolith=0, need_backup_space_id_list=str(company_id))
         loader.success()
     except subprocess.CalledProcessError as e:

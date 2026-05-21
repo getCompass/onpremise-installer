@@ -17,6 +17,7 @@ sys.path.insert(0, parent_dir)
 from utils import scriptutils
 from pathlib import Path
 
+scriptutils.assert_replication_available()
 scriptutils.assert_root()
 
 # ---АРГУМЕНТЫ СКРИПТА---#

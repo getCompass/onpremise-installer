@@ -36,7 +36,7 @@ parser.add_argument("--backups-folder", required=False, default="", type=str,
                     help="Название директории для хранения бэкапов")
 parser.add_argument("--backup-name-format", required=False, default="%d_%m_%Y", type=str,
                     help="Формат названия папки бэкапа")
-parser.add_argument("--free-threshold-percent", required=False, default=0, type=int,
+parser.add_argument("--free-threshold-percent", required=False, default=50, type=int,
                     help="Минимальное значение свободного места в процентах, при котором будут создаваться бэкапы")
 parser.add_argument("--auto-cleaning-limit", required=False, default=0, type=int,
                     help="Максимальное количество хранимых бэкапов, при превышении значения самые старые бэкапы будут автоматически удаляться")

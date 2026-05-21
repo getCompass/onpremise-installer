@@ -60,6 +60,8 @@ service_label = replication_config.get("service_label", None)
 if service_label is None or service_label == "":
     exit(0)
 
+scriptutils.assert_replication_available()
+
 # проверяем, что не используется внешняя база
 if database_config.get("database_connection", {}).get("driver") == "host":
     exit(1)

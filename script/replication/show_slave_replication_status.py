@@ -7,6 +7,7 @@ sys.dont_write_bytecode = True
 import argparse, yaml, sys, os, time, re, glob, json
 import docker
 from typing import Dict
+import subprocess
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
@@ -16,6 +17,7 @@ from utils import scriptutils
 from loader import Loader
 from pathlib import Path
 
+scriptutils.assert_replication_available()
 scriptutils.assert_root()
 
 # ---АРГУМЕНТЫ СКРИПТА---#
@@ -42,6 +44,8 @@ parser.add_argument("--log-level", required=False, default=1, type=int,
                     help="Уровень логирования статуса репликации")
 parser.add_argument("--monitoring", required=False, action="store_true",
                     help="Флаг для мониторинга статуса репликации")
+parser.add_argument("--stop-keepalived-on-replica-failure", required=False, action="store_true",
+                    help="Флаг для отключения keepalived в случае провала реплики")
 parser.add_argument('--userbot-notice-path', required=False, default='/etc/compass_userbot/userbot_config.json', type=str,
                     help='Путь к файлу с данными бота для уведомления в случае переключения vip')
 parser.add_argument('--userbot-notice-test', required=False, action='store_true',
@@ -54,6 +58,7 @@ is_all_teams = args.all_teams
 is_all_types = args.all_types
 log_level = args.log_level
 is_replica_monitoring = args.monitoring
+stop_keepalived_on_replica_failure = args.stop_keepalived_on_replica_failure
 userbot_notice_config_str = args.userbot_notice_path
 is_userbot_notice_test = args.userbot_notice_test
 
@@ -207,7 +212,8 @@ def start():
                 print(status_text)
 
     # уведомляем, если у реплики провальный статус
-    notice_replica_failed_status(replica_success_result)
+    if is_replica_monitoring and not all(replica_success_result) and not is_master_server(current_values):
+        replica_failed_status()
 
     if not all(replica_success_result):
         print(scriptutils.warning("\nРепликация не может завершиться корректно!"))
@@ -218,10 +224,32 @@ def start():
         print(log_text)
 
 
-def notice_replica_failed_status(replica_success_result: list):
-    is_replicas_success = all(replica_success_result)
-    if is_replica_monitoring and not all(replica_success_result) and not is_master_server(current_values):
-        send_userbot_replica_notice("Проблема с репликацией MySQL - проверьте статус реплики на сервере.")
+# действия при ошибке статуса репликации баз данных
+def replica_failed_status():
+
+        keepalived_stoped_text = ""
+        if stop_keepalived_on_replica_failure:
+
+            # отключаем keepalived
+            try:
+                result = subprocess.run(['systemctl', 'stop', 'keepalived'],
+                                        capture_output=True,
+                                        text=True,
+                                        check=False)
+                if result.returncode == 0:
+                    print("Keepalived успешно остановлен.")
+
+                    # сообщаем об этом в уведомлении от бота
+                    keepalived_stoped_text = "На сервере принудительно отключен keepalived!"
+                else:
+                    print(f"Ошибка при остановке keepalived: {result.stderr}")
+                    keepalived_stoped_text = "Внимание! Ошибка при попытке остановить keepalived!"
+            except Exception as e:
+                print(f"Не удалось выполнить команду: {e}")
+                keepalived_stoped_text = "Внимание! Ошибка при попытке остановить keepalived!"
+
+        message_text = f"Проблема с репликацией MySQL - проверьте статус реплики на сервере. {keepalived_stoped_text}"
+        send_userbot_replica_notice(message_text)
         exit(1)
 
 

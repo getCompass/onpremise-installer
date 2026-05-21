@@ -22,6 +22,8 @@ from typing import Dict, List
 
 script_dir = str(Path(__file__).parent.resolve())
 
+scriptutils.assert_replication_available()
+
 # ---АРГУМЕНТЫ СКРИПТА---#
 
 parser = scriptutils.create_parser(

@@ -32,6 +32,7 @@ __confirm_yes_key__ = "Y"
 
 MONOLITH_MYSQL_TYPE = "monolith"
 TEAM_MYSQL_TYPE = "team"
+YANDEX_CLOUD_REPLICATION_UNAVAILABLE_MESSAGE = "В окружении Yandex Cloud запуск репликации недоступен."
 
 
 # проверить, что запустили из под рута
@@ -153,6 +154,7 @@ def is_rpm_os():
 # включена ли репликация
 def is_replication_enabled(values_dict: dict):
     if values_dict.get("service_label") is not None and values_dict.get("service_label") != "":
+        assert_replication_available()
         return True
 
     return False
@@ -295,6 +297,11 @@ def is_yandex_cloud_marketplace_product() -> bool:
     except Exception:
         # если невалидный json — считаем проверку проваленной
         return False
+
+
+def assert_replication_available():
+    if is_yandex_cloud_marketplace_product():
+        die(YANDEX_CLOUD_REPLICATION_UNAVAILABLE_MESSAGE)
 
 
 # отправляем уведомление от лица бота
