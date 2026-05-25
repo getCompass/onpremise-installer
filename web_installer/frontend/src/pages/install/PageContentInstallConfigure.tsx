@@ -880,7 +880,7 @@ const DomainBlock = forwardRef<HTMLDivElement, DomainBlockProps>(
                                 setDomainWarningVisible(false);
                             }}
                             inputProps={{
-                                pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z][a-zA-Z0-9-]+$",
+                                pattern: "^[a-zA-Z0-9.\\-]+\\.[a-zA-Z][a-zA-Z0-9\\-]+$",
                                 onBlur: async (e) => {
                                     const val = e.currentTarget.value.trim();
 

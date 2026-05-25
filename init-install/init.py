@@ -1015,9 +1015,9 @@ def main() -> None:
             py_major = system_info.get("python_major", "?")
             py_minor = system_info.get("python_minor", "?")
             colors.print_error(
-                f"Требуется Python 3.8+, установлена версия {py_major}.{py_minor}"
+                f"Требуется Python 3.10+, установлена версия {py_major}.{py_minor}"
             )
-            colors.print_error("Пожалуйста, обновите Python до версии 3.8 или выше")
+            colors.print_error("Пожалуйста, обновите Python до версии 3.10 или выше")
             sys.exit(1)
     except Exception as e:
         colors.print_error(f"Не удалось проверить версию Python: {e}")

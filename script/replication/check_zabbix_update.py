@@ -11,6 +11,8 @@ from utils import scriptutils
 
 script_dir = str(Path(__file__).parent.resolve())
 
+scriptutils.assert_replication_available()
+
 parser = scriptutils.create_parser(
     description="Скрипт проверки обновлений zabbix-скриптов.",
     usage="python3 script/replication/check_zabbix_update.py [--init-version]",

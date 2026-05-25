@@ -22,6 +22,8 @@ sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
 
+scriptutils.assert_replication_available()
+
 # ---АРГУМЕНТЫ СКРИПТА---#
 parser = scriptutils.create_parser(
     description="Скрипт для синхронизации файлов с активного сервера на резервный.",

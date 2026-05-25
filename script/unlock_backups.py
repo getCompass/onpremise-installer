@@ -24,7 +24,7 @@ scriptutils.assert_root()
 parser = scriptutils.create_parser(
     description="Скрипт для разблокировки процесса бэкапов баз данных.",
     usage="python3 script/unlock_backups.py [-v VALUES] [-e ENVIRONMENT]",
-    epilog="Пример: python3 script/backup_db.py -v compass -e production",
+    epilog="Пример: python3 script/unlock_backups.py -v compass -e production",
 )
 
 parser.add_argument('-v', '--values', required=False, default="compass", type=str,

@@ -57,14 +57,14 @@ def detect_package_manager() -> None:
 
 def check_python_version() -> None:
     """
-    Проверяет версию Python (должна быть 3.8+).
+    Проверяет версию Python (должна быть 3.10+).
     
     Returns:
         tuple: (успех, версия_мажор, версия_минор)
     """
     import sys
     version = sys.version_info
-    if version.major < 3 or (version.major == 3 and version.minor < 8):
+    if version.major < 3 or (version.major == 3 and version.minor < 10):
         return False, version.major, version.minor
     return True, version.major, version.minor
 
@@ -103,4 +103,3 @@ def get_system_info() -> None:
         pass
     
     return info
-

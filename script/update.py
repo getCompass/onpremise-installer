@@ -909,6 +909,6 @@ if scriptutils.is_replication_enabled(values_dict):
                   script_resolved_path + "/replication/check_zabbix_update.py",
               ]
 
-    if current_version != "0.0.0" and Version(current_version) <= Version("6.7.4"):
+    if Version(current_version) <= Version("6.7.4"):
         command.append("--init-version")
     subprocess.run(command)
