@@ -1,8 +1,10 @@
 <p align="center">
+  <a href="https://vimeo.com/1187628360" target="_blank" rel="nofollow noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://getcompass.ru/static/github/ru/cover_dark.png">
-      <img src="https://getcompass.ru/static/github/ru/cover_light.png" width="100%" height="100%" alt="">
+      <img src="https://getcompass.ru/static/github/ru/cover_light.png" width="100%" height="100%" alt="Смотреть видео">
     </picture>
+  </a>
 </p>
 
 <picture>
