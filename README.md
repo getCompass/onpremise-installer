@@ -7,6 +7,8 @@
   </a>
 </p>
 
+</br>
+
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://getcompass.ru/static/github/ru/1_dark.png">
     <img src="https://getcompass.ru/static/github/ru/1_light.png" width="100%" height="100%" alt="">
