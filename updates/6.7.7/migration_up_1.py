@@ -61,7 +61,7 @@ content += f"""
 # IP-адрес клиента из заголовка PROXY protocol, который присылает внешний proxy.
 # Если параметр не используется, оставьте false.
 #
-# Тип данных: булево значение, true\false
+# Тип данных: булево значение, true\\false
 # Пример: nginx.proxy_protocol.is_enabled: true
 nginx.proxy_protocol.is_enabled: false
 
