@@ -556,6 +556,34 @@ nginx_fields = [
         "type": "int",
         "ask": True,
     },
+    {
+        "name": "proxy_protocol.is_enabled",
+        "comment": "Включен ли proxy protocol",
+        "default_value": None,
+        "type": "bool",
+        "ask": True,
+        "is_required": True,
+    },
+    {
+        "name": "proxy_protocol.port",
+        "comment": "Порт для proxy_protocol",
+        "default_value": None,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "proxy_protocol.is_enabled",
+        "validation": "port"
+    },
+    {
+        "name": "proxy_protocol.real_ip_from",
+        "comment": "Разрешенные адреса или сети, откуда принимать соединения proxy protocol",
+        "default_value": None,
+        "type": "arr",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "proxy_protocol.is_enabled",
+        "validation": "ip_or_cidr"
+    },
 ]
 
 database_connection_fields = [

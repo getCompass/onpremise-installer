@@ -85,7 +85,10 @@ nginx:
   ssl_crt: "example.crt"
   ssl_key: "example.key"
   directio_alignment: 512
-
+  proxy_protocol:
+    is_enabled: false
+    port: 444
+    real_ip_from: []
 icap:
   is_enabled: false
   is_mock: false

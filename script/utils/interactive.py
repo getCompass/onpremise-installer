@@ -299,6 +299,8 @@ def validate(value: str, validation: Union[str, None]) -> str:
         return validate_positive_int(value)
     if validation == "sso_attr":
         return validate_sso_attr(value)
+    if validation == "ip_or_cidr":
+        return validate_ip_or_cidr(value)
     return "Не найден тип валидации"
 
 def validate_phone(phone: str) -> str:
@@ -361,6 +363,12 @@ def validate_ip(value: str) -> str:
     except ValueError:
         return "Неверный ip адрес"
 
+def validate_cidr(value: str) -> str:
+    try:
+        ipaddress.ip_network(value)
+        return ""
+    except ValueError:
+        return "Неверный CIDR"
 
 def validate_idna(value: str) -> str:
 
@@ -387,6 +395,16 @@ def validate_host(value: str) -> str:
 
     if ip_err != "" and not is_valid_idn:
         return "Неправильное значение для хоста. Введите валидный IP или домен"
+
+    return ""
+
+def validate_ip_or_cidr(value: str) -> str:
+
+    ip_err = validate_ip(value)
+    cidr_err = validate_cidr(value)
+
+    if ip_err != "" and cidr_err != "":
+        return "Неправильное значение для хоста. Введите валидный IP или CIDR"
 
     return ""
 
