@@ -4,14 +4,14 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import argparse, yaml, sys, os, glob, re, json
+import argparse, yaml, sys, os, glob, re, json, shlex
 import docker
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
 
-from utils import scriptutils
+from utils import scriptutils, team_mysql_settings
 from pathlib import Path
 from time import sleep
 from loader import Loader
@@ -23,6 +23,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-v", "--values", required=False, default="compass", type=str, help="Название values файла окружения")
 parser.add_argument("-e", "--environment", required=False, default="production", type=str, help="Окружение, в котором разворачиваем")
+parser.add_argument("--buffer-pool-size", required=False, default=None, type=int,
+                    help="innodb_buffer_pool_size для MySQL команды в мегабайтах")
+parser.add_argument("--innodb-thread-concurrency", required=False, default=None, type=int,
+                    help="innodb_thread_concurrency для MySQL команды")
+parser.add_argument("--table-open-cache", required=False, default=None, type=int,
+                    help="table-open-cache для MySQL команды")
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -30,6 +36,7 @@ args = parser.parse_args()
 scriptutils.assert_root()
 
 script_dir = str(Path(__file__).parent.resolve())
+team_config_path = Path("%s/../../configs/team.yaml" % script_dir)
 
 # ---СКРИПТ---#
 
@@ -95,16 +102,45 @@ print(scriptutils.warning("Восстанавливаю команды..."))
 
 is_success = True
 
-space_id = input("Выберете id команды, которую нужно восстановить:").lower()
+space_id = input("Выберете id команды, которую нужно восстановить:").strip().lower()
+try:
+    space_id_int = int(space_id)
+except ValueError:
+    scriptutils.die("Некорректный id команды")
+
+is_cli_mysql_settings = (
+    args.buffer_pool_size is not None
+    or args.innodb_thread_concurrency is not None
+    or args.table_open_cache is not None
+)
+
+try:
+    if is_cli_mysql_settings:
+        mysql_settings = team_mysql_settings.make_settings(
+            args.buffer_pool_size,
+            args.innodb_thread_concurrency,
+            args.table_open_cache,
+        )
+    else:
+        mysql_settings = team_mysql_settings.get_for_company(team_config_path, space_id_int)
+except ValueError as e:
+    scriptutils.die(str(e))
+
+mysql_settings_json = team_mysql_settings.to_json(mysql_settings)
 
 log_text = "Восстанавливаем команду %s" % space_id
 print(log_text)
+
+repair_command = 'php src/Compass/Pivot/sh/php/domino/repair_company.php --company-id="%s"' % space_id
+if mysql_settings_json != "":
+    repair_command += " --mysql-settings-json=%s" % shlex.quote(mysql_settings_json)
+
 output = found_pivot_container.exec_run(
     user="www-data",
     cmd=[
         "bash",
         "-c",
-        'php src/Compass/Pivot/sh/php/domino/repair_company.php --company-id="%s"' % space_id,
+        repair_command,
     ],
 )
 if output.exit_code != 0:
@@ -113,7 +149,7 @@ if output.exit_code != 0:
         cmd=[
             "bash",
             "-c",
-            'php src/Compass/Pivot/sh/php/domino/repair_company.php --company-id="%s"' % space_id,
+            repair_command,
         ],
     )
     if output.exit_code != 0:
@@ -125,4 +161,7 @@ if output.exit_code != 0:
         )
 
 if is_success:
+    if is_cli_mysql_settings and mysql_settings_json != "":
+        team_mysql_settings.set_for_company(team_config_path, space_id_int, mysql_settings)
+
     print(scriptutils.success("Команды восстановлены"))

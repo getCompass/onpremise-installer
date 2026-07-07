@@ -34,6 +34,8 @@ security_keys:
     salt_sender_hash: ""
   intercom:
     socket_key_intercom: ""
+  kafka:
+    password: ""
   pivot:
     socket_key_go_pusher: ""
     socket_key_go_sender: ""

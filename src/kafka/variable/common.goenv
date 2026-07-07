@@ -1,0 +1,6 @@
+ROLE_LIST="instance,init"
+BOOTSTRAP_SERVER="{{.projects.kafka.host}}:{{.projects.kafka.service.kafka.external_port}}"
+KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/secrets/kafka_server_jaas.conf
+CLUSTER_ID="{{.projects.kafka.service.kafka.cluster_id}}"
+
+KAFKA_HEAP_OPTS="-Xms256m -Xmx512m"

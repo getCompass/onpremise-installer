@@ -1,0 +1,26 @@
+internal.KafkaServer {
+  org.apache.kafka.common.security.scram.ScramLoginModule required
+  username="{{.projects.kafka.service.kafka.super_user}}"
+  password="{{.projects.kafka.service.kafka.password}}"
+  user_{{.projects.kafka.service.kafka.super_user}}="{{.projects.kafka.service.kafka.password}}"
+  {{- range $user, $password := .projects.kafka.service.kafka.users }}
+  user_{{$user}}="{{$password}}";
+  {{- end }}
+};
+
+external.KafkaServer {
+  org.apache.kafka.common.security.scram.ScramLoginModule required
+  username="{{.projects.kafka.service.kafka.super_user}}"
+  password="{{.projects.kafka.service.kafka.password}}"
+  user_{{.projects.kafka.service.kafka.super_user}}="{{.projects.kafka.service.kafka.password}}"
+  {{- range $user, $password := .projects.kafka.service.kafka.users }}
+  user_{{$user}}="{{$password}}";
+  {{- end }}
+};
+
+controller.KafkaServer {
+  org.apache.kafka.common.security.scram.ScramLoginModule required
+  username="{{.projects.kafka.service.kafka.super_user}}"
+  password="{{.projects.kafka.service.kafka.password}}"
+  user_{{.projects.kafka.service.kafka.super_user}}="{{.projects.kafka.service.kafka.password}}";
+};

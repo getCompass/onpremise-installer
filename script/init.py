@@ -4,6 +4,14 @@ import sys
 
 sys.dont_write_bytecode = True
 
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
 from pathlib import Path
 from utils import scriptutils
 import collections.abc
@@ -22,6 +30,7 @@ database_config_path = Path(script_dir + "/../configs/database.yaml")
 replication_config_path = Path(script_dir + "/../configs/replication.yaml")
 team_config_path = Path(script_dir + "/../configs/team.yaml")
 dlp_config_path = Path(script_dir + "/../configs/dlp.yaml")
+siem_config_path = Path(script_dir + "/../configs/siem.yaml")
 proxy_config_path = Path(script_dir + "/../configs/proxy.yaml")
 
 validation_errors = {}
@@ -33,6 +42,7 @@ database_config = {}
 replication_config = {}
 team_config = {}
 dlp_config = {}
+siem_config = {}
 proxy_config = {}
 
 if not config_path.exists():
@@ -64,6 +74,13 @@ if not dlp_config_path.exists():
         "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
             dlp_config_path.resolve())))
     exit(1)
+
+if not siem_config_path.exists():
+    print(scriptutils.error(
+        "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
+            siem_config_path.resolve())))
+    exit(1)
+
 if not proxy_config_path.exists():
     print(scriptutils.error(
         "Отсутствует файл конфигурации %s. Запустите скрипт create_configs.py и заполните конфигурацию" % str(
@@ -84,12 +101,16 @@ with team_config_path.open("r") as team_config_file:
 with dlp_config_path.open("r") as dlp_config_file:
     dlp_config_values = yaml.load(dlp_config_file, Loader=yaml.BaseLoader)
 
+with siem_config_path.open("r") as siem_config_file:
+    siem_config_values = yaml.load(siem_config_file, Loader=yaml.BaseLoader)
+
 with proxy_config_path.open("r") as proxy_config_file:
     proxy_config_values = yaml.load(proxy_config_file, Loader=yaml.BaseLoader)
 
 config.update(config_values)
 config.update(team_config_values)
 dlp_config.update(dlp_config_values)
+siem_config.update(siem_config_values)
 proxy_config.update(proxy_config_values)
 database_config.update(database_config_values)
 replication_config.update(replication_config_values)
@@ -125,6 +146,7 @@ deploy_project_list = [
     "license",
     "api_gateway",
     "auth",
+    "kafka",
 ]
 
 deploy_saas_project_list = [
@@ -152,7 +174,8 @@ project_ports = {
     "license": 32700,
     "api_gateway": 32800,
     "auth": 32900,
-    "outlook_add_in": 33000
+    "outlook_add_in": 33000,
+    "kafka": 33100,
 }
 
 domino_ports = {
@@ -556,6 +579,34 @@ nginx_fields = [
         "type": "int",
         "ask": True,
     },
+    {
+        "name": "proxy_protocol.is_enabled",
+        "comment": "Включен ли proxy protocol",
+        "default_value": None,
+        "type": "bool",
+        "ask": True,
+        "is_required": True,
+    },
+    {
+        "name": "proxy_protocol.port",
+        "comment": "Порт для proxy_protocol",
+        "default_value": None,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "proxy_protocol.is_enabled",
+        "validation": "port"
+    },
+    {
+        "name": "proxy_protocol.real_ip_from",
+        "comment": "Разрешенные адреса или сети, откуда принимать соединения proxy protocol",
+        "default_value": None,
+        "type": "arr",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "proxy_protocol.is_enabled",
+        "validation": "ip_or_cidr"
+    },
 ]
 
 database_connection_fields = [
@@ -590,6 +641,69 @@ database_encryption_fields = [
         "type": "str",
         "ask": True,
         "is_required": False,
+    }
+]
+
+siem_fields = [
+    {
+        "name": "enabled_driver",
+        "comment": "Включенный драйвер для общения с SIEM",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": True,
+        "options": ["none", "kafka"],
+    },
+    {
+        "name": "driver_data.user",
+        "comment": "Пользователь для общения SIEM с kafka",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "enabled_driver",
+        "depend_value": "kafka"
+    },
+    {
+        "name": "driver_data.password",
+        "comment": "Пароль для пользователя SIEM в kafka",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "enabled_driver",
+        "depend_value": "kafka"
+    },
+    {
+        "name": "driver_data.consumer_group_id",
+        "comment": "ID группы потребителя в kafka",
+        "default_value": None,
+        "type": "str",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "enabled_driver",
+        "depend_value": "kafka"
+    },
+    {
+        "name": "driver_data.storage_time",
+        "comment": "Время жизни событий в часах",
+        "default_value": None,
+        "type": "positive_int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "enabled_driver",
+        "depend_value": "kafka"
+    },
+    {
+        "name": "driver_data.listen_port",
+        "comment": "Порт для прослушивания",
+        "default_value": None,
+        "type": "int",
+        "ask": True,
+        "is_required": False,
+        "depends_on": "enabled_driver",
+        "depend_value": "kafka",
+        "validation": "port"
     }
 ]
 
@@ -1026,7 +1140,7 @@ required_project_fields = [
         "args": ["_global.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
     },
     {
         "name": "service.mysql.password",
@@ -1036,7 +1150,7 @@ required_project_fields = [
         "args": ["_project.service.mysql.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
     },
     {
         "name": "service.mysql.user",
@@ -1044,7 +1158,7 @@ required_project_fields = [
         "default_value": "root",
         "type": "str",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
     },
     {
         "name": "network.subnet",
@@ -1184,6 +1298,27 @@ required_specific_project_fields = {
             "type": "str",
             "ask": False
         },
+    ],
+    "kafka": [
+        {
+            "name": "service.kafka.password",
+            "comment": "Пароль от суперпользователя kafka",
+            "default_value": None,
+            "type": "password",
+            "value_function": random_password,
+            "args": [32],
+            "ask": False,
+            "is_protected": True,
+        },
+        {
+            "name": "service.kafka.external_port",
+            "comment": "Внешний порт для kafka",
+            "default_value": None,
+            "value_function": project_port,
+            "args": [],
+            "type": "int",
+            "ask": True
+        }
     ],
     "pivot": [
         {
@@ -1531,7 +1666,12 @@ def process_field(
         if field.get("depends_on") is not None:
 
             need_field = field["depends_on"]
-            if bool(project_values.get(need_field)) is True:
+            depend_value = field.get("depend_value")
+            
+            if depend_value is not None and depend_value == project_values.get(need_field, ""):
+                is_required = True
+
+            if depend_value is None and bool(project_values.get(need_field)) is True:
                 is_required = True
             else:
                 validation = None
@@ -1651,7 +1791,8 @@ def start():
     new_values = init_file_auto_deletion(new_values)
     new_values = init_icap(new_values)
     new_values = init_proxy(new_values)
-    
+    new_values = init_siem(new_values)
+
     if new_values.get("local_license"):
         new_values["server_tag_list"] += ["local_license"]
 
@@ -1774,23 +1915,6 @@ def init_global(values_initial_dict: dict, values_path: Path, environment: str) 
     return new_values
 
 
-def init_nginx(new_values: dict):
-    if new_values.get("nginx") is None:
-        new_values["nginx"] = {}
-
-    for nginx_field in nginx_fields:
-        new_value, field_name = process_field(
-            nginx_field.copy(), "nginx", "nginx", new_values["nginx"], new_values, config, config_path
-        )
-
-        if new_value is None:
-            continue
-
-        new_values = nested_set(new_values, "nginx.%s" % field_name, new_value)
-
-    return new_values
-
-
 def init_file_auto_deletion(new_values: dict):
     if new_values.get("file_auto_deletion") is None:
         new_values["file_auto_deletion"] = {}
@@ -1808,6 +1932,48 @@ def init_file_auto_deletion(new_values: dict):
 
     return new_values
 
+def init_nginx(new_values: dict):
+    if new_values.get("nginx") is None:
+        new_values["nginx"] = {}
+
+    for nginx_field in nginx_fields:
+        new_value, field_name = process_field(
+            nginx_field.copy(), "nginx", "nginx", new_values["nginx"], new_values, config, config_path
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "nginx.%s" % field_name, new_value)
+
+    cert_path = Path(script_dir + "/../certs/")
+    if not cert_path.exists():
+        cert_path.mkdir(exist_ok=False, parents=False)
+
+    pubkey = new_values["nginx"]["ssl_crt"]
+    privkey = new_values["nginx"]["ssl_key"]
+    full_pem = "%s.pem" % new_values["domain"]
+
+    pubkey_path = Path("/etc/nginx/ssl/%s" % pubkey)
+    privkey_path = Path("/etc/nginx/ssl/%s" % privkey)
+    full_pem_path = Path(str(cert_path.resolve()) + "/" + full_pem)
+    
+    certs = x509.load_pem_x509_certificates(pubkey_path.open(mode="rb").read())
+    key = load_pem_private_key(privkey_path.open(mode="rb").read(), password=None, backend=default_backend())
+    pub = b''
+    
+    for c in certs:
+        pub += c.public_bytes(encoding=serialization.Encoding.PEM)
+
+    priv = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    
+    full_pem_path.open("wt").write(priv.decode("utf-8") + pub.decode("utf-8"))
+    
+    return new_values
 
 def init_icap(new_values: dict):
     if new_values.get("icap") is None:
@@ -1838,6 +2004,22 @@ def init_proxy(new_values: dict):
             continue
 
         new_values = nested_set(new_values, "proxy.%s" % field_name, new_value)
+
+    return new_values
+
+def init_siem(new_values: dict):
+    if new_values.get("siem") is None:
+        new_values["siem"] = {}
+
+    for siem_field in siem_fields:
+        new_value, field_name = process_field(
+            siem_field.copy(), "siem", "siem", new_values["siem"], new_values, siem_config, siem_config_path
+        )
+
+        if new_value is None:
+            continue
+
+        new_values = nested_set(new_values, "siem.%s" % field_name, new_value)
 
     return new_values
 
@@ -2267,7 +2449,9 @@ def init_project(
     project_database_path = Path(
         "%s/%s/database" % (new_values["root_mount_path"], label)
     )
-    project_database_path.mkdir(exist_ok=True, parents=True)
+
+    if project != "kafka":
+        project_database_path.mkdir(exist_ok=True, parents=True)
 
     # для аналитики создаем clickhouse папку
     if project == "analytic":
@@ -2276,8 +2460,33 @@ def init_project(
         )
         project_clickhouse_path.mkdir(exist_ok=True, parents=True)
 
-    return new_values
+    # для kafka добавляем siem пользователя
+    if project == "kafka":
 
+        kafka_path_str = "%s/kafka" % (new_values["root_mount_path"])
+        project_kafka_path = Path(kafka_path_str)
+
+        if not project_kafka_path.exists():
+            project_kafka_path.mkdir(parents=True)
+            os.chown(str(project_kafka_path.resolve()), 1000, 1000)
+
+        if new_values["siem"]["enabled_driver"] == "kafka":
+            new_values["projects"]["kafka"]["service"]["kafka"]["users"] = {
+                new_values["siem"]["driver_data"]["user"] : new_values["siem"]["driver_data"]["password"]
+            }
+
+            new_values["projects"]["kafka"]["service"]["kafka"]["acls"] = [
+                {"entity_type": "topic", "entity_name": "raw.events", "user_allowed_operations": {new_values["siem"]["driver_data"]["user"] : ["Read"]}},
+                {"entity_type": "group", "entity_name": new_values["siem"]["driver_data"]["consumer_group_id"], "user_allowed_operations": {new_values["siem"]["driver_data"]["user"] : ["Read"]}},
+            ]
+
+            new_values["projects"]["kafka"]["service"]["kafka"]["topics"] = {
+                "raw.events": {
+                    "retention_ms" : int(new_values["siem"]["driver_data"]["storage_time"]) * 3600 * 1000
+                }
+            }
+
+    return new_values
 
 try:
     start()

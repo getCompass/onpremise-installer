@@ -1,0 +1,6 @@
+{{- range $topic_name, $topic := .projects.kafka.service.kafka.topics -}}
+{{$topic_name}}:
+    partitions: {{$topic.partitions}}
+    replication_factor: {{$topic.replication_factor}}
+    retention_ms: {{$topic.retention_ms}}
+{{- end -}}

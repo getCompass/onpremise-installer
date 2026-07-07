@@ -1,0 +1,69 @@
+version: '3.8'
+
+# --- NETWORK ---
+networks:
+  kafka-private:
+    driver: "overlay"
+    ipam:
+      config:
+        - subnet: "{{.projects.kafka.network.subnet}}"
+
+# --- DEPLOY ---
+configs:
+  kafka-topics:
+    name: "{{.stack_name}}_kafka-topics-{{.config_revisions.project.kafka_topics.yaml}}"
+    file: ".project.kafka_topics.yaml" 
+  kafka-acls:
+    name: "{{.stack_name}}_kafka-acls-{{.config_revisions.project.kafka_acls.yaml}}"
+    file: ".project.kafka_acls.yaml" 
+  kafka-server-jaas:
+    name: "{{.stack_name}}_kafka-server-jaas-{{.config_revisions.project.kafka_server_jaas.conf}}"
+    file: ".project.kafka_server_jaas.conf" 
+  kafka-client:
+    name: "{{.stack_name}}_kafka-client-{{.config_revisions.project.kafka_client.properties}}"
+    file: ".project.kafka_client.properties" 
+  kafka-server:
+    name: "{{.stack_name}}_kafka-server-{{.config_revisions.project.kafka_server.properties}}"
+    file: ".project.kafka_server.properties"
+  kafka-users:
+    name: "{{.stack_name}}_kafka-users-{{.config_revisions.project.kafka_users.yaml}}"
+    file: ".project.kafka_users.yaml"
+
+# файл композиции для kafka
+services:
+
+# KAFKA
+  kafka-{{.projects.kafka.label}}:
+    image: {{.registry_service_path}}/kafka:{{.projects.kafka.service.kafka.tag}}
+    ports:
+      - {{.projects.kafka.service.kafka.external_port}}:9092
+    networks:
+      - "kafka-private"
+    env_file:
+      - ".project.common.env"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        window: 10s
+    volumes:
+      - "{{.root_mount_path}}/kafka:/var/lib/kafka/data"
+      - {{ concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA.crt" }}:/etc/kafka/secrets/internal_ca.pem
+      - {{ concatne "." ( concatne  "/" .root_mount_path "nginx" "ssl" .projects.kafka.host ) "pem" }}:/etc/kafka/secrets/internal_broker.pem
+      - {{ concatne "." ( concatne  "/" .root_mount_path "nginx" "ssl" .domain ) "pem" }}:/etc/kafka/secrets/external_broker.pem
+    configs:
+      - source: "kafka-server-jaas"
+        target: "/etc/kafka/secrets/kafka_server_jaas.conf"
+      - source: "kafka-topics"
+        target: "/etc/kafka/topics.yaml"
+      - source: "kafka-acls"
+        target: "/etc/kafka/acls.yaml"
+      - source: "kafka-users"
+        target: "/etc/kafka/users.yaml"
+      - source: "kafka-client"
+        target: "/etc/kafka/client.properties"
+      - source: "kafka-server"
+        target: "/mnt/shared/config/server.properties"
+        uid: "1000"
+        gid: "1000"
+        mode: 0644

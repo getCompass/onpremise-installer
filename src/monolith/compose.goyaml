@@ -392,6 +392,27 @@ configs:
     name: "{{.stack_name}}_proxy-thread-conf-{{.config_revisions.project.domino.proxy_thread.php}}"
     file: ".project.domino.proxy_thread.php"
 
+  # настройки kafka
+  {{ if eq .siem.enabled_driver "kafka" }}
+  kafka-topics:
+    name: "{{.stack_name}}_kafka-topics-{{.config_revisions.project.kafka.kafka_topics.yaml}}"
+    file: ".project.kafka.kafka_topics.yaml"
+  kafka-acls:
+    name: "{{.stack_name}}_kafka-acls-{{.config_revisions.project.kafka.kafka_acls.yaml}}"
+    file: ".project.kafka.kafka_acls.yaml"
+  kafka-server-jaas:
+    name: "{{.stack_name}}_kafka-server-jaas-{{.config_revisions.project.kafka.kafka_server_jaas.conf}}"
+    file: ".project.kafka.kafka_server_jaas.conf"
+  kafka-client:
+    name: "{{.stack_name}}_kafka-client-{{.config_revisions.project.kafka.kafka_client.properties}}"
+    file: ".project.kafka.kafka_client.properties"
+  kafka-server:
+    name: "{{.stack_name}}_kafka-server-{{.config_revisions.project.kafka.kafka_server.properties}}"
+    file: ".project.kafka.kafka_server.properties"
+  kafka-users:
+    name: "{{.stack_name}}_kafka-users-{{.config_revisions.project.kafka.kafka_users.yaml}}"
+    file: ".project.kafka.kafka_users.yaml"
+  {{ end }}
 # файл композиции монолита
 services:
 
@@ -1229,7 +1250,7 @@ services:
     image: "{{.registry_compass_path}}/go_database_controller:{{$domino.service.go_database_controller.tag}}"
     {{- if eq .database_connection.driver "docker"}}
     depends_on:
-      - "mysql-{{$domino.label}}"
+      - "mysql-{{.projects.monolith.label}}"
     {{- end}}
     environment:
       LOGGING_LEVEL: 2
@@ -1482,3 +1503,44 @@ services:
       - source: "outlook-addin-conf"
         target: "/app/config.json"
   {{- end}}
+# KAFKA
+  {{ if eq .siem.enabled_driver "kafka" }}
+  kafka-{{.projects.kafka.label}}:
+    image: {{.registry_service_path}}/kafka:{{.projects.kafka.service.kafka.tag}}
+    ports:
+      - target: 9092
+        published: {{.projects.kafka.service.kafka.external_port}}
+        protocol: tcp
+        mode: host
+      - target: 9094
+        published: {{.siem.driver_data.listen_port}}
+        protocol: tcp
+    networks:
+      - "monolith-{{$service_label}}-private"
+    env_file:
+      - ".project.kafka.common.env"
+    volumes:
+      - "{{.root_mount_path}}/kafka:/var/lib/kafka/data"
+      - {{ concatne "/" .root_mount_path "nginx" "ssl" "compassRootCA.crt" }}:/etc/kafka/secrets/internal_ca.pem
+      - {{ concatne "." ( concatne  "/" .root_mount_path "nginx" "ssl" .projects.kafka.host ) "pem" }}:/etc/kafka/secrets/internal_broker.pem
+      - {{ concatne "." ( concatne  "/" .root_mount_path "nginx" "ssl" .domain ) "pem" }}:/etc/kafka/secrets/external_broker.pem
+    configs:
+      - source: "kafka-server-jaas"
+        target: "/etc/kafka/secrets/kafka_server_jaas.conf"
+      - source: "kafka-topics"
+        target: "/etc/kafka/topics.yaml"
+      - source: "kafka-acls"
+        target: "/etc/kafka/acls.yaml"
+      - source: "kafka-users"
+        target: "/etc/kafka/users.yaml"
+      - source: "kafka-client"
+        target: "/etc/kafka/client.properties"
+      - source: "kafka-server"
+        target: "/mnt/shared/config/server.properties"
+        uid: "1000"
+        gid: "1000"
+        mode: 0644
+    <<:
+      - *default-deploy
+      - *log-rule-default
+  {{ end }}

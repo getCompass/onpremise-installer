@@ -29,6 +29,8 @@ parser.add_argument('-e', '--environment', required=False, default="production",
                     help='Окружение, в котором развернут проект (например: production)')
 parser.add_argument("--docker-prune", required=False, action="store_true",
                     help="Очистка неиспользуемых docker образов и контейнеров до начала обновления")
+parser.add_argument("--confirm-all", required=False, action="store_true",
+                    help='Автоматическое подтверждение всех вопросов')
 parser.add_argument("--use-default-values", required=False, action='store_true',
                     help="Использовать значения из дефолтного values.yaml")
 # ВНИМАНИЕ - в data передается json
@@ -43,6 +45,7 @@ args = parser.parse_args()
 use_default_values = args.use_default_values
 install_integration = args.install_integration
 docker_prune = args.docker_prune
+confirm_all = args.confirm_all
 override_data = args.data if args.data else {}
 if not override_data:
     override_data = {}
@@ -229,17 +232,18 @@ if subprocess.run(command).returncode != 0:
     scriptutils.die("Ошибка при валидации конфигурации БД")
 
 print("Валидируем конфигурацию капчи")
-sb = subprocess.run(
-    [
+
+command = [
         sys.executable,
         script_resolved_path + "/generate_captcha_configuration.py",
         "--validate-only",
     ]
-)
-if sb.returncode == 1:
-    exit(1)
 
-sb.returncode == 0 or scriptutils.die("Ошибка при валидации конфигурации капчи")
+if confirm_all:
+    command.append("--confirm-all")
+
+if subprocess.run(command).returncode != 0:
+    scriptutils.die("Ошибка при валидации конфигурации капчи")
 
 print("Валидируем конфигурацию sms провайдеров")
 subprocess.run(
@@ -352,9 +356,13 @@ if subprocess.run([sys.executable, script_resolved_path + "/validate_db_configur
     scriptutils.die("Ошибка при создании конфигурации известных БД")
 
 print("Запускаем скрипт генерации конфигурации капчи")
-subprocess.run(
-    [sys.executable, script_resolved_path + "/generate_captcha_configuration.py"]
-).returncode == 0 or scriptutils.die("Ошибка при создании конфигурации капчи")
+
+command = [sys.executable, script_resolved_path + "/generate_captcha_configuration.py"]
+
+if confirm_all:
+    command.append("--confirm-all")
+if subprocess.run(command).returncode != 0:
+    scriptutils.die("Ошибка при создании конфигурации капчи")
 
 print("Запускаем скрипт генерации конфигурации sms провайдеров")
 subprocess.run(
@@ -501,7 +509,7 @@ subprocess.run(["rm", "-rf", monolith_config_join_web_path])
 client = docker.from_env()
 
 if need_delete_old_stack and ((current_service_label != "" and current_service_label != service_label) or (
-        current_service_label == "" and service_label != "")):
+        current_service_label == "" and service_label != "")) and not confirm_all:
 
     try:
         scriptutils.warning(

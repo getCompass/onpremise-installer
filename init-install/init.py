@@ -426,8 +426,12 @@ def execute_docker_setup(package_manager: str) -> bool:
     """
 
     if docker_manager.check_docker_installed():
-        docker_manager.enable_docker()
+        success, error = docker_manager.enable_docker()
+        if not success:
+            colors.print_error(f"Ошибка инициализации Docker: {error}")
+            return False
         return True
+    
     success, error = docker_manager.install_docker(package_manager)
 
     if not success:

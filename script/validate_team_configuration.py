@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from utils import scriptutils
+from utils import scriptutils, team_mysql_settings
 
 # region АРГУМЕНТЫ СКРИПТА #
 parser = scriptutils.create_parser(
@@ -55,6 +55,11 @@ except:
 
 
 def start():
+    try:
+        team_mysql_settings.validate_config(team_config)
+    except ValueError as e:
+        scriptutils.die(str(e))
+
     file_access_mode = team_config.get("file.access_restriction_mode", None)
     if file_access_mode is None:
         scriptutils.die("не заполнен параметр file.access_restriction_mode")
