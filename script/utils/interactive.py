@@ -72,7 +72,7 @@ class InteractiveValue:
 
         value = self.config.get(self.name)
 
-        if self.type == "str":
+        if self.type == "str" and value is not None:
             value = value.strip()
 
         error = ""

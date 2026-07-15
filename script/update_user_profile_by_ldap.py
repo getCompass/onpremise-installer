@@ -11,6 +11,7 @@ sys.dont_write_bytecode = True
 
 import os, argparse, yaml, pwd, json, psutil
 import docker
+from pathlib import Path
 from utils import scriptutils
 from time import sleep
 
@@ -26,6 +27,7 @@ args = parser.parse_args()
 # ---СКРИПТ---#
 
 scriptutils.assert_root()
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 values_arg = args.values if args.values else ''
 environment = args.environment if args.environment else ''
@@ -44,12 +46,25 @@ for user in required_user_list:
 
 client = docker.from_env()
 
+# читаем текущий конфиг
+current_values_file = Path(f"{script_dir}/../src/values.{args.values}.yaml")
+with current_values_file.open("r") as f:
+    current_values = yaml.safe_load(f) or {}
+
+# получаем service_label
+service_label = current_values.get("service_label", "")
+
+# добавляем service_label к названию стека, если он есть
+stack_name = f"{stack_name_prefix}-monolith"
+if service_label != "":
+    stack_name = f"{stack_name}-{service_label}"
+        
 # получаем контейнер php-monolith
 timeout = 10
 n = 0
 while n <= timeout:
 
-    docker_container_list = client.containers.list(filters={'name': '%s-monolith_php-monolith' % (stack_name_prefix), 'health': 'healthy'})
+    docker_container_list = client.containers.list(filters={'name': f'{stack_name}_php-monolith', 'health': 'healthy'})
 
     if len(docker_container_list) > 0:
         found_php_monolith_container = docker_container_list[0]
