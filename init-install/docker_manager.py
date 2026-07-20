@@ -3,6 +3,9 @@ import shutil
 import re
 from typing import Tuple
 import utils
+from pathlib import Path
+import json
+import colors
 
 DOCKER_DIST_PACKAGES = [
     "docker-ce",
@@ -334,6 +337,22 @@ def enable_docker() -> Tuple[bool, str]:
     Запустить docker
     """
 
+    # Отключаем live-restore    
+    daemon_path = Path("/etc/docker/daemon.json")
+
+    if daemon_path.exists():
+        
+        daemon_str = daemon_path.read_text()
+        daemon_json :dict = json.loads(daemon_str)
+        live_restore_value = daemon_json.get("live-restore")
+
+        if live_restore_value is not None and live_restore_value:
+            if not ask_user("В /etc/docker/daemon.json включен параметр live-restore. Он несовместим с docker swarm и должен быть отключен.\nОтключить live-restore?"):
+                return False, "Невозможно инициализировать docker swarm с включенным live-restore"
+            
+            del daemon_json["live-restore"]
+            daemon_path.open("wt").write(json.dumps(daemon_json, indent=4, ensure_ascii=False))
+
     # рестарт docker (init.d или systemd)
     r = utils.run(
         "systemctl restart docker || /etc/init.d/docker restart || true",
@@ -343,10 +362,10 @@ def enable_docker() -> Tuple[bool, str]:
     if r.returncode != 0 and (r.stderr or r.stdout):
         # не считаем критической ошибкой, но вернем предупреждение как текст ошибки
         return False, r.stderr or r.stdout
-    
+
     # инициируем docker swarm
     r = utils.run(
-        "docker swarm init || true",
+        "docker swarm init",
         timeout=120,
         check=False,
     )
@@ -354,3 +373,28 @@ def enable_docker() -> Tuple[bool, str]:
         # не считаем критической ошибкой, но вернем предупреждение как текст ошибки
         return False, r.stderr or r.stdout
     return True, ""
+
+def ask_user(prompt: str, default: bool = False, confirm_all: bool = False) -> bool:
+    """
+    Запрашивает подтверждение у пользователя.
+
+    Args:
+        prompt: Текст запроса
+        default: Значение по умолчанию
+        confirm_all: Если True, автоматически соглашаться
+
+    Returns:
+        bool: Ответ пользователя
+    """
+    if confirm_all:
+        print(colors.Colors.info(f"{prompt} [автоматически: да]"))
+        return True
+
+    default_text = "Y/n" if default else "y/N"
+    colored_prompt = colors.Colors.highlight(f"{prompt} [{default_text}]: ")
+    response = input(colored_prompt).strip().lower()
+
+    if not response:
+        return default
+
+    return response in ("y", "yes", "да", "д")

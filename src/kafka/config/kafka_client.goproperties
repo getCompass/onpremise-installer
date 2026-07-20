@@ -1,0 +1,7 @@
+security.protocol=SASL_SSL
+sasl.mechanism=SCRAM-SHA-256
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{{.projects.kafka.service.kafka.super_user}}" password="{{.projects.kafka.service.kafka.password}}";
+
+ssl.truststore.type=PEM
+ssl.truststore.location=/etc/kafka/secrets/internal_ca.pem
+ssl.endpoint.identification.algorithm=https

@@ -1,0 +1,7 @@
+sasl_mechanism: {{.projects.kafka.service.kafka.sasl_mechanism}}
+super_user: {{ .projects.kafka.service.kafka.super_user }}
+password: {{ .projects.kafka.service.kafka.password }}
+users:
+  {{- range $user, $password := .projects.kafka.service.kafka.users }}
+  {{$user}}: {{$password}}
+  {{- end }}

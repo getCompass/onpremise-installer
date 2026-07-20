@@ -5,10 +5,10 @@ import sys
 
 sys.dont_write_bytecode = True
 
-import subprocess, argparse, yaml, json, psutil
+import subprocess, argparse, yaml, json, psutil, shlex
 import docker
 from pathlib import Path
-from utils import scriptutils, interactive
+from utils import scriptutils, interactive, team_mysql_settings
 from time import sleep
 from loader import Loader
 import os
@@ -56,6 +56,12 @@ parser.add_argument(
     action="store_true"
 )
 parser.add_argument("--init", required=False, action="store_true")
+parser.add_argument("--buffer-pool-size", required=False, default=None, type=int,
+                    help="innodb_buffer_pool_size для MySQL команды в мегабайтах")
+parser.add_argument("--innodb-thread-concurrency", required=False, default=None, type=int,
+                    help="innodb_thread_concurrency для MySQL команды")
+parser.add_argument("--table-open-cache", required=False, default=None, type=int,
+                    help="table-open-cache для MySQL команды")
 
 args = parser.parse_args()
 # ---КОНЕЦ АРГУМЕНТОВ СКРИПТА---#
@@ -75,8 +81,10 @@ class DBDriverConf:
 
 
 # загружаем конфиги
+team_config_path = Path(script_resolved_path + "/../configs/team.yaml")
+
 config_path_list = [
-    Path(script_resolved_path + "/../configs/team.yaml"),
+    team_config_path,
     Path(script_resolved_path + "/../configs/global.yaml"),
     Path(script_resolved_path + "/../configs/database.yaml"),
 ]
@@ -234,6 +242,17 @@ init = args.init
 validate_only = args.validate_only
 installer_output = args.installer_output
 dst = args.destination
+
+try:
+    mysql_settings = team_mysql_settings.make_settings(
+        args.buffer_pool_size,
+        args.innodb_thread_concurrency,
+        args.table_open_cache,
+    )
+except ValueError as e:
+    scriptutils.die(str(e))
+
+mysql_settings_json = team_mysql_settings.to_json(mysql_settings)
 
 values_file_path = Path("%s/../src/values.%s.yaml" % (script_resolved_path, values_arg))
 
@@ -413,19 +432,34 @@ else:
         ).start()
 
 if scriptutils.is_replication_master_server(current_values):
+    warm_up_command = "php src/Compass/Pivot/sh/php/domino/warm_up_company.php"
+    if mysql_settings_json != "":
+        warm_up_command += " --mysql-settings-json=%s" % shlex.quote(mysql_settings_json)
+
     output = found_pivot_container.exec_run(
         user="www-data",
         cmd=[
             "bash",
             "-c",
-            "php src/Compass/Pivot/sh/php/domino/warm_up_company.php",
+            warm_up_command,
         ],
     )
 
 if output.exit_code == 0:
+    prepared_vacant_company_id = None
+    if mysql_settings_json != "":
+        warm_up_output_text = output.output.decode("utf-8", errors="ignore")
+        m = re.search(r"created company (\d+)", warm_up_output_text)
+        if m:
+            prepared_vacant_company_id = int(m.group(1))
+
+        if prepared_vacant_company_id is None:
+            scriptutils.die("Не смогли определить id подготовленной команды из warm_up_company.php")
     sleep(1)
 else:
     print("\n%s" % output.output.decode("utf-8", errors="ignore"))
+    if mysql_settings_json != "":
+        scriptutils.die("Не смогли прогреть команду с пользовательскими MySQL настройками")
 
 # настраиваем репликацию на mysql пространства
 if scriptutils.is_replication_enabled(current_values):
@@ -447,12 +481,16 @@ if scriptutils.is_replication_enabled(current_values):
     )
 
 if scriptutils.is_replication_master_server(current_values):
+    create_team_command = "php src/Compass/Pivot/sh/php/domino/create_team.php --name=%s" % shlex.quote(team_name)
+    if mysql_settings_json != "":
+        create_team_command += " --vacant-company-id=%d" % prepared_vacant_company_id
+
     result = found_pivot_container.exec_run(
         user="www-data",
         cmd=[
             "bash",
             "-c",
-            'php src/Compass/Pivot/sh/php/domino/create_team.php --name="%s"' % team_name
+            create_team_command
         ]
     )
     output_text = result.output.decode("utf-8", errors="ignore").strip()
@@ -468,9 +506,18 @@ if scriptutils.is_replication_master_server(current_values):
             company_id = int(m.group(1))
             company_port = int(m.group(2))
 
+        if mysql_settings_json != "" and (company_id is None or company_port is None):
+            scriptutils.die("Команда создана, но не удалось определить company_id/port для записи MySQL настроек в team.yaml")
+
         if company_id is None or company_port is None:
             print(scriptutils.success("\nУспешно создали команду"))
         else:
+            if mysql_settings_json != "":
+                try:
+                    team_mysql_settings.set_for_company(team_config_path, company_id, mysql_settings)
+                except ValueError as e:
+                    scriptutils.die("Команда создана, но не удалось записать MySQL настройки в team.yaml: %s" % str(e))
+
             print(scriptutils.success("\nУспешно создали команду %s с портом %s" % (company_id, company_port)))
     else:
         print("\n%s" % result.output.decode("utf-8", errors="ignore"))

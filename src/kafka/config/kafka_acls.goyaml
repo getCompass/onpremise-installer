@@ -1,0 +1,8 @@
+{{- range $acl := .projects.kafka.service.kafka.acls}}
+- entity_type: {{$acl.entity_type}}
+  entity_name: {{$acl.entity_name}}
+  user_allowed_operations:
+  {{- range $user, $password := $acl.user_allowed_operations}}
+    {{$user}}: {{$password}}
+  {{- end -}}
+{{- end -}}

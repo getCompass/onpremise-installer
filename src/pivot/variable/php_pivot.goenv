@@ -84,3 +84,5 @@ SERVICE_LABEL={{.service_label}}
 HOST_IP={{.host_ip}}
 COMPANIES_RELATIONSHIP_FILE=reserve_servers_companies_relationship.json
 MANTICORE_CLUSTER_NAME={{.manticore_cluster_name}}
+
+SIEM_ENABLED_DRIVER={{.siem.enabled_driver}}

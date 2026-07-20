@@ -256,11 +256,29 @@ def generate_host_certificates(host: str, ca_pubkey_path: Path, ca_privkey_path:
 def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Path):
     pubkey = "%s.crt" % host
     privkey = "%s.key" % host
+    full_pem = "%s.pem" % host
 
     pubkey_path = Path(str(cert_path.resolve()) + "/" + pubkey)
     privkey_path = Path(str(cert_path.resolve()) + "/" + privkey)
-
+    full_pem_path = Path(str(cert_path.resolve()) + "/" + full_pem)
+    
     if pubkey_path.exists() and privkey_path.exists() and not force:
+
+        
+        certs = x509.load_pem_x509_certificates(pubkey_path.open(mode="rb").read())
+        key = load_pem_private_key(privkey_path.open(mode="rb").read(), password=None, backend=default_backend())
+        pub = b''
+        
+        for c in certs:
+            pub += c.public_bytes(encoding=serialization.Encoding.PEM)
+
+        priv = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        
+        full_pem_path.open("wt").write(priv.decode("utf-8") + pub.decode("utf-8"))
         return pubkey_path, privkey_path
 
     ca_cert = x509.load_pem_x509_certificate(ca_pubkey_path.open(mode="rb").read(), backend=default_backend())
@@ -317,12 +335,14 @@ def create_host_certificate(host: str, ca_pubkey_path: Path, ca_privkey_path: Pa
     pub = cert.public_bytes(encoding=serialization.Encoding.PEM)
     priv = k.private_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     )
 
     pubkey_path.open("wt").write(pub.decode("utf-8") + ca_pub.decode("utf-8"))
     privkey_path.open("wt").write(priv.decode("utf-8"))
+    full_pem_path.open("wt").write(priv.decode("utf-8") + pub.decode("utf-8"))
+    
     loader.success()
 
     if scriptutils.is_rpm_os():

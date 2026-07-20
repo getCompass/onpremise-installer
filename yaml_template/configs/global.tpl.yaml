@@ -279,3 +279,37 @@ outlook_add_in.service.external_port: 31104
 # Тип данных: число
 # Пример: auth.service.go_auth.external_grpc_port: 31103
 auth.service.go_auth.external_grpc_port: 31105
+
+# Необязательный параметр. Включает обработку PROXY protocol для случая, когда перед
+# приложением стоит внешний TCP-балансировщик (L4-proxy), терминирующий клиентские соединения.
+# При значении true nginx начинает слушать дополнительный порт и извлекать реальный
+# IP-адрес клиента из заголовка PROXY protocol, который присылает внешний proxy.
+# Если параметр не используется, оставьте false.
+#
+# Тип данных: булево значение, true\false
+# Пример: nginx.proxy_protocol.is_enabled: true
+nginx.proxy_protocol.is_enabled: false
+
+# Необязательный параметр. Порт, на котором nginx принимает соединения от внешнего
+# TCP-proxy с включенным PROXY protocol. Учитывается только если nginx.proxy_protocol.is_enabled:: true.
+# Должен отличаться от основного порта приложения (443) и порта websocket.
+#
+# Тип данных: число
+# Пример: nginx.proxy_protocol.port: 444
+nginx.proxy_protocol.port: 444
+
+# Необязательный параметр. Список доверенных адресов внешних proxy, от которых nginx
+# принимает реальный IP клиента через PROXY protocol. Учитывается только если
+# nginx.proxy_protocol.is_enabled: true. Допускаются одиночные IP-адреса и подсети в формате CIDR
+# (IPv4 и IPv6). Запросы с других адресов не будут считаться доверенными.
+#
+# Тип данных: массив строк
+# Пример: nginx.proxy_protocol.real_ip_from: ["10.0.0.1", "192.168.0.0/16"]
+nginx.proxy_protocol.real_ip_from: []
+
+# Порт для контейнера с брокером kafka
+# По этому порту сервис доступен для других сервисов приложения
+#
+# Тип данных: число
+# Пример: kafka.service.kafka.external_port: 31106
+kafka.service.kafka.external_port: 31106

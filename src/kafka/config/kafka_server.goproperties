@@ -1,0 +1,49 @@
+node.id=1
+process.roles=broker,controller
+
+listeners=INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+advertised.listeners=INTERNAL://{{.projects.kafka.host}}:{{.projects.kafka.service.kafka.external_port}}
+{{- if eq .siem.enabled_driver "kafka" -}}
+,EXTERNAL://{{.domain}}:{{.siem.driver_data.listen_port}}
+{{- end }}
+
+controller.listener.names=CONTROLLER
+listener.security.protocol.map=INTERNAL:SASL_SSL,CONTROLLER:SASL_PLAINTEXT,EXTERNAL:SASL_SSL
+controller.quorum.voters=1@kafka-{{.projects.kafka.label}}:9093
+
+listener.name.internal.ssl.keystore.type=PEM
+listener.name.internal.ssl.keystore.location=/etc/kafka/secrets/internal_broker.pem
+listener.name.internal.ssl.truststore.type=PEM
+listener.name.internal.ssl.truststore.location=/etc/kafka/secrets/internal_ca.pem
+listener.name.internal.ssl.client.auth=none
+listener.name.internal.ssl.endpoint.identification.algorithm=https
+
+{{- if eq .siem.enabled_driver "kafka" }}
+listener.name.external.ssl.keystore.type=PEM
+listener.name.external.ssl.keystore.location=/etc/kafka/secrets/external_broker.pem
+listener.name.external.ssl.client.auth=none
+listener.name.external.ssl.endpoint.identification.algorithm=https
+{{- end }}
+
+sasl.enabled.mechanisms=SCRAM-SHA-256
+sasl.mechanism.controller.protocol=SCRAM-SHA-256
+sasl.mechanism.inter.broker.protocol=SCRAM-SHA-256
+inter.broker.listener.name=INTERNAL
+
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+group.initial.rebalance.delay.ms=0
+min.insync.replicas=1
+
+num.partitions=1
+auto.create.topics.enable=false
+
+authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+super.users=User:{{.projects.kafka.service.kafka.super_user}}
+allow.everyone.if.no.acl.found=false
+
+log.dirs=/var/lib/kafka/data
+
+num.io.threads=3
+num.network.threads=3
