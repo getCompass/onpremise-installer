@@ -84,11 +84,10 @@ SOCKET_KEY_GO_SENDER={{.security_keys.domino.socket_key_go_sender}}
 SOCKET_KEY_PUSHER={{.security_keys.pivot.socket_key_go_pusher}}
 SOCKET_KEY_TIMER={{.security_keys.domino.socket_key_go_timer}}
 SOCKET_KEY_COLLECTOR={{.security_keys.analytic.socket_key_collector}}
-SOCKET_KEY_CRM=abcdef1234567890
+SOCKET_KEY_CRM={{.security_keys.crm.socket_key_crm}}
 SOCKET_KEY_ADMIN={{.security_keys.admin.socket_key_admin}}
-SOCKET_KEY_DEVELOPMENT=abcdef1234567890
 SOCKET_KEY_COMPANY={{.security_keys.domino.socket_key_company}}
-SOCKET_KEY_PARTNER=""
+SOCKET_KEY_PARTNER="{{.security_keys.partner.socket_key_partner}}"
 SOCKET_KEY_WEBSTAT="{{.security_keys.analytic.socket_key_webstat}}"
 
 GLOBAL_ANNOUNCEMENT_PRIVATE_KEY={{.security_keys.announcement.global_announcement_socket_key}}
