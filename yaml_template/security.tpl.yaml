@@ -44,6 +44,8 @@ security_keys:
     salt_sender_hash: ""
     socket_key_pivot: ""
     socket_key_prosody: ""
+  www:
+    socket_key_www: ""
   partner:
     socket_key_partner: ""
   userbot:
