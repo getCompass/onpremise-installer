@@ -10,6 +10,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 0,
@@ -43,6 +53,16 @@
 	},
 	"calls": {
 		"electron": {
+			"compass": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			},
+			"comteam": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 4,
 				"supported_version_list": [1, 2, 3, 4]
@@ -94,6 +114,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -127,6 +157,16 @@
 	},
 	"groups": {
 		"electron": {
+			"compass": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			},
+			"comteam": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 4,
 				"supported_version_list": [1, 2, 3, 4]
@@ -178,6 +218,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -211,6 +261,16 @@
 	},
 	"premium": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -262,6 +322,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -295,6 +365,16 @@
 	},
 	"sharing": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -346,6 +426,16 @@
 				"supported_version_list": [1, 2]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -379,6 +469,16 @@
 	},
 	"reactions": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -430,6 +530,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 0,
@@ -463,6 +573,16 @@
 	},
 	"invite_link": {
 		"electron": {
+			"compass": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			},
+			"comteam": {
+				"current_version": 4,
+				"supported_version_list": [1, 2, 3, 4]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 4,
 				"supported_version_list": [1, 2, 3, 4]
@@ -514,6 +634,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -547,6 +677,16 @@
 	},
 	"employeecard": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -598,6 +738,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -631,6 +781,16 @@
 	},
 	"user_profile": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -682,6 +842,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 0,
@@ -715,6 +885,16 @@
 	},
 	"message_input": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -766,6 +946,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -799,6 +989,16 @@
 	},
 	"company_invite": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -850,6 +1050,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -883,6 +1093,16 @@
 	},
 	"account_removal": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -934,6 +1154,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -967,6 +1197,16 @@
 	},
 	"company_creation": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1018,6 +1258,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 0,
@@ -1051,6 +1301,16 @@
 	},
 	"partnership_program": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1102,6 +1362,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1135,6 +1405,16 @@
 	},
 	"extended_employeecard": {
 		"electron": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 0,
 				"supported_version_list": [0]
@@ -1186,6 +1466,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1219,6 +1509,16 @@
 	},
 	"company_payment_request": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1270,6 +1570,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1303,6 +1613,16 @@
 	},
 	"download_files_in_parts": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1354,6 +1674,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1387,6 +1717,16 @@
 	},
 	"notifications_management": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1438,6 +1778,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1471,6 +1821,16 @@
 	},
 	"conversations_instant_opening": {
 		"electron": {
+			"comteam": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			},
+			"compass": {
+				"current_version": 3,
+				"supported_version_list": [1, 2, 3]
+			}
+		},
+		"web": {
 			"comteam": {
 				"current_version": 3,
 				"supported_version_list": [1, 2, 3]
@@ -1522,6 +1882,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1551,6 +1921,16 @@
 	},
 	"left_menu": {
 		"electron": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 2,
 				"supported_version_list": [0, 1, 2]
@@ -1602,6 +1982,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1635,6 +2025,16 @@
 	},
 	"media_viewer": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1686,6 +2086,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1719,6 +2129,16 @@
 	},
 	"text_formatting": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1770,6 +2190,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -1812,6 +2242,16 @@
 				"supported_version_list": [1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -1845,6 +2285,16 @@
 	},
 	"space_notifications": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [1]
@@ -1925,10 +2375,30 @@
 				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
+		},
+		"web": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
 		}
 	},
 	"conversation_file_popup": {
 		"electron": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [1, 2]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 2,
 				"supported_version_list": [1, 2]
@@ -1979,6 +2449,16 @@
 				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
+		},
+		"web": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
 		}
 	},
 	"attribution_join_space": {
@@ -1991,10 +2471,30 @@
 				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
+		},
+		"web": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
 		}
 	},
 	"captcha": {
 		"electron": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 2,
 				"supported_version_list": [0, 1, 2]
@@ -2037,6 +2537,16 @@
 	},
 	"push": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2110,6 +2620,16 @@
 				"supported_version_list": [0, 1, 2]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			},
+			"comteam": {
+				"current_version": 2,
+				"supported_version_list": [0, 1, 2]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 2,
@@ -2143,6 +2663,16 @@
 	},
 	"video_conference": {
 		"electron": {
+			"compass": {
+				"current_version": 3,
+				"supported_version_list": [0, 1, 2, 3]
+			},
+			"comteam": {
+				"current_version": 3,
+				"supported_version_list": [0, 1, 2, 3]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 3,
 				"supported_version_list": [0, 1, 2, 3]
@@ -2194,6 +2724,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2227,6 +2767,16 @@
 	},
 	"conversation_invite": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2278,6 +2828,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 0,
@@ -2311,6 +2871,16 @@
 	},
 	"desktop_custom_notifications": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2362,6 +2932,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2403,10 +2983,30 @@
 				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
+		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
 		}
 	},
 	"user_badge": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2458,6 +3058,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2491,6 +3101,16 @@
 	},
 	"message_actions": {
 		"electron": {
+			"compass": {
+				"current_version": 3,
+				"supported_version_list": [0, 1, 2, 3]
+			},
+			"comteam": {
+				"current_version": 3,
+				"supported_version_list": [0, 1, 2, 3]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 3,
 				"supported_version_list": [0, 1, 2, 3]
@@ -2542,6 +3162,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2575,6 +3205,16 @@
 	},
 	"message_read_participants": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2626,6 +3266,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2668,6 +3318,16 @@
 				"supported_version_list": [0, 1]
 			}
 		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
 		"iphone": {
 			"compass": {
 				"current_version": 1,
@@ -2701,6 +3361,16 @@
 	},
 	"smart_app": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2781,10 +3451,30 @@
 				"current_version": 1,
 				"supported_version_list": [0, 1]
 			}
+		},
+		"web": {
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
 		}
 	},
 	"app_pin_code": {
 		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
 			"compass": {
 				"current_version": 1,
 				"supported_version_list": [0, 1]
@@ -2848,45 +3538,55 @@
 		}
 	},
 	"api_key_authorization": {
-        "electron": {
-            "compass": {
-                "current_version": 1,
-                "supported_version_list": [0, 1]
-            },
-            "comteam": {
-                "current_version": 1,
-                "supported_version_list": [0, 1]
-            }
-        },
-        "iphone": {
-            "compass": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            },
-            "comteam": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            }
-        },
-        "android": {
-            "compass": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            },
-            "comteam": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            }
-        },
-        "ipad": {
-            "compass": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            },
-            "comteam": {
-                "current_version": 0,
-                "supported_version_list": [0]
-            }
-        }
-    }
+		"electron": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"web": {
+			"compass": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			},
+			"comteam": {
+				"current_version": 1,
+				"supported_version_list": [0, 1]
+			}
+		},
+		"iphone": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		},
+		"android": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		},
+		"ipad": {
+			"compass": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			},
+			"comteam": {
+				"current_version": 0,
+				"supported_version_list": [0]
+			}
+		}
+	}
 }

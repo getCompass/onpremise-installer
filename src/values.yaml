@@ -1,5 +1,6 @@
 protocol: "https"
 
+registry_electron_path: "docker.getcompass.ru/electron_compass"
 registry_compass_path: "docker.getcompass.ru/backend_compass"
 registry_service_path: "docker.getcompass.ru/service"
 
@@ -164,7 +165,11 @@ projects:
     service:
       tag: "v6.7.5"
       external_port: 20119
-
+  web:
+    is_enabled: false
+    service:
+      tag: "v6.8.0"
+      external_port: 20120
   monolith:
     triggers:
       before:
@@ -201,7 +206,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.7.9"
+        tag: "v6.8.0"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -278,7 +283,7 @@ projects:
         rabbit_queue: "pivot_go_activity_queue"
         rabbit_exchange: "pivot_go_activity_exchange"
       go_pusher:
-        tag: "v6.7.8"
+        tag: "v6.8.0"
         rabbit_queue: "go_pusher_queue"
         rabbit_exchange: "go_pusher_exchange"
         is_push_mock_enable: 0
@@ -418,7 +423,7 @@ projects:
         go_collector_agent:
           tag: "v1.5.0"
         go_file_auth:
-          tag: "v6.5.1"
+          tag: "v6.8.0"
         prometheus:
           auth:
             username: "scrapman"
@@ -626,7 +631,7 @@ projects:
       subnet: "172.20.20.0/24"
     service:
       join_web:
-        tag: "v6.7.5"
+        tag: "v6.8.0"
         external_port: 43100
 
   integration:
@@ -654,7 +659,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.7.6"
+    tag: "v6.8.0"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -679,7 +684,7 @@ projects:
         tag: "v6.7.3"
         port: 20111
       prosody:
-        tag: "v6.7.5"
+        tag: "v6.8.0"
         serve_port: 20112
         v0:
           serve_port: 20113

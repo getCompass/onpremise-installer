@@ -1544,3 +1544,30 @@ services:
       - *default-deploy
       - *log-rule-default
   {{ end }}
+
+  {{- if .projects.web.is_enabled}}
+  # web
+  web-{{.projects.monolith.label}}:
+    image: "{{.registry_electron_path}}/compass_web:{{.projects.web.service.tag}}"
+    ports:
+      - "{{.projects.web.service.external_port}}:80"
+    networks:
+      - "monolith-{{$service_label}}-private"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "start-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
+    {{- end}}

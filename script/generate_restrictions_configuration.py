@@ -13,6 +13,7 @@ script_dir = Path(__file__).parent.resolve()
 # загружаем конфиги
 auth_config_path = script_dir.parent / "configs" / "auth.yaml"
 team_config_path = script_dir.parent / "configs" / "team.yaml"
+global_config_path = script_dir.parent / "configs" / "global.yaml"
 
 config = {}
 
@@ -26,14 +27,24 @@ if not team_config_path.exists():
         f"Отсутствует файл конфигурации {team_config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
     exit(1)
 
+if not global_config_path.exists():
+    print(scriptutils.error(
+        f"Отсутствует файл конфигурации {global_config_path.resolve()}. Запустите скрипт create_configs.py и заполните конфигурацию"))
+    exit(1)
+
 with auth_config_path.open("r") as config_file:
     auth_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
 with team_config_path.open("r") as config_file:
     team_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
 
+with global_config_path.open("r") as config_file:
+    global_config_values = yaml.load(config_file, Loader=yaml.BaseLoader)
+
+
 config.update(auth_config_values)
 config.update(team_config_values)
+config.update(global_config_values)
 
 root_path = script_dir.parent.resolve()
 
@@ -83,6 +94,7 @@ class RestrictionsMainConfig:
             is_desktop_prohibited: int,
             is_ios_prohibited: int,
             is_android_prohibited: int,
+            is_web_prohibited: int,
             phone_change_enabled: int,
             mail_change_enabled: int,
             name_change_enabled: int,
@@ -95,6 +107,7 @@ class RestrictionsMainConfig:
         self.is_desktop_prohibited = is_desktop_prohibited
         self.is_ios_prohibited = is_ios_prohibited
         self.is_android_prohibited = is_android_prohibited
+        self.is_web_prohibited = is_web_prohibited
         self.phone_change_enabled = phone_change_enabled
         self.mail_change_enabled = mail_change_enabled
         self.name_change_enabled = name_change_enabled
@@ -132,6 +145,14 @@ class RestrictionsMainConfig:
         except interactive.IncorrectValueException as e:
             handle_exception(e.field, e.message, auth_config_path)
             is_android_prohibited = ""
+        try:
+            is_web_prohibited = not interactive.InteractiveValue(
+                "web.is_enabled",
+                "Запрещено ли пользователям с web работать в приложении", "bool", default_value=False, is_required=False, config=config
+            ).from_config()
+        except interactive.IncorrectValueException as e:
+            handle_exception(e.field, e.message, global_config_path)
+            is_web_prohibited = ""
 
         try:
             phone_change_enabled = interactive.InteractiveValue(
@@ -205,7 +226,7 @@ class RestrictionsMainConfig:
             handle_exception(e.field, e.message, team_config_path)
             deletion_enabled = ""
 
-        return self.init(is_desktop_prohibited, is_ios_prohibited, is_android_prohibited, phone_change_enabled,
+        return self.init(is_desktop_prohibited, is_ios_prohibited, is_android_prohibited, is_web_prohibited, phone_change_enabled,
                          mail_change_enabled, name_change_enabled, avatar_change_enabled, badge_change_enabled,
                          description_change_enabled, status_change_enabled, deletion_enabled)
 
@@ -242,9 +263,10 @@ class RestrictionsMainConfig:
             str(self.is_ios_prohibited).lower())
         is_android_prohibited_output = '"is_android_prohibited" => %s' % (
             str(self.is_android_prohibited).lower())
-
-        output = "%s,\n %s,\n %s" % (
-            is_desktop_prohibited_output, is_ios_prohibited_output, is_android_prohibited_output
+        is_web_prohibited_output = '"is_web_prohibited" => %s' % (
+                    str(self.is_web_prohibited).lower())
+        output = "%s,\n %s,\n %s,\n %s" % (
+            is_desktop_prohibited_output, is_ios_prohibited_output, is_android_prohibited_output, is_web_prohibited_output
         )
         return output.encode().decode()
 
