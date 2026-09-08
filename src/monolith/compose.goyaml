@@ -433,7 +433,10 @@ services:
           - "nginx-{{$file_node.label}}"
           - "nginx-{{$domino.label}}"
     ports:
-      - "{{.projects.monolith.service.nginx.external_https_port}}:443"
+      - target: 443
+        published: {{.projects.monolith.service.nginx.external_https_port}}
+        protocol: tcp
+        mode: host
     deploy:
       restart_policy:
         condition: "any"
@@ -1419,7 +1422,10 @@ services:
       timeout: "25s"
       retries: 2
     ports:
-      - "{{$api_gateway.service.go_api_gateway.external_https_port}}:443"
+      - target: 443
+        published: {{$api_gateway.service.go_api_gateway.external_https_port}}
+        protocol: tcp
+        mode: host
     configs:
       - source: "http-server-config"
         target: "/app/configs/http_server.json"
@@ -1550,7 +1556,10 @@ services:
   web-{{.projects.monolith.label}}:
     image: "{{.registry_electron_path}}/compass_web:{{.projects.web.service.tag}}"
     ports:
-      - "{{.projects.web.service.external_port}}:80"
+      - target: 80
+        published: {{.projects.web.service.external_port}}
+        protocol: tcp
+        mode: host
     networks:
       - "monolith-{{$service_label}}-private"
     deploy:

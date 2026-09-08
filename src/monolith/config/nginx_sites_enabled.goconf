@@ -1,6 +1,7 @@
 {{$file_node := index .projects.file .file_node_id}}
 {{$domino := index .projects.domino .domino_id}}
 {{$filelocprefix := locprefix .url_path $file_node.url_path -}}
+{{$monolith_gateway := gateway .projects.monolith.network.subnet -}}
 
 {{- if eq .file_access_restriction_mode "auth"}}
 map $request_uri $original_uri {
@@ -128,6 +129,17 @@ server {
     ssl_certificate_key /etc/nginx/ssl/{{.projects.monolith.host}}.key;
 
     resolver 127.0.0.11 ipv6=off;
+
+    # доверяем X-Forwarded-For от шлюза сети monolith и от адресов
+    # из network.real_ip_from (docker_gwbridge — путь хостового nginx в swarm,
+    # ingress-сеть — путь go-api-gateway); recursive on нужен, чтобы
+    # отбрасывать адреса доверенных прокси в конце списка X-Forwarded-For
+    set_real_ip_from  {{$monolith_gateway}};
+    {{- range $trusted_ip := .projects.monolith.network.real_ip_from}}
+    set_real_ip_from  {{$trusted_ip}};
+    {{- end}}
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
 
     error_log /var/log/nginx/error.log;
 
