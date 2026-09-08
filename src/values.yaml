@@ -179,6 +179,14 @@ projects:
     label: "monolith"
     network:
       subnet: "172.20.1.0/24"
+      # адреса, чей X-Forwarded-For считается доверенным;
+      # 172.18.0.1 — шлюз docker_gwbridge, через него в swarm
+      # приходит трафик от процессов хоста (в т.ч. хостового nginx);
+      # 10.0.0.0/24 — ingress-сеть, оттуда приходит go-api-gateway,
+      # публикуемые порты при этом должны быть закрыты снаружи файрволом
+      real_ip_from:
+        - "172.18.0.1"
+        - "10.0.0.0/24"
     deploy_units:
       - "kafka"
       - "pivot"
@@ -206,7 +214,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.8.0"
+        tag: "v6.8.0-1"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
@@ -470,7 +478,7 @@ projects:
         php_world:
           tag: "v1.5.0"
         php_monolith:
-          tag: "v6.7.8"
+          tag: "v6.8.0-1"
         php_migration:
           tag: "v6.1.0"
         php_repairer:
