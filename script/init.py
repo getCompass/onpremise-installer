@@ -147,6 +147,7 @@ deploy_project_list = [
     "api_gateway",
     "auth",
     "kafka",
+    "web"
 ]
 
 deploy_saas_project_list = [
@@ -1128,6 +1129,28 @@ common_specific_project_fields = {
             "type": "int",
             "ask": True,
         }
+    ],
+    "web": [
+        {
+            "name": "is_enabled",
+            "comment": "Включена ли веб версия",
+            "default_value": False,
+            "type": "bool",
+            "args": [],
+            "ask": True,
+            "is_required": False,
+        },
+        {
+            "name": "service.external_port",
+            "comment": "Внешний порт контейнера web",
+            "default_value": None,
+            "type": "int",
+            "args": [],
+            "depends_on": "web",
+            "validation": "port",
+            "ask": True,
+            "is_required": False,
+        }
     ]
 }
 
@@ -1140,7 +1163,7 @@ required_project_fields = [
         "args": ["_global.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka", "web"],
     },
     {
         "name": "service.mysql.password",
@@ -1150,7 +1173,7 @@ required_project_fields = [
         "args": ["_project.service.mysql.root_password"],
         "type": "password",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka", "web"],
     },
     {
         "name": "service.mysql.user",
@@ -1158,7 +1181,7 @@ required_project_fields = [
         "default_value": "root",
         "type": "str",
         "ask": False,
-        "except": ["join_web", "jitsi", "jitsi_web", "kafka"],
+        "except": ["join_web", "jitsi", "jitsi_web", "kafka", "web"],
     },
     {
         "name": "network.subnet",
