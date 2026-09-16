@@ -438,6 +438,10 @@ services:
         protocol: tcp
         mode: host
     deploy:
+      update_config:
+        order: "stop-first"
+        failure_action: "rollback"
+        delay: "10s"
       restart_policy:
         condition: "any"
         window: "10s"
@@ -1426,6 +1430,23 @@ services:
         published: {{$api_gateway.service.go_api_gateway.external_https_port}}
         protocol: tcp
         mode: host
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     configs:
       - source: "http-server-config"
         target: "/app/configs/http_server.json"
@@ -1435,7 +1456,7 @@ services:
       - "monolith-{{$service_label}}-private"
     <<:
       - *log-rule-default
-      - *default-deploy
+
   # GO_AUTH
   go-auth-{{.projects.auth.label}}:
     image: "{{.registry_compass_path}}/go_auth:{{.projects.auth.service.go_auth.tag}}"
@@ -1521,6 +1542,23 @@ services:
       - target: 9094
         published: {{.siem.driver_data.listen_port}}
         protocol: tcp
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: "any"
+        window: "10s"
+      update_config:
+        order: "stop-first"
+        failure_action: "rollback"
+        delay: "10s"
+      rollback_config:
+        parallelism: 0
+        order: "stop-first"
+      {{- if ne $node_label_role "" }}
+      placement:
+        constraints:
+          - node.labels.role == {{$node_label_role}}
+      {{- end}}
     networks:
       - "monolith-{{$service_label}}-private"
     env_file:
@@ -1547,7 +1585,6 @@ services:
         gid: "1000"
         mode: 0644
     <<:
-      - *default-deploy
       - *log-rule-default
   {{ end }}
 
@@ -1568,7 +1605,7 @@ services:
         condition: "any"
         window: "10s"
       update_config:
-        order: "start-first"
+        order: "stop-first"
         failure_action: "rollback"
         delay: "10s"
       rollback_config:
