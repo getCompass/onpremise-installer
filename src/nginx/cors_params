@@ -1,18 +1,13 @@
-# Обработка Preflight (OPTIONS)
+# CORS отключён: same-origin запросы (схема+хост+порт совпадают) не требуют CORS,
+# авторизация чужих origin'ов браузером не выполняется
+
+# Обработка Preflight (OPTIONS): обрываем на edge, не проксируя в бэкенды
 if ($request_method = 'OPTIONS') {
-    add_header 'Access-Control-Allow-Origin' "$http_origin" always;
-    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE, PATCH' always;
-    add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
-    add_header 'Access-Control-Allow-Credentials' 'true' always;
-    add_header 'Access-Control-Max-Age' 86400 always;
     add_header 'Content-Type' 'text/plain; charset=utf-8' always;
     add_header 'Content-Length' 0 always;
     return 204;
 }
 
-# Заголовки для основных запросов (POST, GET и т.д.)
+# подавляем CORS-заголовки, которые могут слать апстримы (api-gateway, monolith)
 proxy_hide_header 'Access-Control-Allow-Origin';
-add_header 'Access-Control-Allow-Origin' "$http_origin" always;
-
 proxy_hide_header 'Access-Control-Allow-Credentials';
-add_header 'Access-Control-Allow-Credentials' 'true' always;
