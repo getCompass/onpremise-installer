@@ -15,6 +15,7 @@ parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
+from replication import mysql_users
 from pathlib import Path
 
 scriptutils.assert_replication_available()
@@ -102,10 +103,7 @@ def start():
     replicator_user = security["replication"]["mysql_user"]
     replicator_pass = security["replication"]["mysql_pass"]
 
-    mysql_command = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s';" % (
-        replicator_user, replicator_pass) + \
-                    "GRANT REPLICATION SLAVE ON *.* TO '%s'@'%%';" % replicator_user + \
-                    "FLUSH PRIVILEGES;"
+    mysql_command = mysql_users.build_replicator_user_sql(replicator_user, replicator_pass)
 
     if mysql_type == "team":
         mysql_user = "root"

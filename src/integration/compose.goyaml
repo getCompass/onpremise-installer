@@ -46,9 +46,10 @@ x-healthcheck-go-2000: &healthcheck-go-2000
 
 # --- DEFINES ---
 # единая сеть монолита
+{{$monolith_network := concatne "-" .stack_name_prefix "monolith" .service_label "private"}}
 networks:
   monolith-private:
-    name: "{{.stack_name_prefix}}-monolith-private"
+    name: "{{$monolith_network}}"
     driver: "overlay"
     external: true
 

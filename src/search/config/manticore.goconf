@@ -9,6 +9,8 @@ searchd {
 
     {{- if gt .mysql_server_id 0}}
     listen = 9312
-    node_address = manticore-{{.mysql_server_id}}
+    listen = 0.0.0.0:9360-9361:replication
+    node_address = {{.host_ip}}
+    server_id = {{.mysql_server_id}}
     {{- end}}
 }

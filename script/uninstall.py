@@ -113,6 +113,22 @@ if service_label != "":
 if not confirm("Удаляем приложение Compass, продолжить? [y/N]\n"):
     scriptutils.die("Удаление приложения было отменено")
 
+# удаляем правила файрвола репликации (DOCKER-USER), пока docker еще работает
+firewall_result = subprocess.run(
+    [
+        sys.executable,
+        script_resolved_path + "/replication/configure_replication_firewall.py",
+        "-e",
+        environment,
+        "-v",
+        values_name,
+        "--flush"
+    ]
+)
+if firewall_result.returncode != 0:
+    print(scriptutils.warning(
+        "Не удалось удалить правила файрвола репликации (DOCKER-USER) - проверьте iptables -S DOCKER-USER вручную"))
+
 # удаляем стаки компаний
 get_stack_command = ["docker", "stack", "ls"]
 grep_command = ["grep", stack_name_company]

@@ -32,6 +32,9 @@ if simulate_type == "simulate-failure":
     # проверяем свободное место
     elif check_name == "disk":
         simulate_failed("disk")
+    # проверяем mysql
+    elif check_name == "mysql":
+        simulate_failed("mysql")
     else:
         print("Incorrect argument \"check_name\"")
 elif simulate_type == "clean":

@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 from pathlib import Path
+from replication.endpoints import normalize_peer_host
 from utils import scriptutils
 import collections.abc
 import socket, yaml, argparse, string, random, pwd, os, json
@@ -181,7 +182,6 @@ project_ports = {
 
 domino_ports = {
     "go_database_controller_port": 31101,
-    "service.manticore.external_port": 31102,
 }
 
 jitsi_ports = {
@@ -1119,35 +1119,23 @@ common_specific_project_fields = {
             "ask": True,
         }
     ],
-    "jitsi_web": [
-        {
-            "name": "service.jitsi_web.external_port",
-            "comment": "Порт для сайта",
-            "default_value": None,
-            "value_function": project_port,
-            "args": [],
-            "type": "int",
-            "ask": True,
-        }
-    ],
+    "jitsi_web": [],
     "web": [
         {
             "name": "is_enabled",
             "comment": "Включена ли веб версия",
-            "default_value": False,
+            "default_value": None,
             "type": "bool",
             "args": [],
             "ask": True,
-            "is_required": False,
+            "is_required": True,
         },
         {
             "name": "service.external_port",
-            "comment": "Внешний порт контейнера web",
-            "default_value": None,
+            "comment": "Порт для контейнера с веб версией",
+            "default_value": 31107,
             "type": "int",
             "args": [],
-            "depends_on": "web",
-            "validation": "port",
             "ask": True,
             "is_required": False,
         }
@@ -1275,22 +1263,6 @@ required_specific_project_fields = {
             "name": "go_database_controller_port",
             "comment": "Укажите порт для контроллера баз данных команд",
             "default_value": domino_ports["go_database_controller_port"],
-            "type": "int",
-            "ask": True,
-        },
-        {
-            "name": "service.manticore.host",
-            "comment": "Укажите IP-адрес базы поиска",
-            "default_value": None,
-            "value_function": copy,
-            "args": ["_project.code_host"],
-            "type": "str",
-            "ask": False,
-        },
-        {
-            "name": "service.manticore.external_port",
-            "comment": "Укажите внешний порт для базы поиска",
-            "default_value": domino_ports["service.manticore.external_port"],
             "type": "int",
             "ask": True,
         },
@@ -1600,15 +1572,6 @@ required_specific_project_fields = {
             "type": "str",
             "ask": False,
             "is_protected": True,
-        },
-        {
-            "name": "service.go_auth.external_grpc_port",
-            "comment": "Внешний порт для сервиса авторизации",
-            "default_value": None,
-            "value_function": project_port,
-            "args": [],
-            "type": "int",
-            "ask": True
         }
     ],
     "outlook_add_in": [
@@ -1619,15 +1582,6 @@ required_specific_project_fields = {
             "type": "bool",
             "ask": True,
             "is_required": True
-        },
-        {
-            "name": "service.external_port",
-            "comment": "Внешний порт для надстройки outlook",
-            "default_value": None,
-            "value_function": project_port,
-            "args": [],
-            "type": "int",
-            "ask": True
         }
     ],
 }
@@ -2144,6 +2098,12 @@ def init_replication(new_values: dict):
     if service_label != "" and len(service_label) > 8:
         scriptutils.die("Параметр service_label не должен быть длинее 12 символов")
 
+    peer_host = replication_config.get("peer_host", "")
+    try:
+        peer_host = normalize_peer_host(service_label, peer_host)
+    except ValueError:
+        scriptutils.die("Параметр peer_host должен содержать IP-адрес или hostname второго сервера без порта")
+
     mysql_server_id = replication_config.get("mysql_server_id", None)
     try:
         mysql_server_id = int(mysql_server_id)
@@ -2177,6 +2137,8 @@ def init_replication(new_values: dict):
     # выполняем наполнение конфигурации полями
     config["service_label"] = service_label
     new_values = nested_set(new_values, "service_label", service_label)
+    config["peer_host"] = peer_host
+    new_values = nested_set(new_values, "peer_host", peer_host)
     config["mysql_server_id"] = mysql_server_id
     new_values = nested_set(new_values, "mysql_server_id", mysql_server_id)
     config["start_octet"] = start_octet
