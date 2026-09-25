@@ -313,3 +313,18 @@ nginx.proxy_protocol.real_ip_from: []
 # Тип данных: число
 # Пример: kafka.service.kafka.external_port: 31106
 kafka.service.kafka.external_port: 31106
+
+# Веб-версия приложения
+#
+# Позволяет работать в Compass из браузера без установки приложения.
+# После включения веб-версия будет доступна по адресу: https://<domain>/web/
+#
+# Тип данных: булево значение, true\false
+web.is_enabled: true
+
+# Внешний порт для контейнера с веб-версией.
+# Запросы к веб-версии будут пересылаться на этот порт.
+#
+# Тип данных: число
+# Пример: web.service.external_port: 31107
+web.service.external_port: 31107

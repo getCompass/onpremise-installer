@@ -141,7 +141,7 @@ def start():
     monolith_container: docker.models.containers.Container = wait_monolith_container(stack_name)
 
     # если передали ip - меняем
-    if host_ip != "" and len(space_backup_info_list) > 0 and config_archive_name != "" and monolith_backup_name != "":
+    if host_ip != "" and monolith_backup_name != "":
         update_host_ip(monolith_container, host_ip)
 
     # обновляем конфиги пространств

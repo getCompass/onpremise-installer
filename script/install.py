@@ -145,6 +145,12 @@ stack_name_prefix = environment + "-" + values_name
 stack_name = stack_name_prefix + "-monolith"
 domino_id = "d1"
 
+
+# класс для сравнения версии инсталлятора
+class Version(tuple):
+    def __new__(cls, text):
+        return super().__new__(cls, tuple(int(x) for x in text.split(".")))
+
 # пользователь должен подтвердить согласие с условиями публичной оферты
 begin_confirm_text = "Пожалуйста, подтвердите согласие с условиями публичной оферты"
 begin_confirm_text += bcolors.OKBLUE + " (getcompass.ru/docs/on-premise/offer.pdf)" + bcolors.ENDC
@@ -647,6 +653,23 @@ if scriptutils.is_replication_enabled(values_dict) == True:
             ]
         )
 
+    # ограничиваем порты репликации на уровне файрвола (DOCKER-USER)
+    log("Ограничиваем порты репликации на уровне файрвола")
+    firewall_result = subprocess.run(
+        [
+            sys.executable,
+            script_resolved_path + "/replication/configure_replication_firewall.py",
+            "-e",
+            environment,
+            "-v",
+            values_name
+        ]
+    )
+    if firewall_result.returncode != 0:
+        log(scriptutils.warning(
+            "Не удалось применить правила файрвола для портов репликации - порты остаются открытыми, "
+            "реконсайлер повторит попытку. Подробности выше."))
+
 # создаем команду
 log("Создаем команду")
 subprocess.run(
@@ -662,3 +685,20 @@ subprocess.run(
 )
 
 append_step("create_team")
+
+# обновляем файл .version на последнюю версию инсталлятора
+version_path = Path(script_resolved_path + "/../.version")
+
+# получаем последнюю версию из названий папок в директории /updates
+updates_path = Path(script_resolved_path + "/../updates")
+version_list = [
+    migration_folder.name
+    for migration_folder in updates_path.glob("*")
+    if migration_folder.is_dir() and not migration_folder.name.startswith(".")
+]
+last_version = max(version_list, key=Version)
+
+# записываем последнюю установленную версию в файл
+f = open(version_path, "w")
+f.write(last_version)
+f.close()

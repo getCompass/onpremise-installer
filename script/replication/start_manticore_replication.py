@@ -14,7 +14,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
 
-from utils import scriptutils
+from utils import scriptutils, mysql_ssl
+from replication.endpoints import peer_manticore_endpoint
 from pathlib import Path
 
 scriptutils.assert_replication_available()
@@ -41,7 +42,6 @@ args = parser.parse_args()
 environment = args.environment
 values_name = args.values
 replication_type = args.type.lower()
-master_mysql_server_id = args.master_mysql_server_id
 need_update_company = args.need_update_company
 
 script_dir = str(Path(__file__).parent.resolve())
@@ -80,6 +80,22 @@ def get_values() -> Dict:
         scriptutils.die("Файл со значениями невалиден. Окружение было ранее развернуто?")
 
     return current_values
+
+
+# проверяем наличие ssl сертификатов для tls репликации manticore и формируем опции galera
+def build_cluster_ssl_options(current_values: Dict) -> str:
+    ssl_dir = Path("%s/mysql_ssl" % current_values["root_mount_path"])
+    cert_prefix = mysql_ssl.get_host_cert_prefix(current_values)
+    cert_path, key_path = mysql_ssl.get_host_cert_paths(ssl_dir, cert_prefix)
+    ca_path = Path("%s/%s.crt" % (ssl_dir, mysql_ssl.CA_COMMON_NAME))
+
+    for ssl_file in (cert_path, key_path, ca_path):
+        if not ssl_file.exists():
+            scriptutils.die(
+                "Не найден файл %s - tls репликация manticore недоступна. Запустите generate_mysql_ssl_certificates.py" % str(
+                    ssl_file))
+
+    return mysql_ssl.galera_ssl_options(cert_prefix)
 
 
 def start():
@@ -123,23 +139,26 @@ def start():
                 "Не был найден необходимый docker-контейнер manticore. Убедитесь, что окружение поднялось корректно"
             )
 
-    manticore_host = domino["service"]["manticore"]["host"]
-    manticore_external_port = domino["service"]["manticore"]["external_port"]
+    manticore_host = "manticore-%s" % domino_id
+    manticore_port = domino["service"]["manticore"]["port"]
+    cluster_ssl_options = build_cluster_ssl_options(current_values)
 
     # инициализируем кластер в контейнере manticore
     print("Инициализируем кластер в контейнере manticore")
     if replication_type == "master":
-        mysql_command = "CREATE CLUSTER %s;" % manticore_cluster_name
+        mysql_command = "CREATE CLUSTER %s '%s' as options;" % (manticore_cluster_name, cluster_ssl_options)
     else:
 
         # пробуем удалить кластер, если ранее в мантикоре тот успел подняться
         try:
             mysql_command = "DELETE CLUSTER %s;" % manticore_cluster_name
-            manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 0)
+            manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_port, 0)
         except:
             pass
-        mysql_command = "JOIN CLUSTER %s AT 'manticore-%s:9312';" % (manticore_cluster_name, master_mysql_server_id)
-    manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
+        manticore_join_target = peer_manticore_endpoint(current_values)
+        mysql_command = "JOIN CLUSTER %s AT '%s' '%s' as options;" % (
+            manticore_cluster_name, manticore_join_target, cluster_ssl_options)
+    manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_port, 1)
 
     if need_update_company != 1:
         return
@@ -160,13 +179,13 @@ def start():
     for space_id, space_config_obj in space_config_obj_dict.items():
         print("Прикрепляем к кластеру команду %s" % space_id)
         mysql_command = "ALTER CLUSTER %s ADD main_%s;" % (manticore_cluster_name, space_id)
-        manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_external_port, 1)
+        manticore_replication(found_monolith_container, mysql_command, manticore_host, manticore_port, 1)
 
 
 # запускаем репликацию мантикоры
 def manticore_replication(found_container: docker.models.containers.Container, mysql_command: str, manticore_host: str,
-                          manticore_external_port: int, is_need_log: int):
-    cmd = "mariadb --skip-ssl -h %s -P %s -e \"%s\"" % (manticore_host, manticore_external_port, mysql_command)
+                          manticore_port: int, is_need_log: int):
+    cmd = "mariadb --skip-ssl -h %s -P %s -e \"%s\"" % (manticore_host, manticore_port, mysql_command)
 
     try:
         result = found_container.exec_run(cmd)
