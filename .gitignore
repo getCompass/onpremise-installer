@@ -58,3 +58,4 @@ src/pivot/config/smartapps.gophp
 src/values.*.yaml
 script/replication/zabbix/.version
 __pycache__/
+tests/
