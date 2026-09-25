@@ -16,6 +16,7 @@ parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
+from replication.endpoints import peer_mysql_endpoint
 from pathlib import Path
 
 scriptutils.assert_replication_available()
@@ -44,6 +45,10 @@ parser.add_argument("--all-types", required=False, action="store_true",
 parser.add_argument("--is-logs", required=False, default=1, type=int, help="1 - записываем логи запуска репликации")
 parser.add_argument("--is-choice-space", required=False, default=1, type=int,
                     help="1 - предоставляем выбор компании для запуска репликации")
+parser.add_argument("--space-id", required=False, default=None, type=int,
+                    help="ID пространства для запуска репликации без интерактивного выбора")
+parser.add_argument("--no-start", required=False, action="store_true",
+                    help="Настроить репликацию без запуска потоков (преднастройка на мастере)")
 parser.add_argument("--wait-master", required=False, action="store_true",
                     help="Скрипт ожидает, когда репликация догонит master сервер")
 parser.add_argument("--start-from-backup", required=False, action="store_true",
@@ -60,6 +65,8 @@ is_all_teams = args.all_teams
 is_all_types = args.all_types
 is_wait_master = args.wait_master
 is_start_from_backup = args.start_from_backup
+is_space_id = args.space_id
+is_no_start = args.no_start
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -104,6 +111,34 @@ def get_values() -> Dict:
     return current_values
 
 
+# собираем команду подключения репликации к master серверу
+def build_change_master_command(master_host: str, master_port, replicator_user: str, replicator_pass: str,
+                                mysql_cert_name: str) -> str:
+    return "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
+        "pivot_company_service.domino_registry,mysql.user,mysql.db,mysql.tables_priv);" + \
+        "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1, MASTER_CONNECT_RETRY=10," % (
+            master_host, master_port, replicator_user, replicator_pass) + \
+        "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
+        "MASTER_SSL_CERT='/etc/mysql/ssl/%s-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/%s-key.pem'," % (
+            mysql_cert_name, mysql_cert_name) + \
+        "MASTER_TLS_VERSION='TLSv1.2,TLSv1.3';"
+
+
+# запускаем репликацию для одного пространства
+def start_space_replication(space_id, space_config_obj, current_values, client, domino_id,
+                             replicator_user, replicator_pass, mysql_host, mysql_user, mysql_pass):
+    logging.info("Запускаем репликацию для команды %s" % space_id)
+    found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE,
+                                                                 domino_id, space_config_obj.port)
+    master_host, master_port = peer_mysql_endpoint(current_values, space_config_obj.port)
+    mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
+    change_master_mysql_command = build_change_master_command(
+        master_host, master_port, replicator_user, replicator_pass, mysql_cert_name)
+    mysql_start_replication(
+        current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
+        space_id, scriptutils.TEAM_MYSQL_TYPE, space_config_obj.db_path)
+
+
 def start():
     # получаем значения для выбранного окружения
     current_values = get_values()
@@ -112,12 +147,9 @@ def start():
     domino = current_values["projects"]["domino"][keys_list[0]]
     domino_id = domino["label"]
 
-    stack_name = current_values["stack_name_prefix"] + "-monolith"
     master_service_label = current_values["master_service_label"]
     if master_service_label is None or master_service_label == "":
         scriptutils.die("Пустое значение master_service_label в файле src/values.%s.yaml" % values_name)
-
-    stack_name = stack_name + "-" + master_service_label
 
     client = docker.from_env()
 
@@ -137,15 +169,10 @@ def start():
 
         logging.info("Старт репликации для монолита")
 
-        master_host = "%s_mysql-%s" % (stack_name, current_values["projects"]["monolith"]["label"])
+        master_host, master_port = peer_mysql_endpoint(current_values)
         mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-        change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
-            "pivot_company_service.domino_registry,mysql.user,mysql.db,mysql.tables_priv);"
-        change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
-            master_host, replicator_user, replicator_pass) + \
-            "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
-            f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
-            "MASTER_TLS_VERSION='TLSv1.2,TLSv1.3';"
+        change_master_mysql_command = build_change_master_command(
+            master_host, master_port, replicator_user, replicator_pass, mysql_cert_name)
         mysql_start_replication(
             current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
             0, scriptutils.MONOLITH_MYSQL_TYPE, "%s/monolith/database" % current_values.get("root_mount_path"))
@@ -170,7 +197,11 @@ def start():
 
         logging.info("Старт репликации для команд")
 
-        if not is_all_teams and is_choice_space:
+        chosen_space_index = 1
+        if is_space_id is not None:
+            if is_space_id not in space_config_obj_dict:
+                scriptutils.die("Пространство %d не найдено на сервере" % is_space_id)
+        elif not is_all_teams and is_choice_space:
             space_option_str = "Выберете команду, для которой запускаем репликацию:\n"
             for index, option in enumerate(space_id_list):
                 space_option_str += "%d. ID команды = %s\n" % (index + 1, option)
@@ -183,43 +214,18 @@ def start():
                 scriptutils.die("Выбран некорректный вариант")
 
         # проходимся по каждому пространству
-        if is_all_teams or is_choice_space == False or int(chosen_space_index) == (len(space_id_list) + 1):
+        if is_space_id is not None:
+            start_space_replication(is_space_id, space_config_obj_dict[is_space_id], current_values, client,
+                                    domino_id, replicator_user, replicator_pass, mysql_host, mysql_user, mysql_pass)
+        elif is_all_teams or is_choice_space == False or int(chosen_space_index) == (len(space_id_list) + 1):
             for space_id, space_config_obj in space_config_obj_dict.items():
-                logging.info("Запускаем репликацию для команды %s" % space_id)
-                found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE,
-                                                                             domino_id, space_config_obj.port)
-                master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label,
-                                                             domino_id, space_config_obj.port)
-                mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-                change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
-                    "pivot_company_service.domino_registry,mysql.user,mysql.db,mysql.tables_priv);"
-                change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
-                    master_host, space_config_obj.port, replicator_user, replicator_pass) + \
-                    "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
-                    f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
-                    "MASTER_TLS_VERSION = 'TLSv1.2,TLSv1.3';"
-                mysql_start_replication(
-                    current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
-                    space_id, scriptutils.TEAM_MYSQL_TYPE, space_config_obj.db_path)
+                start_space_replication(space_id, space_config_obj, current_values, client, domino_id,
+                                        replicator_user, replicator_pass, mysql_host, mysql_user, mysql_pass)
         else:
             space_id = space_id_list[int(chosen_space_index) - 1]
             space_config_obj = space_config_obj_dict[space_id]
-            logging.info("Запускаем репликацию для команды %s" % space_id)
-            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
-                                                                         space_config_obj.port)
-            master_host = "%s-%s-%s-company_mysql-%s" % (current_values["stack_name_prefix"], master_service_label,
-                                                         domino_id, space_config_obj.port)
-            mysql_cert_name = "mysql-%s" % ("master" if current_values["mysql_server_id"] == 1 else "replica")
-            change_master_mysql_command = "CHANGE REPLICATION FILTER REPLICATE_IGNORE_TABLE = (" + \
-                "pivot_company_service.domino_registry,mysql.user,mysql.db,mysql.tables_priv);"
-            change_master_mysql_command = change_master_mysql_command + "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%s, MASTER_USER='%s', MASTER_PASSWORD='%s', MASTER_AUTO_POSITION=1," % (
-                master_host, space_config_obj.port, replicator_user, replicator_pass) + \
-                "MASTER_SSL = 1, MASTER_SSL_CA = '/etc/mysql/ssl/mysqlRootCA.crt'," + \
-                f"MASTER_SSL_CERT='/etc/mysql/ssl/{mysql_cert_name}-cert.pem', MASTER_SSL_KEY='/etc/mysql/ssl/{mysql_cert_name}-key.pem'," + \
-                "MASTER_TLS_VERSION='TLSv1.2,TLSv1.3';"
-            mysql_start_replication(
-                current_values, found_container, change_master_mysql_command, mysql_host, mysql_user, mysql_pass,
-                space_id, scriptutils.TEAM_MYSQL_TYPE, space_config_obj.db_path)
+            start_space_replication(space_id, space_config_obj, current_values, client, domino_id,
+                                    replicator_user, replicator_pass, mysql_host, mysql_user, mysql_pass)
 
         logging.info("Успешно завершили репликацию для команд")
 
@@ -280,8 +286,11 @@ def mysql_start_replication(current_values: Dict, found_container: docker.models
                 exit(0)
         gtid_init_command = "STOP SLAVE; "
 
-    mysql_command = gtid_init_command + change_master_mysql_command + \
-                    "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; START SLAVE;"
+    if is_no_start:
+        mysql_command = gtid_init_command + change_master_mysql_command
+    else:
+        mysql_command = gtid_init_command + change_master_mysql_command + \
+                        "SET GLOBAL read_only = ON; SET GLOBAL super_read_only = ON; START SLAVE;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
 
     try:
@@ -291,6 +300,13 @@ def mysql_start_replication(current_values: Dict, found_container: docker.models
         return
 
     if result.exit_code == 0:
+        if is_no_start:
+            if is_logs:
+                if space_id > 0:
+                    print("\nРепликация настроена без запуска потоков в команде %s" % space_id)
+                else:
+                    print("\nРепликация настроена без запуска потоков для монолита")
+            return
         if is_logs:
             if space_id > 0:
                 print("\nРепликация запущена в команде %s" % space_id)
@@ -339,25 +355,6 @@ def mysql_start_replication(current_values: Dict, found_container: docker.models
             print("\nРепликация завершена в команде %s" % space_id)
         else:
             print("\nРепликация завершена для монолита")
-
-    # лочим таблицы
-    mysql_command = "FLUSH TABLES WITH READ LOCK;"
-    cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
-
-    try:
-        result = found_container.exec_run(cmd)
-    except docker.errors.NotFound:
-        print("\nКонтейнер %s не найден - пропускам" % found_container.id)
-        return
-    except Exception as e:
-        return
-
-    if result.exit_code != 0:
-        print("Ошибка при попытке залочить таблицы")
-        if result.output:
-            print("Результат выполнения:\n", result.output.decode("utf-8", errors="ignore"))
-        sys.exit(result.exit_code)
-
 
 # ждём когда догоним репликацию master сервера
 def wait_master_mysql_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,

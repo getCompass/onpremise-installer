@@ -304,11 +304,17 @@ def assert_replication_available():
         die(YANDEX_CLOUD_REPLICATION_UNAVAILABLE_MESSAGE)
 
 
+# таймауты запроса к боту: подключение и чтение ответа
+# без них requests ждет таймаута TCP в ОС (минуты) и блокирует вызывающий скрипт
+USERBOT_NOTICE_CONNECT_TIMEOUT_SEC = 5
+USERBOT_NOTICE_READ_TIMEOUT_SEC = 10
+
+
 # отправляем уведомление от лица бота
 def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, userbot_notice_domain: str,
-                        message_text: str, userbot_version: str = "v3", is_need_response: bool = False, is_onprem_endpoint: bool = True):
+                        message_text: str, userbot_version: str = "v3", is_need_response: bool = False, is_onprem_endpoint: bool = True) -> bool:
     if userbot_notice_chat_id == "" or userbot_notice_token == "" or userbot_notice_domain == "":
-        return
+        return True
 
     userbot_notice_entrypoint = f"{userbot_notice_domain}/userbot" if is_onprem_endpoint else f"userbot.{userbot_notice_domain}"
     url = f"https://{userbot_notice_entrypoint}/api/{userbot_version}/group/send"
@@ -325,14 +331,23 @@ def send_userbot_notice(userbot_notice_token: str, userbot_notice_chat_id: str, 
     }
 
     try:
-        response = requests.post(url, json=json_data, headers=headers)
+        response = requests.post(url, json=json_data, headers=headers,
+                                 timeout=(USERBOT_NOTICE_CONNECT_TIMEOUT_SEC, USERBOT_NOTICE_READ_TIMEOUT_SEC))
+
         if is_need_response:
             try:
                 print(response.json())
             except ValueError:
                 print(response.text)
+
+        if not 200 <= response.status_code < 300:
+            print(warning(f"Userbot send failed: http status {response.status_code}"))
+            return False
+
+        return True
     except requests.RequestException as e:
         print(warning(f"Userbot send failed: {e}"))
+        return False
 
 
 # Возвращает форму слова в зависимости от числа n

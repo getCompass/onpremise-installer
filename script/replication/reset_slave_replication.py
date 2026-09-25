@@ -23,7 +23,7 @@ scriptutils.assert_root()
 
 parser = scriptutils.create_parser(
     description="Скрипт для остановки и сброса репликации, а также отключения read-only режима.",
-    usage="python3 script/replication/reset_slave_replication.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team] [--all-teams] [--all-types]",
+    usage="python3 script/replication/reset_slave_replication.py [-v VALUES] [-e ENVIRONMENT] [--type monolith|team] [--space-id SPACE_ID] [--all-teams] [--all-types]",
     epilog="Пример для монолита: python3 script/replication/reset_slave_replication.py -v compass -e production --all-teams --all-types"
 )
 parser.add_argument('-v', '--values', required=False, default="compass", type=str,
@@ -37,8 +37,12 @@ parser.add_argument(
 )
 parser.add_argument("--all-teams", required=False, action="store_true",
                     help="Выбрать все созданные команды для выполнения скрипта")
+parser.add_argument("--space-id", required=False, default=None, type=int,
+                    help="ID пространства для сброса репликации без интерактивного выбора")
 parser.add_argument("--all-types", required=False, action="store_true",
                     help="Выбрать все типы mysql для выполнения скрипта")
+parser.add_argument("--keep-read-only", required=False, action="store_true",
+                    help="Не отключать read-only режим баз данных при сбросе репликации")
 
 args = parser.parse_args()
 environment = args.environment
@@ -46,6 +50,8 @@ values_name = args.values
 mysql_type = args.type.lower()
 is_all_teams = args.all_teams
 is_all_types = args.all_types
+is_keep_read_only = args.keep_read_only
+is_space_id = args.space_id
 
 script_dir = str(Path(__file__).parent.resolve())
 
@@ -130,7 +136,10 @@ def start():
             scriptutils.die("Не найдено ни одного пространства на сервере. Окружение поднято?")
 
         chosen_space_index = 1
-        if not is_all_teams:
+        if is_space_id is not None:
+            if is_space_id not in space_config_obj_dict:
+                scriptutils.die("Пространство %d не найдено на сервере" % is_space_id)
+        elif not is_all_teams:
             space_option_str = "Выберете команду, для которой выполняем сброс репликации:\n"
             for index, option in enumerate(space_id_list):
                 space_option_str += "%d. ID команды = %s\n" % (index + 1, option)
@@ -143,7 +152,12 @@ def start():
                 scriptutils.die("Выбран некорректный вариант")
 
         # проходимся по каждому пространству
-        if is_all_teams or int(chosen_space_index) == (len(space_id_list) + 1):
+        if is_space_id is not None:
+            print("Выполняем сброс репликации для команды %s" % is_space_id)
+            found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
+                                                                         space_config_obj_dict[is_space_id].port)
+            mysql_restart_replication(found_container, mysql_host, mysql_user, mysql_pass, is_space_id)
+        elif is_all_teams or int(chosen_space_index) == (len(space_id_list) + 1):
             space_iteration = 1
             for space_id, space_config_obj in space_config_obj_dict.items():
 
@@ -169,9 +183,9 @@ def start():
 # выполняем рестарт репликации в полученном контейнере
 def mysql_restart_replication(found_container: docker.models.containers.Container, mysql_host: str, mysql_user: str,
                               mysql_pass: str, space_id: int):
-    mysql_command = "STOP SLAVE; RESET SLAVE ALL; " + \
-                    "SET GLOBAL super_read_only = OFF; " + \
-                    "SET GLOBAL read_only = OFF;"
+    mysql_command = "STOP SLAVE; RESET SLAVE ALL;"
+    if not is_keep_read_only:
+        mysql_command = mysql_command + " SET GLOBAL super_read_only = OFF; SET GLOBAL read_only = OFF;"
     cmd = "mysql -h %s -u %s -p%s -e \"%s\"" % (mysql_host, mysql_user, mysql_pass, mysql_command)
 
     try:

@@ -25,5 +25,3 @@ IS_FILE_AUTH_RESTRICTION_ENABLED={{if eq .file_access_restriction_mode "auth"}}1
 DOMINO_CONFIG_PATH="/pivot_config"
 COMPANIES_RELATIONSHIP_FILE="reserve_servers_companies_relationship.json"
 SERVICE_LABEL="{{.service_label}}"
-
-ONPREMISE_VERSION="6.0.0"

@@ -10,13 +10,13 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 import ipaddress
 
 from pathlib import Path
 import random, shutil, subprocess, ipaddress, argparse, yaml, os, pwd
 from utils import scriptutils, interactive
+from utils import mysql_ssl
 from loader import Loader
 from typing import Tuple
 from datetime import datetime, timedelta, timezone
@@ -99,8 +99,11 @@ def start():
         create_root_certificate(ssl_path)
 
     if scriptutils.is_replication_master_server(current_values):
-        generate_mysql_ssl("mysql-master", ssl_path)
-        generate_mysql_ssl("mysql-replica", ssl_path)
+        for cert_prefix in ("master", "replica"):
+            cert_path, key_path = mysql_ssl.get_host_cert_paths(ssl_path, cert_prefix)
+
+            if mysql_ssl.is_certificate_expiring(cert_path, key_path):
+                mysql_ssl.generate_mysql_ssl("mysql-%s" % cert_prefix, ssl_path)
 
 
 def get_root_certificate_path(ssl_path: Path) -> Tuple[Path, Path]:
@@ -195,97 +198,6 @@ def create_root_certificate(output_dir: Path) -> Tuple[Path, Path]:
         + scriptutils.warning(str(privkey_path.resolve()))
     )
     return pubkey_path, privkey_path
-
-
-def generate_mysql_ssl(common_name: str, output_dir: Path, validity_days: int = 365):
-    new_cert_path = f"{output_dir}/{common_name}-cert.pem"
-    new_key_path = f"{output_dir}/{common_name}-key.pem"
-
-    if not should_generate_cert(new_cert_path, new_key_path):
-        return
-
-    print("Генерируем новые сертификаты для mysql...")
-
-    CN = "mysqlRootCA"
-
-    ca_pubkey = f"{output_dir}/%s.crt" % CN
-    ca_privkey = f"{output_dir}/%s.key" % CN
-
-    # Загрузка CA
-    with open(ca_privkey, "rb") as f:
-        ca_priv_key = serialization.load_pem_private_key(f.read(), password=None)
-
-    with open(ca_pubkey, "rb") as f:
-        ca_cert = x509.load_pem_x509_certificate(f.read())
-
-    # Генерация ключа сервера
-    server_priv_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
-
-    # Информация о сервере
-    subject = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, "San Francisco"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "MySQL"),
-        x509.NameAttribute(NameOID.COMMON_NAME, "Mysql Replica"),
-    ])
-
-    # Создание сертификата сервера
-    basic_contraints = x509.BasicConstraints(ca=True, path_length=None)
-    server_cert = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(ca_cert.subject)
-        .public_key(server_priv_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=365))
-        .add_extension(basic_contraints, True)
-        .sign(ca_priv_key, hashes.SHA256())
-    )
-
-    # Сохранение сертификата сервера
-    with open(new_key_path, "wb") as f:
-        f.write(server_priv_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        ))
-
-    with open(new_cert_path, "wb") as f:
-        f.write(server_cert.public_bytes(serialization.Encoding.PEM))
-
-    print(f"Создан сертификат для {common_name}")
-
-
-def should_generate_cert(cert_path: str, key_path: str, min_valid_days: int = 30) -> bool:
-    # проверяем существование сертов
-    if not Path(cert_path).exists() or not Path(key_path).exists():
-        print(scriptutils.warning("Отсутствуют сертификаты для mysql. Генерируем новые..."))
-        return True
-
-    try:
-        with open(cert_path, "rb") as f:
-            cert = x509.load_pem_x509_certificate(f.read())
-
-        # получаем дату окончания сертификата
-        not_valid_after = cert.not_valid_after_utc
-
-        # вычисляем оставшееся время
-        time_left = not_valid_after.replace(tzinfo=timezone.utc) - datetime.now(timezone.utc)
-
-        # проверяем срок действия
-        if time_left < timedelta(days=min_valid_days):
-            print(scriptutils.warning("Срок действия сертификатов для mysql истекает. Генерируем новые..."))
-            return True
-
-        return False
-    except Exception as e:
-        print(scriptutils.warning(f"Ошибка при проверке наличия сертификатов для mysql. {e}. Генерируем новые..."))
-        return True
 
 
 start()

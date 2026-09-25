@@ -4,7 +4,7 @@ SERVER_TYPE="{{.server_type}}"
 PROTOCOL="{{.protocol}}"
 PIVOT_DOMAIN="{{.domain}}"
 
-GO_AUTH_GRPC_HOST={{.projects.auth.host}}
-GO_AUTH_GRPC_PORT={{.projects.auth.service.go_auth.external_grpc_port}}
+GO_AUTH_GRPC_HOST=go-auth-{{.projects.auth.label}}
+GO_AUTH_GRPC_PORT=2000
 
 AUTH_SECRET_KEY_B64={{.projects.auth.auth_secret_key}}

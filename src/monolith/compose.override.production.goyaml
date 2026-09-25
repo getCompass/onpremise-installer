@@ -10,7 +10,6 @@ version: '3.8'
 {{$domino := index .projects.domino .domino_id}}
 
 {{$service_label := ""}}{{if ne .service_label ""}}{{$service_label = printf "%s" .service_label}}{{end}}
-{{$node_label_role := ""}}{{if ne .service_label ""}}{{$node_label_role = .service_label}}{{end}}
 
 # --- EXTENSIONS ---
 # правила дефолтного деплоя для сервисов
@@ -68,11 +67,6 @@ services:
      replicas: 1
      restart_policy:
        condition: "none"
-     {{- if ne $node_label_role "" }}
-     placement:
-       constraints:
-         - node.labels.role == {{$node_label_role}}
-     {{- end}}
 
   # Frontend
   web-{{.projects.jitsi.label}}:
@@ -111,11 +105,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z jicofo-jitsi 8888 && curl -sf -o /dev/null http://xmpp.meet.jitsi:5280/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52800/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52801/http-bind || exit 1 && curl -sf -o /dev/null http://xmpp.meet.jitsi:52802/http-bind || exit 1"
       interval: "4s"
@@ -163,11 +152,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     networks:
       monolith-{{$service_label}}-private:
 
@@ -213,11 +197,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 5269"
       interval: "5s"
@@ -263,11 +242,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52690"
       interval: "5s"
@@ -315,11 +289,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52691"
       interval: "5s"
@@ -368,11 +337,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 52692"
       interval: "5s"
@@ -407,11 +371,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 8888 && nc -z -w5 prosody-jitsi 5222 && nc -z -w5 prosody-jitsi-v0 52220 && nc -z -w5 prosody-jitsi-v1 52221 && nc -z -w5 prosody-jitsi-v2 52222"
       interval: "5s"
@@ -423,8 +382,6 @@ services:
   # jitsi_web
   jitsi_web-{{.projects.jitsi.label}}:
     image: "{{.registry_compass_path}}/jitsi_web:{{.projects.jitsi_web.service.jitsi_web.tag}}"
-    ports:
-      - "{{.projects.jitsi_web.service.jitsi_web.external_port}}:80"
     env_file:
       - ".project.jitsi_web.common.env"
     networks:
@@ -446,11 +403,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-    {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-    {{- end}}
     configs:
       - source: "jitsi-web-nginx-conf"
         target: "/etc/nginx/nginx.conf"

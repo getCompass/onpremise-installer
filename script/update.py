@@ -910,6 +910,23 @@ if need_repair_all_teams:
         ]
     )
 
+# синхронизируем правила файрвола репликации (DOCKER-USER) безусловно:
+# на HA - применяем, при выключенной репликации - удаляем устаревшие правила
+firewall_result = subprocess.run(
+    [
+        sys.executable,
+        script_resolved_path + "/replication/configure_replication_firewall.py",
+        "-e",
+        environment,
+        "-v",
+        values_name
+    ]
+)
+if firewall_result.returncode != 0:
+    print(scriptutils.warning(
+        "Не удалось синхронизировать правила файрвола для портов репликации - "
+        "реконсайлер повторит попытку. Подробности выше."))
+
 # проверяем обновлялись ли zabbix-скрипты
 if scriptutils.is_replication_enabled(values_dict):
     command = [

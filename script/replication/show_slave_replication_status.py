@@ -14,6 +14,16 @@ parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, parent_dir)
 
 from utils import scriptutils
+from replication.monitor_utils import (
+    acquire_single_instance_lock,
+    decide_lag_alert,
+    is_state_handler_running,
+    load_lag_alert_state,
+    read_keepalived_last_state,
+    release_single_instance_lock,
+    save_lag_alert_state,
+    should_stop_keepalived,
+)
 from loader import Loader
 from pathlib import Path
 
@@ -46,6 +56,8 @@ parser.add_argument("--monitoring", required=False, action="store_true",
                     help="Флаг для мониторинга статуса репликации")
 parser.add_argument("--stop-keepalived-on-replica-failure", required=False, action="store_true",
                     help="Флаг для отключения keepalived в случае провала реплики")
+parser.add_argument("--lag-threshold-sec", required=False, default=120, type=int,
+                    help="Порог отставания репликации в секундах для отправки уведомления (0 - отключить)")
 parser.add_argument('--userbot-notice-path', required=False, default='/etc/compass_userbot/userbot_config.json', type=str,
                     help='Путь к файлу с данными бота для уведомления в случае переключения vip')
 parser.add_argument('--userbot-notice-test', required=False, action='store_true',
@@ -59,12 +71,18 @@ is_all_types = args.all_types
 log_level = args.log_level
 is_replica_monitoring = args.monitoring
 stop_keepalived_on_replica_failure = args.stop_keepalived_on_replica_failure
+lag_threshold_sec = args.lag_threshold_sec
 userbot_notice_config_str = args.userbot_notice_path
 is_userbot_notice_test = args.userbot_notice_test
 
 values_file_name = f"values.{values_name}.yaml"
 
 script_dir = str(Path(__file__).parent.resolve())
+
+MONITOR_PID_FILE = "/var/run/mysql_replication_monitor.pid"
+LAG_ALERT_STATE_FILE = "/var/log/mysql_replication_lag_alert_state.json"
+
+lag_alert_state = {}
 
 
 # класс конфига пространства
@@ -103,6 +121,13 @@ def get_values() -> Dict:
 
 
 def start():
+
+    if is_replica_monitoring and not acquire_single_instance_lock(MONITOR_PID_FILE):
+        return
+
+    if is_replica_monitoring:
+        lag_alert_state.update(load_lag_alert_state(LAG_ALERT_STATE_FILE))
+
     # получаем значения для выбранного окружения
     current_values = get_values()
     keys_list = list(current_values["projects"]["domino"].keys())
@@ -148,10 +173,11 @@ def start():
             print("Не удалось найти контейнер pivot mysql.")
             sys.exit(1)
 
-        is_monolith_success, status_text = mysql_show_slave_replication_status(
+        is_monolith_success, status_text, lag_seconds = mysql_show_slave_replication_status(
                                                found_container, mysql_host, mysql_user, mysql_pass)
 
         replica_success_result.append(is_monolith_success)
+        track_replication_lag("monolith", lag_seconds)
         if is_replica_monitoring == False:
             loader.success()
             print(status_text)
@@ -187,10 +213,11 @@ def start():
                                     "Статус репликации в команде %s:" % space_id).start()
                 found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE,
                                                                              domino_id, space_config_obj.port)
-                is_space_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
+                is_space_success, status_text, lag_seconds = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
                                                                               mysql_pass)
 
                 replica_success_result.append(is_space_success)
+                track_replication_lag(str(space_id), lag_seconds)
                 if is_replica_monitoring == False:
                     loader.success()
                     print(status_text)
@@ -203,10 +230,11 @@ def start():
                                 "Статус репликации в команде %s:" % space_id).start()
             found_container = scriptutils.find_container_mysql_container(client, scriptutils.TEAM_MYSQL_TYPE, domino_id,
                                                                          space_config_obj.port)
-            is_space_success, status_text = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
+            is_space_success, status_text, lag_seconds = mysql_show_slave_replication_status(found_container, mysql_host, mysql_user,
                                                                           mysql_pass)
 
             replica_success_result.append(is_space_success)
+            track_replication_lag(str(space_id), lag_seconds)
             if is_replica_monitoring == False:
                 loader.success()
                 print(status_text)
@@ -223,34 +251,75 @@ def start():
         log_text += "- проверьте ошибки в полях Last_IO_Error и Last_SQL_Error.\n"
         print(log_text)
 
+    finalize_monitoring_state()
+
 
 # действия при ошибке статуса репликации баз данных
 def replica_failed_status():
 
         keepalived_stoped_text = ""
+
         if stop_keepalived_on_replica_failure:
+            # обработчик смены состояния ещё не дошёл до запуска репликации -
+            # остановка keepalived убила бы его на середине перехода
+            is_state_changing = is_state_handler_running()
 
-            # отключаем keepalived
-            try:
-                result = subprocess.run(['systemctl', 'stop', 'keepalived'],
-                                        capture_output=True,
-                                        text=True,
-                                        check=False)
-                if result.returncode == 0:
-                    print("Keepalived успешно остановлен.")
+            if should_stop_keepalived(False, read_keepalived_last_state(), is_state_changing):
 
-                    # сообщаем об этом в уведомлении от бота
-                    keepalived_stoped_text = "На сервере принудительно отключен keepalived!"
-                else:
-                    print(f"Ошибка при остановке keepalived: {result.stderr}")
+                # отключаем keepalived
+                try:
+                    result = subprocess.run(['systemctl', 'stop', 'keepalived'],
+                                            capture_output=True,
+                                            text=True,
+                                            check=False)
+                    if result.returncode == 0:
+                        print("Keepalived успешно остановлен.")
+
+                        # сообщаем об этом в уведомлении от бота
+                        keepalived_stoped_text = "На сервере принудительно отключен keepalived!"
+                    else:
+                        print(f"Ошибка при остановке keepalived: {result.stderr}")
+                        keepalived_stoped_text = "Внимание! Ошибка при попытке остановить keepalived!"
+                except Exception as e:
+                    print(f"Не удалось выполнить команду: {e}")
                     keepalived_stoped_text = "Внимание! Ошибка при попытке остановить keepalived!"
-            except Exception as e:
-                print(f"Не удалось выполнить команду: {e}")
-                keepalived_stoped_text = "Внимание! Ошибка при попытке остановить keepalived!"
+
+            elif is_state_changing:
+                keepalived_stoped_text = "Остановка keepalived отложена: идёт обработчик смены состояния - проверка будет повторена через минуту"
+
+            else:
+                keepalived_stoped_text = "Остановка keepalived пропущена: по локальному состоянию сервер сейчас является мастером"
 
         message_text = f"Проблема с репликацией MySQL - проверьте статус реплики на сервере. {keepalived_stoped_text}"
         send_userbot_replica_notice(message_text)
+
+        finalize_monitoring_state()
         exit(1)
+
+
+# отслеживаем отставание репликации и уведомляем ботом
+def track_replication_lag(db_key: str, lag_seconds):
+    global lag_alert_state
+
+    if not is_replica_monitoring:
+        return
+
+    action, new_state = decide_lag_alert(lag_alert_state.get(db_key), lag_seconds, lag_threshold_sec, int(time.time()))
+    lag_alert_state[db_key] = new_state
+
+    if action == "alert" or action == "repeat":
+        message = f"Отставание репликации mysql ({db_key}): {lag_seconds} сек (порог {lag_threshold_sec} сек)"
+        send_userbot_replica_notice(message)
+    elif action == "recovered":
+        message = f"Отставание репликации mysql ({db_key}) восстановилось"
+        send_userbot_replica_notice(message)
+
+
+# сохраняем состояние мониторинга и освобождаем блокировку
+def finalize_monitoring_state():
+    if is_replica_monitoring:
+        save_lag_alert_state(LAG_ALERT_STATE_FILE, lag_alert_state)
+        release_single_instance_lock(MONITOR_PID_FILE)
 
 
 # получить статус репликации в полученном контейнере
@@ -262,7 +331,7 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
         result = found_container.exec_run(cmd)
     except docker.errors.NotFound:
         print("\nНе нашли mysql контейнер для компании")
-        return false, ""
+        return False, "", None
 
     if result.exit_code != 0:
         scriptutils.die("Ошибка при получении статуса репликации")
@@ -275,7 +344,7 @@ def mysql_show_slave_replication_status(found_container: docker.models.container
     # подготавливаем текст статуса для вывода
     is_success, slave_status_text = prepare_status_text(result)
 
-    return is_success, slave_status_text
+    return is_success, slave_status_text, result.get("Seconds_Behind_Master")
 
 
 # парсим ответ статуса реплики
@@ -391,8 +460,11 @@ def send_userbot_replica_notice(message: str):
         userbot_data = json.loads(json_str) if json_str != "" else {}
 
     is_need_response = True if is_userbot_notice_test else False
-    scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
+    is_sent = scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
         userbot_data["notice_domain"], message, userbot_data["userbot_version"], is_need_response)
+
+    if not is_sent:
+        print(scriptutils.warning("Не удалось отправить уведомление ботом: %s" % message))
 
 
 # сформировать список конфигураций пространств

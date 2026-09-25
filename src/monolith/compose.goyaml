@@ -15,7 +15,6 @@ secrets:
 {{$api_gateway := index .projects.api_gateway .api_gateway_id}}
 
 {{$service_label := ""}}{{if ne .service_label ""}}{{$service_label = printf "%s" .service_label}}{{end}}
-{{$node_label_role := ""}}{{if ne .service_label ""}}{{$node_label_role = .service_label}}{{end}}
 
 # --- EXTENSIONS ---
 # правила дефолтного деплоя для сервисов
@@ -33,11 +32,6 @@ x-default-deploy: &default-deploy
     rollback_config:
       parallelism: 0
       order: "stop-first"
-    {{- if ne $node_label_role "" }}
-    placement:
-      constraints:
-        - node.labels.role == {{$node_label_role}}
-    {{- end}}
 
 # правила логирования для сервисов по умолчанию
 # дефолтно просто пишем лог и ограничиваем его размер
@@ -83,9 +77,6 @@ networks:
     name: "{{$mysql_shared_network}}"
     driver: "overlay"
     attachable: true
-    {{- if gt .mysql_server_id 1}}
-    external: true
-    {{- end}}
   {{- end}}
 # логика файлов по умолчанию
 volumes:
@@ -445,11 +436,6 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 80"
       interval: "5s"
@@ -508,11 +494,6 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     <<: *log-rule-default
 
   # MEMCACHE
@@ -534,11 +515,6 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 11211"
       interval: "5s"
@@ -575,12 +551,15 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "{{.projects.pivot.service.mysql.root_password}}"
     {{- if gt .mysql_server_id 0}}
+    ports:
+      - "{{.projects.monolith.service.mysql.port}}:{{.projects.monolith.service.mysql.port}}"
+    {{- end}}
+    {{- if gt .mysql_server_id 0}}
     command: >
       mysqld
         --log_bin=/var/lib/mysql/log-bin.log
         --binlog-format=ROW
         --log-replica-updates=1
-        --expire-logs-days=20
         --binlog-expire-logs-seconds=1209600
         --max-binlog-size=500M
         --sync-binlog=1
@@ -591,6 +570,9 @@ services:
         --replicate-ignore-table=mysql.tables_priv
         --gtid-mode=ON
         --enforce-gtid-consistency=ON
+        --relay-log-recovery=ON
+        --slave-parallel-type=LOGICAL_CLOCK
+        --slave-parallel-workers=4
         --max_binlog_cache_size=10485760
         --ssl=ON
         --ssl-ca="/etc/mysql/ssl/mysqlRootCA.crt"
@@ -604,11 +586,6 @@ services:
       restart_policy:
         condition: "any"
         window: "10s"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     healthcheck:
       test: "mysqladmin ping -h localhost -P 3306 -u root --password={{.projects.pivot.service.mysql.root_password}}"
       interval: "5s"
@@ -750,11 +727,6 @@ services:
      replicas: 1
      restart_policy:
        condition: "none"
-     {{- if ne $node_label_role "" }}
-     placement:
-       constraints:
-         - node.labels.role == {{$node_label_role}}
-     {{- end}}
 
   # GO_PIVOT_CACHE
   go-pivot-cache-{{.projects.pivot.label}}:
@@ -941,15 +913,16 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     volumes:
       - "{{$domino.manticore_path}}:/var/lib/manticore/"
+      {{- if gt .mysql_server_id 0}}
+      - "{{.root_mount_path}}/mysql_ssl:/etc/manticore/ssl:ro"
+      {{- end}}
+    {{- if gt .mysql_server_id 0}}
     ports:
-      - "{{$domino.service.manticore.external_port}}:{{$domino.service.manticore.port}}"
+      - "9312:9312"
+      - "9360-9361:9360-9361"
+    {{- end}}
     configs:
       - source: "manticore-conf"
         target: "/etc/manticoresearch/manticore.conf"
@@ -961,12 +934,13 @@ services:
       memlock:
         soft: -1
         hard: -1
-    {{- if gt .mysql_server_id 0}}
     networks:
+      monolith-{{$service_label}}-private:
+      {{- if gt .mysql_server_id 0}}
       monolith-mysql-shared:
         aliases:
           - "manticore-{{.mysql_server_id}}"
-    {{- end}}
+      {{- end}}
     <<:
       - *default-deploy
       - *log-rule-default
@@ -1148,11 +1122,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     logging:
       driver: "json-file"
       options:
@@ -1342,11 +1311,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 1000"
       interval: "5s"
@@ -1442,11 +1406,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     configs:
       - source: "http-server-config"
         target: "/app/configs/http_server.json"
@@ -1462,8 +1421,6 @@ services:
     image: "{{.registry_compass_path}}/go_auth:{{.projects.auth.service.go_auth.tag}}"
     depends_on:
       - "mysql-{{.projects.auth.label}}"
-    ports:
-      - "{{.projects.auth.service.go_auth.external_grpc_port}}:2000"
     env_file:
       - ".global.common.env"
       - ".project.auth.common.env"
@@ -1481,11 +1438,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     healthcheck:
       test: "nc -z 127.0.0.1 2000"
       interval: "5s"
@@ -1505,8 +1457,6 @@ services:
   # outlook_add_in
   outlook_add_in-{{.projects.monolith.label}}:
     image: "{{.registry_compass_path}}/outlook-add-in:{{.projects.outlook_add_in.service.tag}}"
-    ports:
-      - "{{.projects.outlook_add_in.service.external_port}}:80"
     networks:
       - "monolith-{{$service_label}}-private"
     deploy:
@@ -1521,11 +1471,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     configs:
       - source: "outlook-addin-conf"
         target: "/app/config.json"
@@ -1554,11 +1499,6 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     networks:
       - "monolith-{{$service_label}}-private"
     env_file:
@@ -1611,9 +1551,4 @@ services:
       rollback_config:
         parallelism: 0
         order: "stop-first"
-      {{- if ne $node_label_role "" }}
-      placement:
-        constraints:
-          - node.labels.role == {{$node_label_role}}
-      {{- end}}
     {{- end}}

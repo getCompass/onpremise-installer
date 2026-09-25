@@ -30,8 +30,8 @@ MYSQL_SYSTEM_PORT={{$domino.service.mysql.port}}
 MCACHE_HOST=memcached-{{$domino.label}}
 MCACHE_PORT=11211
 
-MANTICORE_HOST={{$domino.service.manticore.host}}
-MANTICORE_PORT={{$domino.service.manticore.external_port}}
+MANTICORE_HOST=manticore-{{$domino.label}}
+MANTICORE_PORT={{$domino.service.manticore.port}}
 
 RABBIT_HOST=rabbit-{{$domino.label}}
 RABBIT_PORT=5672

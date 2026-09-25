@@ -488,8 +488,11 @@ def send_userbot_sync_notice(message: str):
         userbot_data = json.loads(json_str) if json_str != "" else {}
 
     is_need_response = True if is_userbot_notice_test else False
-    scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
+    is_sent = scriptutils.send_userbot_notice(userbot_data["userbot_token"], userbot_data["notice_chat_id"],
         userbot_data["notice_domain"], message, userbot_data["userbot_version"], is_need_response)
+
+    if not is_sent:
+        logger.error(f"Не удалось отправить уведомление ботом: {message}")
 
 
 if is_userbot_notice_test:

@@ -32,3 +32,11 @@ start_octet: 10
 # Тип данных: булево значение, true\\false
 # Пример: master_state_changed_disable: true
 master_state_changed_disable: true
+
+# Внутренний IP-адрес или hostname второго сервера отказоустойчивости
+# значение обязательно, если заполнен service_label
+# порт и протокол указывать не нужно
+#
+# Тип данных: строка
+# Пример: peer_host: "192.168.1.5"
+peer_host: ""
