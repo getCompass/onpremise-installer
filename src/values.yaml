@@ -214,7 +214,7 @@ projects:
       nginx:
         external_https_port: 20101
       php_monolith:
-        tag: "v6.8.0-1"
+        tag: "v6.9.1-1"
       go_event:
         # очереди rabbitmq
         rabbit_queue: "monolith_go_event_queue"
