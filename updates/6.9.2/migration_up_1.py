@@ -53,8 +53,8 @@ with open(auth_config_path, "r") as file:
 with open(auth_config_path, "r") as file:
     content = file.read().rstrip()
 
-# добавляем актуальный параметр в конец конфига
-content += f"""
+# добавляем параметры SMS-операторов после настроек i-Digital
+new_block = """
 
 # Настройки SMS-оператора SMS Aero
 
@@ -156,6 +156,12 @@ smsc.app_name:
 smsc.api_key:
 
 """
+
+anchor = re.search(r'(?m)^[ \t]*idigital\.api_header_key[ \t]*:[^\n]*', content)
+if anchor:
+    content = content[:anchor.end()] + new_block + content[anchor.end():].lstrip("\n")
+else:
+    content += new_block
 
 # сохраняем изменения
 auth_config = open(auth_config_path, "w")
