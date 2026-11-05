@@ -421,7 +421,7 @@ projects:
         subnet: "172.20.5.0/24"
       service:
         php_file_node:
-          tag: "v6.9.2-2"
+          tag: "v6.9.5"
         mysql:
           host: "mysql-file1"
           root_password: "4321"
