@@ -15,6 +15,16 @@ location /auth {
 ########################################################
 # СТАТИКА, НАДЕЕМСЯ, ЧТО ОНО НЕ ПЕРЕСЕЧЕТСЯ С БАЛАНСЕРОМ
 ########################################################
+
+# Временные загрузки не должны попадать в статическую раздачу.
+location = {{$locprefix}}/files/tmp {
+	return 404;
+}
+
+location ^~ {{$locprefix}}/files/tmp/ {
+	return 404;
+}
+
 location {{$locprefix}}/files/ {
 
 	{{- if eq .file_access_restriction_mode "auth"}}
@@ -92,14 +102,17 @@ location = {{$locprefix}}/api/v1/files/tryUpload {
 	upload_pass @uploader;
 
 	# Store files to this directory
-	upload_store /tmp/files/;
-	upload_store_access user:rw group:rw all:rw;
+	upload_store /app/www/files/tmp/;
+	upload_store_access user:rw group:r all:r;
 	upload_max_file_size {{.max_file_size_mb}}m;
 
 	# Set specified fields in request body
 	upload_set_form_field $upload_field_name.name "$upload_file_name";
 	upload_set_form_field $upload_field_name.content_type "$upload_content_type";
 	upload_set_form_field $upload_field_name.path "$upload_tmp_path";
+
+	# SHA-1 вычисляется при приёме файла, без повторного чтения из хранилища в PHP.
+	upload_aggregate_form_field "$upload_field_name.server_sha1" "$upload_file_sha1";
 
 	upload_pass_form_field "^token$";
 	upload_pass_form_field "^original_file_name$";
@@ -115,6 +128,13 @@ location @uploader {
 
 	rewrite {{$locprefix}}/api/v1/files/tryUpload /api/v1/index.php?$args&api_method=files.tryUpload? break;
 	fastcgi_pass $upstream_file_node;
+
+	# Локальный fastcgi_param отменяет наследование параметров из основного конфига.
+	include /etc/nginx/fastcgi_params;
+	fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+	fastcgi_param SERVER_NAME $http_host;
+	# Только внутренний обработчик обычной загрузки подтверждает происхождение SHA-1.
+	fastcgi_param UPLOAD_HASH_FROM_NGINX 1;
 }
 
 # загрузка файлов по частям
@@ -136,9 +156,9 @@ location = {{$locprefix}}/api/v1/files/tryPartialUpload {
 	upload_pass_args on;
 
 	# Store files to this directory
-	upload_store /tmp/files;
+	upload_store /app/www/files/tmp;
 	upload_state_store /tmp/chunks;
-	upload_store_access user:rw group:rw all:rw;
+	upload_store_access user:rw group:r all:r;
 	upload_max_file_size {{.max_file_size_mb}}m;
 
 	# Set specified fields in request body

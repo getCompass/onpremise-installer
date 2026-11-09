@@ -517,6 +517,19 @@ def create_dir(value: str, owner: str = None, mode: int = 0o755):
     return str(path.resolve())
 
 
+def create_file_storage_dir(value: str, owner: str = None, mode: int = 0o755):
+    path = create_dir(value, owner, mode)
+
+    # UID/GID контейнерных nginx и PHP не зависят от имён пользователей на хосте.
+    # Меняем только каталог новых загрузок, не существующие файлы и подкаталоги.
+    upload_tmp = Path(path) / "tmp"
+    upload_tmp.mkdir(exist_ok=True, mode=0o700)
+    os.chown(str(upload_tmp), 33, 33)
+    os.chmod(str(upload_tmp), 0o700)
+
+    return path
+
+
 def strtolower(value):
     if isinstance(value, str):
         return value.lower()
@@ -1344,7 +1357,7 @@ required_specific_project_fields = {
             "args": ["_global.root_mount_path"],
             "type": "str",
             "ask": False,
-            "post_function": create_dir,
+            "post_function": create_file_storage_dir,
             "post_args": ["www-data", 0o777],
         },
         {

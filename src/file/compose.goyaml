@@ -16,15 +16,15 @@ configs:
     name: "{{.stack_name}}_nginx_include-{{.config_revisions.project.nginx_include.conf}}"
     file: ".project.nginx_include.conf"
   nginx-conf:
-    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
-    file: ".global.nginx.conf"
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.project.nginx.conf}}"
+    file: ".project.nginx.conf"
   file-auto-deletion-conf:
     name: "{{.stack_name}}_file_conf-{{.config_revisions.project.file_auto_deletion.conf}}"
     file: ".project.file_auto_deletion.conf"
 services:
   ## NGINX
   nginx-{{$file_node.label}}:
-    image: "{{.registry_service_path}}/nginx:master"
+    image: "{{.registry_service_path}}/nginx:1.30.6-1"
     networks:
       - "file-node-private"
     ports:
@@ -44,6 +44,7 @@ services:
       - "{{.root_mount_path}}/nginx/ssl:/etc/nginx/ssl/"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/home/files/"
+      - "{{.root_mount_path}}/files:/app/www/files/"
   # MYSQL
   mysql-{{$file_node.label}}:
     image: "{{.registry_service_path}}/mysql:8.0.28"
@@ -128,6 +129,7 @@ services:
     volumes:
       - "{{get_trusted_cert_path_by_os}}:/etc/ssl/certs:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
+      - "{{.root_mount_path}}/files:/app/www/files/"
     healthcheck:
       test: "nc -z 127.0.0.1 9000"
       interval: "5s"

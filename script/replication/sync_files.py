@@ -154,6 +154,8 @@ class SyncFiles:
 
         # для файлов приложения ищем изменённые файлы
         if sync_config.get("name", "unknown") == "app_files":
+            # До пользовательских include: незавершённые загрузки не реплицируем.
+            base_cmd.append("--exclude=/tmp/***")
             changed_files = self.find_changed_app_files(source)
             if len(changed_files) > 0:
                 base_cmd.append(f"--files-from={str(self.app_files_tmp)}")
@@ -213,8 +215,8 @@ class SyncFiles:
             logger.warning(f"Исходная директория не существует: {source}")
             return False
 
-        #  получить временную метку начала синхронизации
-        if name == "app_files" and self.app_files_change_log.exists():
+        # Даже первый полный синк должен оставить изменения после начала следующему циклу.
+        if name == "app_files":
             self.app_files_sync_start_timestamp = time.time()
 
         # получаем команду для выполнения
@@ -322,16 +324,21 @@ class SyncFiles:
     def find_changed_app_files(self, source):
         changed_files = []
         try:
+            # Временные загрузки лежат на том же mount, что и постоянные файлы.
+            # Исключаем только корневой tmp, не одноимённые каталоги компаний.
+            cmd = ["find", str(source), "-path", str(Path(source) / "tmp"),
+                   "-prune", "-o", "-type", "f"]
             if self.app_files_change_log.exists():
-                # поиск файлов новее change_log
-                cmd = ["find", str(source), "-type", "f", "-newer", str(self.app_files_change_log)]
+                # rename сохраняет mtime; -cnewer сравнивает ctime файла с MTIME watermark.
+                cmd.extend(["(", "-newer", str(self.app_files_change_log), "-o",
+                            "-cnewer", str(self.app_files_change_log), ")"])
                 mtime_str = datetime.fromtimestamp(self.app_files_change_log.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
                 logger.debug(f"Поиск app_files новее чем {mtime_str}, используем файл {str(self.app_files_change_log)}")
             else:
                 # для первого запуска ищем все файлы
-                cmd = ["find", str(source), "-type", "f"]
                 logger.debug("Первый запуск для app_files - ищем все файлы")
 
+            cmd.append("-print")
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, cwd=FIND_APP_FILES_CWD)
 
             file_count = 0
@@ -348,6 +355,7 @@ class SyncFiles:
                         file_count += 1
                         if file_count % 10000 == 0:
                             logger.debug(f"Обработано в find для app_files: {file_count} файлов...")
+            process.stdout.close()
             process.wait(timeout=300)
 
             if process.returncode == 0:
@@ -380,11 +388,12 @@ class SyncFiles:
     def update_change_log(self):
         try:
             self.app_files_change_log.parent.mkdir(parents=True, exist_ok=True)
-            if self.app_files_sync_start_timestamp:
+            # Создаём watermark и на первом проходе, затем выставляем время его начала.
+            self.app_files_change_log.touch(exist_ok=True)
+            if self.app_files_sync_start_timestamp is not None:
                 os.utime(self.app_files_change_log, (self.app_files_sync_start_timestamp, self.app_files_sync_start_timestamp))
                 logger.debug(f"Обновили change log для app_files: {self.app_files_change_log}")
             else:
-                self.app_files_change_log.touch()
                 logger.debug(f"Создали change log для app_files: {self.app_files_change_log}")
             return True
         except Exception as e:

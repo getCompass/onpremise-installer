@@ -88,8 +88,8 @@ configs:
   ## ОБЩИЕ КОНФИГУРАЦИИ
   # конфигурация веб-сервера
   nginx-conf:
-    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.global.nginx.conf}}"
-    file: ".global.nginx.conf"
+    name: "{{.stack_name}}_nginx_conf-{{.config_revisions.project.file.nginx.conf}}"
+    file: ".project.file.nginx.conf"
   nginx-sites-enabled:
     name: "{{.stack_name}}_nginx_sites_enabled-{{.config_revisions.project.nginx_sites_enabled.conf}}"
     file: ".project.nginx_sites_enabled.conf"
@@ -413,7 +413,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:1.28.2-1"
+    image: "{{.registry_service_path}}/nginx:1.30.6-1"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
@@ -437,7 +437,7 @@ services:
         condition: "any"
         window: "10s"
     healthcheck:
-      test: "nc -z 127.0.0.1 80"
+      test: "nc -z 127.0.0.1 443"
       interval: "5s"
       timeout: "10s"
       retries: 3
@@ -473,6 +473,7 @@ services:
       - "{{get_trusted_cert_path_by_os}}/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
       - "{{.root_mount_path}}/tmp_files:/tmp/files/"
       - "{{.root_mount_path}}/files:/home/files/"
+      - "{{.root_mount_path}}/files:/app/www/files/"
     <<: *log-rule-default
 
   # RABBIT
