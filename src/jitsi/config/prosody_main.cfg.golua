@@ -93,6 +93,7 @@ Component "conference.meet.jitsi" "muc"
         "muc_domain_mapper";
         "token_verification";
         "muc_password_whitelist";
+        "remote_control";
     }
     admins = { "focus@auth.meet.jitsi" }
     muc_password_whitelist = {

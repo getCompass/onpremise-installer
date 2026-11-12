@@ -168,7 +168,7 @@ projects:
   web:
     is_enabled: false
     service:
-      tag: "v6.9.4"
+      tag: "v6.9.6"
       external_port: 20120
   monolith:
     triggers:
@@ -667,7 +667,7 @@ projects:
     static_updated_at: 1736153331
     subdomain: ""
     subdir: "/-/c"
-    tag: "v6.9.4"
+    tag: "v6.9.6"
     jwt:
       app_id: "compass"
       app_secret: ""
@@ -692,7 +692,7 @@ projects:
         tag: "v6.7.3"
         port: 20111
       prosody:
-        tag: "v6.8.0"
+        tag: "v6.9.6"
         serve_port: 20112
         v0:
           serve_port: 20113
