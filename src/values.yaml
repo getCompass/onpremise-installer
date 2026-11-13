@@ -492,7 +492,7 @@ projects:
           rabbit_queue: "go_company_queue"
           rabbit_exchange: "go_company_exchange"
         go_company_cache:
-          tag: "v6.7.8"
+          tag: "v6.9.5-1"
           rabbit_queue: "go_company_cache_queue"
           rabbit_exchange: "go_company_cache_exchange"
         go_event:
