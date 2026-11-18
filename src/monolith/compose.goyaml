@@ -413,7 +413,7 @@ services:
   ## COMPASS MONOLITH
   # SINGLE NGINX
   nginx-{{.projects.monolith.label}}:
-    image: "{{.registry_service_path}}/nginx:1.30.6-1"
+    image: "{{.registry_service_path}}/nginx:1.31.9-1"
     networks:
       monolith-{{$service_label}}-private:
         aliases:
